@@ -15,7 +15,27 @@ namespace Host.Filters
                 return;
             }
 
-            // 2. Only auto-wrap for ObjectResult (Ok, Created, BadRequest, Problem, etc.)
+            // 2. Handle StatusCodeResult (e.g. return Ok(), return StatusCode(200))
+            if (context.Result is StatusCodeResult statusCodeResult)
+            {
+                if (statusCodeResult.StatusCode == StatusCodes.Status204NoContent)
+                {
+                    await next();
+                    return;
+                }
+
+                var metaResult = context.HttpContext.BuildMeta(statusCodeResult.StatusCode);
+                var wrapped = ApiResponse.Success(null, metaResult);
+                context.Result = new ObjectResult(wrapped)
+                {
+                    StatusCode = statusCodeResult.StatusCode,
+                    DeclaredType = typeof(ApiResponse)
+                };
+                await next();
+                return;
+            }
+
+            // 3. Only auto-wrap for ObjectResult (Ok, Created, BadRequest, Problem, etc.)
             // Bypass FileResult, EmptyResult, etc. to avoid breaking file downloads or empty responses
             if (context.Result is not ObjectResult objectResult)
             {
