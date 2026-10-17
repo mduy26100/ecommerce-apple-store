@@ -1,5 +1,7 @@
 using Application.Common.Interfaces.Persistence;
 using Domain.Constants;
+using Domain.Entities.Catalog;
+using Domain.Entities.Sales;
 using Infrastructure.Identity.Models;
 
 namespace Infrastructure.Persistence
@@ -10,7 +12,23 @@ namespace Infrastructure.Persistence
         {
         }
 
+        // Identity & Security
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+        // Catalog Module
+        public DbSet<Category> Categories => Set<Category>();
+        public DbSet<Product> Products => Set<Product>();
+        public DbSet<Color> Colors => Set<Color>();
+        public DbSet<StorageOption> StorageOptions => Set<StorageOption>();
+        public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+        public DbSet<VariantImage> VariantImages => Set<VariantImage>();
+        public DbSet<ProductSpecification> ProductSpecifications => Set<ProductSpecification>();
+
+        // Sales Module
+        public DbSet<Cart> Carts => Set<Cart>();
+        public DbSet<CartItem> CartItems => Set<CartItem>();
+        public DbSet<Order> Orders => Set<Order>();
+        public DbSet<OrderItem> OrderItems => Set<OrderItem>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
