@@ -10,6 +10,7 @@ import ColorsPage from "@pages/admin/Colors/ColorsPage";
 import StorageOptionsPage from "@pages/admin/StorageOptions/StorageOptionsPage";
 import CategoriesPage from "@pages/admin/Categories/CategoriesPage";
 import ProductsPage from "@pages/admin/Products/ProductsPage";
+import OrdersPage from "@pages/admin/Orders/OrdersPage";
 import UsersPage from "@pages/admin/Users/UsersPage";
 import RolesPage from "@pages/admin/Roles/RolesPage";
 import TenantsPage from "@pages/admin/Tenants/TenantsPage";
@@ -63,6 +64,10 @@ const router = createBrowserRouter([
           {
             path: "products",
             element: <ProductsPage />,
+          },
+          {
+            path: "orders",
+            element: <OrdersPage />,
           },
           {
             path: "colors",

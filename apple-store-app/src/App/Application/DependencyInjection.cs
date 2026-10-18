@@ -5,6 +5,7 @@ using Application.Features.Catalog.ProductSpecifications.Services;
 using Application.Features.Catalog.ProductVariants.Services;
 using Application.Features.Catalog.StorageOptions.Services;
 using Application.Features.Catalog.VariantImages.Services;
+using Application.Features.Sales.Orders.Services;
 
 namespace Application
 {
@@ -19,6 +20,7 @@ namespace Application
             services.AddScoped<IProductVariantService, ProductVariantService>();
             services.AddScoped<IVariantImageService, VariantImageService>();
             services.AddScoped<IProductSpecificationService, ProductSpecificationService>();
+            services.AddScoped<IOrderService, OrderService>();
 
             return services;
         }

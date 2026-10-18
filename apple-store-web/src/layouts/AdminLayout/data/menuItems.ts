@@ -13,6 +13,7 @@ import {
   DatabaseOutlined,
   FolderOutlined,
   ShoppingOutlined,
+  OrderedListOutlined,
 } from "@ant-design/icons";
 import type { MenuItem } from "../models/menu-item.model";
 import { USER_ROLES } from "@core/constants/role.constants";
@@ -33,7 +34,7 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: "catalog-management",
-    label: "Quản lý sản phẩm",
+    label: "Quản lý sản phẩm & Đơn hàng",
     icon: React.createElement(ClusterOutlined),
     children: [
       {
@@ -47,6 +48,12 @@ export const menuItems: MenuItem[] = [
         label: "Sản phẩm",
         path: "/admin/products",
         icon: React.createElement(ShoppingOutlined),
+      },
+      {
+        key: "orders",
+        label: "Đơn hàng",
+        path: "/admin/orders",
+        icon: React.createElement(OrderedListOutlined),
       },
       {
         key: "colors",

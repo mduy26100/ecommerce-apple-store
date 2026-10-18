@@ -214,26 +214,26 @@
 
 ### GIAI ĐOẠN 8: QUẢN TRỊ ĐƠN HÀNG & SNAPSHOT (ORDERS MANAGEMENT)
 #### Backend (`apple-store-app`):
-- [ ] Tạo DTOs tại `Application/Features/Sales/Orders/DTOs/` (`OrderSummaryDto.cs`, `OrderDetailDto.cs`, `OrderItemDto.cs`, `OrderPagedRequest.cs`, `UpdateOrderStatusRequest.cs`, `CancelOrderRequest.cs`)
-- [ ] Tạo Specifications tại `Application/Features/Sales/Orders/Specifications/` (`OrderFilterSpec.cs`, `OrderWithDetailsSpec.cs`)
-- [ ] Tạo Service tại `Application/Features/Sales/Orders/Services/` (`IOrderService.cs`, `OrderService.cs`) xử lý chuyển đổi trạng thái đơn và hoàn kho khi hủy
-- [ ] Đăng ký DI trong `DependencyInjection.cs`
-- [ ] Tạo Controller tại `Host/Controllers/Manager/OrdersController.cs`
+- [x] Tạo DTOs tại `Application/Features/Sales/Orders/DTOs/` (`OrderSummaryDto.cs`, `OrderDetailDto.cs`, `OrderItemDto.cs`, `OrderPagedRequest.cs`, `UpdateOrderStatusRequest.cs`, `CancelOrderRequest.cs`)
+- [x] Tạo Specifications tại `Application/Features/Sales/Orders/Specifications/` (`OrderFilterSpec.cs`, `OrderWithDetailsSpec.cs`)
+- [x] Tạo Service tại `Application/Features/Sales/Orders/Services/` (`IOrderService.cs`, `OrderService.cs`) xử lý chuyển đổi trạng thái đơn và hoàn kho khi hủy
+- [x] Đăng ký DI trong `DependencyInjection.cs`
+- [x] Tạo Controller tại `Host/Controllers/Manager/OrdersController.cs`
 
 #### Frontend (`apple-store-web`):
-- [ ] Tạo types tại `src/features/admin/orders/types/order.types.ts`
-- [ ] Tạo API client tại `src/features/admin/orders/api/orders.api.ts`
-- [ ] Tạo hooks React Query tại `src/features/admin/orders/hooks/useOrders.ts`
-- [ ] Tạo components: `OrdersTable.tsx`, `OrderDetailDrawer.tsx` (hiển thị snapshot, timeline tiến trình, nút đổi trạng thái)
-- [ ] Tạo trang quản trị `src/pages/admin/Orders/OrdersPage.tsx`
-- [ ] Đăng ký route `/admin/orders` và mục menu "Đơn hàng" trong `menuItems.ts`
+- [x] Tạo types tại `src/features/admin/orders/types/order.types.ts`
+- [x] Tạo API client tại `src/features/admin/orders/api/orders.api.ts`
+- [x] Tạo hooks React Query tại `src/features/admin/orders/hooks/useOrders.ts`
+- [x] Tạo components: `OrdersTable.tsx`, `OrderDetailDrawer.tsx` (hiển thị snapshot, timeline tiến trình, nút đổi trạng thái)
+- [x] Tạo trang quản trị `src/pages/admin/Orders/OrdersPage.tsx`
+- [x] Đăng ký route `/admin/orders` và mục menu "Đơn hàng" trong `menuItems.ts`
 
 #### Kiểm thử & Hoàn tất:
-- [ ] Viết kịch bản `e2e/admin-orders.spec.ts` (xem danh sách đơn hàng, xem chi tiết snapshot sản phẩm, chuyển trạng thái đơn)
-- [ ] Chạy ngầm: `npx playwright test e2e/admin-orders.spec.ts`
-- [ ] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
-- [ ] Commit: `feat: implement manager orders and snapshot viewer` & `git push`
-- [ ] Đánh dấu `[x]` hoàn thành Giai đoạn 8
+- [x] Viết kịch bản `e2e/admin-orders.spec.ts` (xem danh sách đơn hàng, xem chi tiết snapshot sản phẩm, chuyển trạng thái đơn)
+- [x] Chạy ngầm: `npx playwright test e2e/admin-orders.spec.ts`
+- [x] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
+- [x] Commit: `feat: implement manager orders and snapshot viewer` & `git push`
+- [x] Đánh dấu `[x]` hoàn thành Giai đoạn 8
 
 ---
 
