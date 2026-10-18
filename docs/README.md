@@ -13,7 +13,7 @@
 
 ### Ngăn xếp Công nghệ (Tech Stack):
 - **Backend (`apple-store-app`):**
-  - .NET 9 Web API, Clean Architecture (Domain $\leftarrow$ Application $\leftarrow$ Infrastructure $\leftarrow$ Host).
+  - .NET 8 Web API, Clean Architecture (Domain $\leftarrow$ Application $\leftarrow$ Infrastructure $\leftarrow$ Host).
   - Entity Framework Core, SQL Server, Ardalis.Specification, Unit of Work & Generic Repository.
   - Tự động bọc chuẩn `ApiResponse<T>`, phân trang qua `PagedRequest` và `PagedList<T>`.
 - **Frontend (`apple-store-web`):**
@@ -95,7 +95,7 @@ Mỗi khi bắt đầu hoặc tiếp tục một phiên làm việc, AI Agent h�
 
 ## 5. Hướng Dẫn Khởi Động Nhanh Môi Trường Local (Local Quick Start)
 
-### 5.1. Khởi chạy Backend (.NET 9)
+### 5.1. Khởi chạy Backend (.NET 8)
 Từ thư mục gốc:
 ```powershell
 dotnet run --project apple-store-app/src/Host/Host.csproj --urls "http://localhost:5044"
