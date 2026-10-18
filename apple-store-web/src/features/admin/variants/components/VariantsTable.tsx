@@ -1,5 +1,5 @@
 import { Table, Tag, Button, Space, Popconfirm } from "antd";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, PictureOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { ProductVariantItem } from "../types/variant.types";
 
@@ -8,6 +8,7 @@ export interface VariantsTableProps {
   loading?: boolean;
   onEdit: (variant: ProductVariantItem) => void;
   onDelete: (id: number) => void;
+  onManageImages?: (variant: ProductVariantItem) => void;
   isDeleting?: boolean;
 }
 
@@ -24,6 +25,7 @@ export const VariantsTable = ({
   loading,
   onEdit,
   onDelete,
+  onManageImages,
   isDeleting,
 }: VariantsTableProps) => {
   const columns: ColumnsType<ProductVariantItem> = [
@@ -123,10 +125,19 @@ export const VariantsTable = ({
     {
       title: "Thao tác",
       key: "actions",
-      width: 100,
+      width: 130,
       align: "center",
       render: (_, record) => (
         <Space size="small">
+          {onManageImages && (
+            <Button
+              type="text"
+              icon={<PictureOutlined />}
+              onClick={() => onManageImages(record)}
+              className="text-amber-600 hover:bg-amber-50"
+              title="Bộ sưu tập ảnh"
+            />
+          )}
           <Button
             type="text"
             icon={<EditOutlined />}

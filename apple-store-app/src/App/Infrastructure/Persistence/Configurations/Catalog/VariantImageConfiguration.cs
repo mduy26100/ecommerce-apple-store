@@ -34,7 +34,7 @@ namespace Infrastructure.Persistence.Configurations.Catalog
             // Maximum one primary image per variant
             builder.HasIndex(x => new { x.ProductVariantId, x.IsPrimary })
                 .IsUnique()
-                .HasFilter("[IsPrimary] = 1");
+                .HasFilter("[IsPrimary] = 1 AND [IsDeleted] = 0");
         }
     }
 }

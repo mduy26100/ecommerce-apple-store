@@ -165,25 +165,25 @@
 
 ### GIAI ĐOẠN 6: QUẢN LÝ ẢNH BIẾN THỂ (VARIANT IMAGES & GALLERY)
 #### Backend (`apple-store-app`):
-- [ ] Tạo DTOs tại `Application/Features/Catalog/VariantImages/DTOs/` (`VariantImageDto.cs`, `CreateVariantImageRequest.cs`, `UpdateVariantImageRequest.cs`)
-- [ ] Tạo Specifications tại `Application/Features/Catalog/VariantImages/Specifications/` (`ImagesByVariantSpec.cs`)
-- [ ] Tạo Service tại `Application/Features/Catalog/VariantImages/Services/` (`IVariantImageService.cs`, `VariantImageService.cs`) hỗ trợ logic đặt ảnh đại diện chính duy nhất (`SetPrimaryAsync`)
-- [ ] Đăng ký DI trong `DependencyInjection.cs`
-- [ ] Tạo Controller tại `Host/Controllers/Manager/VariantImagesController.cs`
+- [x] Tạo DTOs tại `Application/Features/Catalog/VariantImages/DTOs/` (`VariantImageDto.cs`, `CreateVariantImageRequest.cs`, `UpdateVariantImageRequest.cs`)
+- [x] Tạo Specifications tại `Application/Features/Catalog/VariantImages/Specifications/` (`ImagesByVariantSpec.cs`)
+- [x] Tạo Service tại `Application/Features/Catalog/VariantImages/Services/` (`IVariantImageService.cs`, `VariantImageService.cs`) hỗ trợ logic đặt ảnh đại diện chính duy nhất (`SetPrimaryAsync`)
+- [x] Đăng ký DI trong `DependencyInjection.cs`
+- [x] Tạo Controller tại `Host/Controllers/Manager/VariantImagesController.cs`
 
 #### Frontend (`apple-store-web`):
-- [ ] Tạo types tại `src/features/admin/variant-images/types/variant-image.types.ts`
-- [ ] Tạo API client tại `src/features/admin/variant-images/api/variant-images.api.ts`
-- [ ] Tạo hooks React Query tại `src/features/admin/variant-images/hooks/useVariantImages.ts`
-- [ ] Tạo component Gallery: `VariantImageGallery.tsx` hiển thị lưới ảnh, nút đặt làm ảnh chính, nút xóa
-- [ ] Tích hợp vào Modal/Drawer quản lý biến thể
+- [x] Tạo types tại `src/features/admin/variant-images/types/variant-image.types.ts`
+- [x] Tạo API client tại `src/features/admin/variant-images/api/variant-images.api.ts`
+- [x] Tạo hooks React Query tại `src/features/admin/variant-images/hooks/useVariantImages.ts`
+- [x] Tạo component Gallery: `VariantImageGallery.tsx` hiển thị lưới ảnh, nút đặt làm ảnh chính, nút xóa
+- [x] Tích hợp vào Modal/Drawer quản lý biến thể
 
 #### Kiểm thử & Hoàn tất:
-- [ ] Viết kịch bản `e2e/admin-variant-images.spec.ts` (thêm ảnh cho variant, chuyển đổi ảnh đại diện chính)
-- [ ] Chạy ngầm: `npx playwright test e2e/admin-variant-images.spec.ts`
-- [ ] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
-- [ ] Commit: `feat: implement variant image gallery management` & `git push`
-- [ ] Đánh dấu `[x]` hoàn thành Giai đoạn 6
+- [x] Viết kịch bản `e2e/admin-variant-images.spec.ts` (thêm ảnh cho variant, chuyển đổi ảnh đại diện chính)
+- [x] Chạy ngầm: `npx playwright test e2e/admin-variant-images.spec.ts`
+- [x] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
+- [x] Commit: `feat: implement variant image gallery management` & `git push`
+- [x] Đánh dấu `[x]` hoàn thành Giai đoạn 6
 
 ---
 

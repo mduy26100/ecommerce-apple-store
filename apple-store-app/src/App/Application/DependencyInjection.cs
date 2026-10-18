@@ -3,6 +3,7 @@ using Application.Features.Catalog.Colors.Services;
 using Application.Features.Catalog.Products.Services;
 using Application.Features.Catalog.ProductVariants.Services;
 using Application.Features.Catalog.StorageOptions.Services;
+using Application.Features.Catalog.VariantImages.Services;
 
 namespace Application
 {
@@ -15,6 +16,7 @@ namespace Application
             services.AddScoped<IStorageOptionService, StorageOptionService>();
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<IProductVariantService, ProductVariantService>();
+            services.AddScoped<IVariantImageService, VariantImageService>();
 
             return services;
         }
