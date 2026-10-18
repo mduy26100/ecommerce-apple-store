@@ -13,7 +13,7 @@
 
 | Giai đoạn | Nội dung công việc | Trạng thái |
 | :--- | :--- | :--- |
-| **Giai đoạn 0** | Nền tảng môi trường & Cấu hình Playwright Headless | [ ] Chưa hoàn thành |
+| **Giai đoạn 0** | Nền tảng môi trường & Cấu hình Playwright Headless | [x] Hoàn thành |
 | **Giai đoạn 1** | Quản lý Màu sắc sản phẩm (Colors CRUD) | [ ] Chưa hoàn thành |
 | **Giai đoạn 2** | Quản lý Tùy chọn dung lượng (StorageOptions CRUD) | [ ] Chưa hoàn thành |
 | **Giai đoạn 3** | Quản trị Danh mục sản phẩm (Categories Admin UI) | [ ] Chưa hoàn thành |
@@ -31,13 +31,13 @@
 ---
 
 ### GIAI ĐOẠN 0: NỀN TẢNG MÔI TRƯỜNG & PLAYWRIGHT HEADLESS
-- [ ] Cài đặt `@playwright/test` và Chromium headless trong thư mục `apple-store-web`
-- [ ] Cấu hình file `apple-store-web/playwright.config.ts` với `headless: true`, `screenshot: 'off'`, `trace: 'off'`
-- [ ] Thêm script chạy test vào `apple-store-web/package.json`: `"test:e2e": "playwright test"`
-- [ ] Khởi chạy Backend (`dotnet run`) và Frontend (`npm run dev`) chạy ngầm, xác nhận cổng mạng 5044 và 5173 hoạt động
-- [ ] Tạo kịch bản kiểm thử mẫu `e2e/smoke-test.spec.ts` kiểm tra trang chủ và cổng admin
-- [ ] Chạy lệnh `npx playwright test e2e/smoke-test.spec.ts` và xác nhận PASS trên terminal
-- [ ] Commit: `chore: setup headless playwright testing environment` & `git push`
+- [x] Cài đặt `@playwright/test` và Chromium headless trong thư mục `apple-store-web`
+- [x] Cấu hình file `apple-store-web/playwright.config.ts` với `headless: true`, `screenshot: 'off'`, `trace: 'off'`
+- [x] Thêm script chạy test vào `apple-store-web/package.json`: `"test:e2e": "playwright test"`
+- [x] Khởi chạy Backend (`dotnet run`) và Frontend (`npm run dev`) chạy ngầm, xác nhận cổng mạng 5044 và 5173 hoạt động
+- [x] Tạo kịch bản kiểm thử mẫu `e2e/smoke-test.spec.ts` kiểm tra trang chủ và cổng admin
+- [x] Chạy lệnh `npx playwright test e2e/smoke-test.spec.ts` và xác nhận PASS trên terminal
+- [x] Commit: `chore: setup headless playwright testing environment` & `git push`
 
 ---
 
