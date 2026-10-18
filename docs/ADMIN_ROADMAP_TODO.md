@@ -3,6 +3,7 @@
 > **HƯỚNG DẪN DÀNH CHO AI AGENT & KỸ SƯ:**
 > - Tài liệu này là kim chỉ nam điều phối tiến độ. Mỗi khi bắt đầu một tính năng mới, hãy tìm mục `[ ]` đầu tiên chưa hoàn thành.
 > - Tuyệt đối làm theo trình tự từ trên xuống dưới, không nhảy cóc.
+> - **Môi trường Test - Thao tác DB thoải mái:** Toàn quyền Thêm, Sửa, Xóa dữ liệu thật trong Database (`AppleStoreDb`) qua UI hoặc API. Khuyến khích tạo dữ liệu sản phẩm Apple thực tế để làm giàu catalog cho hệ thống.
 > - Sau khi hoàn thành code BE + FE của một tính năng $\rightarrow$ **bắt buộc chạy kiểm thử Playwright Headless trong Terminal**.
 > - Chỉ khi toàn bộ kịch bản test báo **PASS 100%**, thực hiện commit theo chuẩn tại [GIT_WORKFLOW.md](file:///c:/Users/Admin/Documents/ecommerce-apple-store/docs/GIT_WORKFLOW.md), chủ động `git push`, sau đó **đổi `[ ]` thành `[x]`** trong file này rồi mới chuyển sang tính năng tiếp theo!
 

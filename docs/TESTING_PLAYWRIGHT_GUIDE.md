@@ -18,7 +18,18 @@ Tài liệu này là quy chuẩn bắt buộc tuyệt đối về việc chạy 
 
 ---
 
-## 2. Thiết Lập Môi Trường Kiểm Thử Playwright
+## 2. Chính Sách Thao Tác Dữ Liệu Thực Tế trong Database (Real Database Mutation Policy)
+
+> [!TIP]
+> **DỰ ÁN MÔI TRƯỜNG TEST - TOÀN QUYỀN THÊM / SỬA / XÓA DỮ LIỆU THẬT:**
+> - Đây là dự án phục vụ môi trường kiểm thử và phát triển nội bộ (`AppleStoreDb`). Do đó, **cho phép AI Agent và các kịch bản kiểm thử Playwright tự do Thêm, Sửa, Xóa dữ liệu trực tiếp trong Database** thông qua giao diện hoặc gọi API.
+> - **Tuyệt đối KHÔNG sợ làm bẩn database:** Không cần phải viết các hàm rollback phức tạp hoặc mock dữ liệu ảo. Việc thao tác dữ liệu sống (live data) giúp phản ánh chính xác nhất tính toàn vẹn của Clean Architecture, Entity Framework Core và các ràng buộc Foreign Key/Unique Index trong SQL Server.
+> - **Khuyến khích tạo dữ liệu sản phẩm Apple thực tế:** Khi viết test, hãy chủ động nhập các dữ liệu sát với thực tế thị trường (ví dụ: Danh mục *iPhone*, Màu *Titan Tự Nhiên*, Dung lượng *256GB*, Sản phẩm *iPhone 16 Pro*, Giá *28.990.000 đ*, Tồn kho *50*). Dữ liệu này sẽ được giữ lại làm dữ liệu mẫu (Seed Data) trực quan cho cả phân hệ Admin và Storefront.
+> - **Kiểm thử tính năng Xóa (Delete):** Có thể tạo dữ liệu mới rồi thực hiện xóa trực tiếp trên chính dữ liệu đó để xác nhận luồng xóa hoạt động trơn tru.
+
+---
+
+## 3. Thiết Lập Môi Trường Kiểm Thử Playwright
 
 Thư viện kiểm thử Playwright được cấu hình trực tiếp tại thư mục `apple-store-web/`:
 
@@ -62,7 +73,7 @@ export default defineConfig({
 
 ---
 
-## 3. Khởi Chạy Dịch Vụ Phục Vụ Kiểm Thử
+## 4. Khởi Chạy Dịch Vụ Phục Vụ Kiểm Thử
 
 Trước khi chạy bất kỳ kịch bản Playwright nào, 2 dịch vụ BE và FE cần phải đang hoạt động:
 
@@ -82,7 +93,7 @@ Frontend sẵn sàng tại `http://localhost:5173`.
 
 ---
 
-## 4. Cấu Trúc Thư Mục & Kịch Bản E2E
+## 5. Cấu Trúc Thư Mục & Kịch Bản E2E
 
 Toàn bộ các file kiểm thử được đặt trong thư mục:
 ```text
@@ -100,7 +111,7 @@ apple-store-web/e2e/
 
 ---
 
-## 5. Mẫu Kịch Bản Kiểm Thử Headless Chuẩn (E2E Test Template)
+## 6. Mẫu Kịch Bản Kiểm Thử Headless Chuẩn (E2E Test Template)
 
 Dưới đây là khuôn mẫu kịch bản chuẩn cho một tính năng Admin (ví dụ: `admin-colors.spec.ts`):
 
@@ -174,7 +185,7 @@ test.describe("Admin - Quản lý Màu sắc (Colors CRUD)", () => {
 
 ---
 
-## 6. Lệnh Chạy Kịch Bản Kiểm Thử trong Terminal
+## 7. Lệnh Chạy Kịch Bản Kiểm Thử trong Terminal
 
 ### Chạy một kịch bản đơn lẻ (Headless)
 ```bash
@@ -190,7 +201,7 @@ npx playwright test --reporter=list
 
 ---
 
-## 7. Quy Trình Xử Lý Khi Gặp Lỗi (Bug-Fixing Loop)
+## 8. Quy Trình Xử Lý Khi Gặp Lỗi (Bug-Fixing Loop)
 
 ```
        [ Chạy Playwright Headless trong Terminal ]

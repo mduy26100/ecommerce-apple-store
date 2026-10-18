@@ -60,6 +60,10 @@ Mọi tài liệu chuyên sâu được phân bổ có tổ chức trong thư m�
 - Thân commit: Cách 1 dòng trống, gồm các gạch đầu dòng `- ` chi tiết bằng tiếng Anh.
 - Tự động push lên nhánh chính (`git push origin main`) sau khi test PASS.
 
+### 3.5. Quyền Thao Tác Dữ Liệu Thực Tế trong Database (Free Real DB CRUD)
+- **Môi trường Test tự do 100%:** Đây là dự án phục vụ kiểm thử và phát triển, AI Agent và các kịch bản test Playwright được **toàn quyền Thêm, Sửa, Xóa dữ liệu trực tiếp trong cơ sở dữ liệu (`AppleStoreDb`)** qua giao diện Admin hoặc API mà không phải lo sợ làm bẩn database hay phải rollback dữ liệu.
+- **Khuyến khích tạo dữ liệu Apple thực tế:** Ưu tiên nhập các sản phẩm, biến thể, màu sắc, giá bán thật của hệ sinh thái Apple (ví dụ: *iPhone 16 Pro Max 256GB Titan Sa Mạc*, *MacBook Pro M4 Pro 24GB*, *AirPods Pro 2 USB-C*) để hệ thống có sẵn dữ liệu phong phú, sinh động cho cả Admin và Storefront.
+
 ---
 
 ## 4. Chu Trình Thực Thi Tự Động 8 Bước Của AI (The Autonomous Agent Loop)
