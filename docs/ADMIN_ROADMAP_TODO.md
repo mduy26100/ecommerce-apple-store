@@ -189,25 +189,26 @@
 
 ### GIAI ĐOẠN 7: QUẢN LÝ THÔNG SỐ KỸ THUẬT (PRODUCT SPECIFICATIONS CRUD)
 #### Backend (`apple-store-app`):
-- [ ] Tạo DTOs tại `Application/Features/Catalog/ProductSpecifications/DTOs/` (`ProductSpecificationDto.cs`, `CreateProductSpecificationRequest.cs`, `UpdateProductSpecificationRequest.cs`)
-- [ ] Tạo Specifications tại `Application/Features/Catalog/ProductSpecifications/Specifications/` (`SpecsByProductSpec.cs`)
-- [ ] Tạo Service tại `Application/Features/Catalog/ProductSpecifications/Services/` (`IProductSpecificationService.cs`, `ProductSpecificationService.cs`)
-- [ ] Đăng ký DI trong `DependencyInjection.cs`
-- [ ] Tạo Controller tại `Host/Controllers/Manager/ProductSpecificationsController.cs`
+- [x] Tạo DTOs tại `Application/Features/Catalog/ProductSpecifications/DTOs/` (`ProductSpecificationDto.cs`, `CreateProductSpecificationRequest.cs`, `UpdateProductSpecificationRequest.cs`)
+- [x] Tạo Specifications tại `Application/Features/Catalog/ProductSpecifications/Specifications/` (`SpecsByProductSpec.cs`)
+- [x] Tạo Service tại `Application/Features/Catalog/ProductSpecifications/Services/` (`IProductSpecificationService.cs`, `ProductSpecificationService.cs`)
+- [x] Đăng ký DI trong `DependencyInjection.cs`
+- [x] Tạo Controller tại `Host/Controllers/Manager/ProductSpecificationsController.cs`
 
 #### Frontend (`apple-store-web`):
-- [ ] Tạo types tại `src/features/admin/specifications/types/specification.types.ts`
-- [ ] Tạo API client tại `src/features/admin/specifications/api/specifications.api.ts`
-- [ ] Tạo hooks React Query tại `src/features/admin/specifications/hooks/useSpecifications.ts`
-- [ ] Tạo component `SpecificationsManager.tsx` hiển thị thông số theo nhóm `GroupName` và form thêm nhanh
-- [ ] Tích hợp vào màn hình quản lý sản phẩm
+- [x] Tạo types tại `src/features/admin/specifications/types/specification.types.ts`
+- [x] Tạo API client tại `src/features/admin/specifications/api/specifications.api.ts`
+- [x] Tạo hooks React Query tại `src/features/admin/specifications/hooks/useSpecifications.ts`
+- [x] Tạo component `SpecificationsManager.tsx` hiển thị thông số theo nhóm `GroupName` và form thêm nhanh
+- [x] Tích hợp vào màn hình quản lý sản phẩm
+- [x] Tích hợp ngăn kéo `ProductSpecificationsDrawer.tsx` và nút thao tác quản lý thông số trong `ProductsTable.tsx`
 
 #### Kiểm thử & Hoàn tất:
-- [ ] Viết kịch bản `e2e/admin-specifications.spec.ts` (thêm thông số "Màn hình - Kích thước - 6.3 inch", sửa, xóa)
-- [ ] Chạy ngầm: `npx playwright test e2e/admin-specifications.spec.ts`
-- [ ] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
-- [ ] Commit: `feat: implement product specifications management` & `git push`
-- [ ] Đánh dấu `[x]` hoàn thành Giai đoạn 7
+- [x] Viết kịch bản `e2e/admin-specifications.spec.ts` (thêm thông số "Màn hình - Kích thước - 6.3 inch", sửa, xóa)
+- [x] Chạy ngầm: `npx playwright test e2e/admin-specifications.spec.ts`
+- [x] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
+- [x] Commit: `feat: implement product specifications management` & `git push`
+- [x] Đánh dấu `[x]` hoàn thành Giai đoạn 7
 
 ---
 

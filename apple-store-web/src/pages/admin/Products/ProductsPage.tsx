@@ -6,6 +6,7 @@ import {
   ProductsTable,
   ProductFormModal,
   ProductVariantsDrawer,
+  ProductSpecificationsDrawer,
   useProductsPaged,
   useCreateProduct,
   useUpdateProduct,
@@ -32,6 +33,8 @@ export const ProductsPage = () => {
   const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
   const [variantDrawerOpen, setVariantDrawerOpen] = useState(false);
   const [selectedProductForVariants, setSelectedProductForVariants] = useState<ProductItem | null>(null);
+  const [specDrawerOpen, setSpecDrawerOpen] = useState(false);
+  const [selectedProductForSpecs, setSelectedProductForSpecs] = useState<ProductItem | null>(null);
 
   const { data, isLoading } = useProductsPaged(params);
   const { data: categories = [] } = useCategoriesAll();
@@ -126,6 +129,16 @@ export const ProductsPage = () => {
     setSelectedProductForVariants(null);
   };
 
+  const handleManageSpecifications = (product: ProductItem) => {
+    setSelectedProductForSpecs(product);
+    setSpecDrawerOpen(true);
+  };
+
+  const handleCloseSpecDrawer = () => {
+    setSpecDrawerOpen(false);
+    setSelectedProductForSpecs(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -186,6 +199,7 @@ export const ProductsPage = () => {
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
           onManageVariants={handleManageVariants}
+          onManageSpecifications={handleManageSpecifications}
           isDeleting={deleteMutation.isPending}
         />
       </Card>
@@ -202,6 +216,12 @@ export const ProductsPage = () => {
         open={variantDrawerOpen}
         product={selectedProductForVariants}
         onClose={handleCloseVariantDrawer}
+      />
+
+      <ProductSpecificationsDrawer
+        open={specDrawerOpen}
+        product={selectedProductForSpecs}
+        onClose={handleCloseSpecDrawer}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import {
   DeleteOutlined,
   ShoppingOutlined,
   AppstoreOutlined,
+  SlidersOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { ProductItem } from "../types/product.types";
@@ -15,6 +16,7 @@ export interface ProductsTableProps {
   onEdit: (product: ProductItem) => void;
   onDelete: (id: number) => void;
   onManageVariants?: (product: ProductItem) => void;
+  onManageSpecifications?: (product: ProductItem) => void;
   isDeleting?: boolean;
 }
 
@@ -33,6 +35,7 @@ export const ProductsTable = ({
   onEdit,
   onDelete,
   onManageVariants,
+  onManageSpecifications,
   isDeleting,
 }: ProductsTableProps) => {
   const columns: ColumnsType<ProductItem> = [
@@ -137,7 +140,7 @@ export const ProductsTable = ({
     {
       title: "Thao tác",
       key: "actions",
-      width: 140,
+      width: 160,
       align: "center",
       render: (_, record) => (
         <Space size="small">
@@ -148,6 +151,17 @@ export const ProductsTable = ({
               onClick={() => onManageVariants(record)}
               className="text-purple-600 hover:bg-purple-50"
               title="Quản lý phiên bản"
+              aria-label="Quản lý phiên bản"
+            />
+          )}
+          {onManageSpecifications && (
+            <Button
+              type="text"
+              icon={<SlidersOutlined />}
+              onClick={() => onManageSpecifications(record)}
+              className="text-emerald-600 hover:bg-emerald-50"
+              title="Quản lý thông số"
+              aria-label="Quản lý thông số"
             />
           )}
           <Button
@@ -156,6 +170,7 @@ export const ProductsTable = ({
             onClick={() => onEdit(record)}
             className="text-blue-600 hover:bg-blue-50"
             title="Chỉnh sửa"
+            aria-label="Chỉnh sửa sản phẩm"
           />
           <Popconfirm
             title="Xác nhận xóa"
