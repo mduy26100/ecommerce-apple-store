@@ -1,0 +1,12 @@
+/**
+ * Authentication status constants.
+ * Prevents using magic strings for state checks.
+ */
+export const AUTH_STATUS = {
+  CHECKING_AUTH: 'CHECKING_AUTH',
+  AUTHENTICATED: 'AUTHENTICATED',
+  UNAUTHENTICATED: 'UNAUTHENTICATED',
+  NETWORK_TIMEOUT: 'NETWORK_TIMEOUT',
+} as const;
+
+export type AuthStatus = typeof AUTH_STATUS[keyof typeof AUTH_STATUS];

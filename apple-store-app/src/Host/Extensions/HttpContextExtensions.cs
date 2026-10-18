@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Application.Wrappers;
 
 namespace Host.Extensions

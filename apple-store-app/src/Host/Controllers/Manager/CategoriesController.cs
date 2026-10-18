@@ -14,9 +14,6 @@ namespace Host.Controllers.Manager
             _categoryService = categoryService;
         }
 
-        /// <summary>
-        /// Lấy danh sách danh mục có phân trang, tìm kiếm và lọc trạng thái (dành cho quản trị).
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetPaged([FromQuery] CategoryPagedRequest request, CancellationToken cancellationToken)
         {
@@ -24,9 +21,6 @@ namespace Host.Controllers.Manager
             return Ok(result);
         }
 
-        /// <summary>
-        /// Lấy chi tiết danh mục theo Id phục vụ form chỉnh sửa.
-        /// </summary>
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
         {
@@ -34,9 +28,6 @@ namespace Host.Controllers.Manager
             return Ok(result);
         }
 
-        /// <summary>
-        /// Tạo mới danh mục sản phẩm.
-        /// </summary>
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request, CancellationToken cancellationToken)
         {
@@ -44,9 +35,6 @@ namespace Host.Controllers.Manager
             return Ok();
         }
 
-        /// <summary>
-        /// Cập nhật thông tin danh mục sản phẩm.
-        /// </summary>
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCategoryRequest request, CancellationToken cancellationToken)
         {
@@ -54,9 +42,6 @@ namespace Host.Controllers.Manager
             return Ok();
         }
 
-        /// <summary>
-        /// Xoá mềm danh mục sản phẩm.
-        /// </summary>
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
         {

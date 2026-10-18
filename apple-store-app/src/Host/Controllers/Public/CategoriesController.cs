@@ -15,9 +15,6 @@ namespace Host.Controllers.Public
             _categoryService = categoryService;
         }
 
-        /// <summary>
-        /// Lấy toàn bộ danh mục đang hoạt động phục vụ hiển thị menu / giao diện người dùng.
-        /// </summary>
         [HttpGet]
         [HttpGet("all")]
         public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
@@ -26,9 +23,6 @@ namespace Host.Controllers.Public
             return Ok(result);
         }
 
-        /// <summary>
-        /// Lấy chi tiết danh mục theo Id.
-        /// </summary>
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
         {
@@ -36,9 +30,6 @@ namespace Host.Controllers.Public
             return Ok(result);
         }
 
-        /// <summary>
-        /// Lấy chi tiết danh mục theo Slug (URL thân thiện).
-        /// </summary>
         [HttpGet("slug/{slug}")]
         public async Task<IActionResult> GetBySlug(string slug, CancellationToken cancellationToken)
         {
