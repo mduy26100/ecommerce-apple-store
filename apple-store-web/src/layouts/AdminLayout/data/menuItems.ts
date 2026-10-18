@@ -10,6 +10,7 @@ import {
   ProfileOutlined,
   PartitionOutlined,
   BgColorsOutlined,
+  DatabaseOutlined,
 } from "@ant-design/icons";
 import type { MenuItem } from "../models/menu-item.model";
 import { USER_ROLES } from "@core/constants/role.constants";
@@ -38,6 +39,12 @@ export const menuItems: MenuItem[] = [
         label: "Màu sắc",
         path: "/admin/colors",
         icon: React.createElement(BgColorsOutlined),
+      },
+      {
+        key: "storage-options",
+        label: "Dung lượng",
+        path: "/admin/storage-options",
+        icon: React.createElement(DatabaseOutlined),
       },
     ],
   },

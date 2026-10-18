@@ -15,7 +15,7 @@
 | :--- | :--- | :--- |
 | **Giai đoạn 0** | Nền tảng môi trường & Cấu hình Playwright Headless | [x] Hoàn thành |
 | **Giai đoạn 1** | Quản lý Màu sắc sản phẩm (Colors CRUD) | [x] Hoàn thành |
-| **Giai đoạn 2** | Quản lý Tùy chọn dung lượng (StorageOptions CRUD) | [ ] Chưa hoàn thành |
+| **Giai đoạn 2** | Quản lý Tùy chọn dung lượng (StorageOptions CRUD) | [x] Hoàn thành |
 | **Giai đoạn 3** | Quản trị Danh mục sản phẩm (Categories Admin UI) | [ ] Chưa hoàn thành |
 | **Giai đoạn 4** | Quản lý Dòng sản phẩm (Products CRUD) | [ ] Chưa hoàn thành |
 | **Giai đoạn 5** | Quản lý Biến thể & Tồn kho (ProductVariants CRUD) | [ ] Chưa hoàn thành |
@@ -68,26 +68,26 @@
 
 ### GIAI ĐOẠN 2: QUẢN LÝ TÙY CHỌN DUNG LƯỢNG (STORAGE OPTIONS CRUD)
 #### Backend (`apple-store-app`):
-- [ ] Tạo DTOs tại `Application/Features/Catalog/StorageOptions/DTOs/` (`StorageOptionDto.cs`, `CreateStorageOptionRequest.cs`, `UpdateStorageOptionRequest.cs`, `StorageOptionPagedRequest.cs`)
-- [ ] Tạo Specifications tại `Application/Features/Catalog/StorageOptions/Specifications/` (`StorageOptionFilterSpec.cs`, `StorageOptionByNameSpec.cs`)
-- [ ] Tạo Service tại `Application/Features/Catalog/StorageOptions/Services/` (`IStorageOptionService.cs`, `StorageOptionService.cs`)
-- [ ] Đăng ký DI trong `DependencyInjection.cs`
-- [ ] Tạo Controllers tại `Host/Controllers/Manager/StorageOptionsController.cs` và `Host/Controllers/Public/StorageOptionsController.cs`
+- [x] Tạo DTOs tại `Application/Features/Catalog/StorageOptions/DTOs/` (`StorageOptionDto.cs`, `CreateStorageOptionRequest.cs`, `UpdateStorageOptionRequest.cs`, `StorageOptionPagedRequest.cs`)
+- [x] Tạo Specifications tại `Application/Features/Catalog/StorageOptions/Specifications/` (`StorageOptionFilterSpec.cs`, `StorageOptionByNameSpec.cs`)
+- [x] Tạo Service tại `Application/Features/Catalog/StorageOptions/Services/` (`IStorageOptionService.cs`, `StorageOptionService.cs`)
+- [x] Đăng ký DI trong `DependencyInjection.cs`
+- [x] Tạo Controllers tại `Host/Controllers/Manager/StorageOptionsController.cs` và `Host/Controllers/Public/StorageOptionsController.cs`
 
 #### Frontend (`apple-store-web`):
-- [ ] Tạo types tại `src/features/admin/storage-options/types/storage.types.ts`
-- [ ] Tạo API client tại `src/features/admin/storage-options/api/storage.api.ts`
-- [ ] Tạo hooks React Query tại `src/features/admin/storage-options/hooks/useStorageOptions.ts`
-- [ ] Tạo components: `StorageOptionsTable.tsx`, `StorageOptionFormModal.tsx`
-- [ ] Tạo trang `src/pages/admin/StorageOptions/StorageOptionsPage.tsx`
-- [ ] Đăng ký route `/admin/storage-options` và menu sidebar `menuItems.ts`
+- [x] Tạo types tại `src/features/admin/storage-options/types/storage.types.ts`
+- [x] Tạo API client tại `src/features/admin/storage-options/api/storage.api.ts`
+- [x] Tạo hooks React Query tại `src/features/admin/storage-options/hooks/useStorageOptions.ts`
+- [x] Tạo components: `StorageOptionsTable.tsx`, `StorageOptionFormModal.tsx`
+- [x] Tạo trang `src/pages/admin/StorageOptions/StorageOptionsPage.tsx`
+- [x] Đăng ký route `/admin/storage-options` và menu sidebar `menuItems.ts`
 
 #### Kiểm thử & Hoàn tất:
-- [ ] Viết kịch bản `e2e/admin-storage-options.spec.ts`
-- [ ] Chạy ngầm: `npx playwright test e2e/admin-storage-options.spec.ts`
-- [ ] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
-- [ ] Commit: `feat: implement manager storage options module` & `git push`
-- [ ] Đánh dấu `[x]` hoàn thành Giai đoạn 2
+- [x] Viết kịch bản `e2e/admin-storage-options.spec.ts`
+- [x] Chạy ngầm: `npx playwright test e2e/admin-storage-options.spec.ts`
+- [x] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
+- [x] Commit: `feat: implement manager storage options module` & `git push`
+- [x] Đánh dấu `[x]` hoàn thành Giai đoạn 2
 
 ---
 

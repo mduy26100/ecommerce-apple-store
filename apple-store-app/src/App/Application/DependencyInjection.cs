@@ -1,5 +1,6 @@
 using Application.Features.Catalog.Categories.Services;
 using Application.Features.Catalog.Colors.Services;
+using Application.Features.Catalog.StorageOptions.Services;
 
 namespace Application
 {
@@ -9,6 +10,7 @@ namespace Application
         {
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IColorService, ColorService>();
+            services.AddScoped<IStorageOptionService, StorageOptionService>();
 
             return services;
         }
