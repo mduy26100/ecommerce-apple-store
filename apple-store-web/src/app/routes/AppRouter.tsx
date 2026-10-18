@@ -6,6 +6,7 @@ import AuthLayout from "@layouts/AuthLayout/AuthLayout";
 import HomePage from "@pages/storefront/Home/HomePage";
 
 import DashboardPage from "@pages/admin/Dashboard/DashboardPage";
+import ColorsPage from "@pages/admin/Colors/ColorsPage";
 import UsersPage from "@pages/admin/Users/UsersPage";
 import RolesPage from "@pages/admin/Roles/RolesPage";
 import TenantsPage from "@pages/admin/Tenants/TenantsPage";
@@ -51,6 +52,10 @@ const router = createBrowserRouter([
           {
             path: "dashboard",
             element: <DashboardPage />,
+          },
+          {
+            path: "colors",
+            element: <ColorsPage />,
           },
           {
             path: "users",

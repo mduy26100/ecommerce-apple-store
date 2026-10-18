@@ -9,6 +9,7 @@ import {
   SafetyCertificateOutlined,
   ProfileOutlined,
   PartitionOutlined,
+  BgColorsOutlined,
 } from "@ant-design/icons";
 import type { MenuItem } from "../models/menu-item.model";
 import { USER_ROLES } from "@core/constants/role.constants";
@@ -24,6 +25,19 @@ export const menuItems: MenuItem[] = [
         label: "Tổng quan",
         path: "/admin/dashboard",
         icon: React.createElement(LineChartOutlined),
+      },
+    ],
+  },
+  {
+    key: "catalog-management",
+    label: "Quản lý sản phẩm",
+    icon: React.createElement(ClusterOutlined),
+    children: [
+      {
+        key: "colors",
+        label: "Màu sắc",
+        path: "/admin/colors",
+        icon: React.createElement(BgColorsOutlined),
       },
     ],
   },

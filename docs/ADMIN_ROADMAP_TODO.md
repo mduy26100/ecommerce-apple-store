@@ -14,7 +14,7 @@
 | Giai đoạn | Nội dung công việc | Trạng thái |
 | :--- | :--- | :--- |
 | **Giai đoạn 0** | Nền tảng môi trường & Cấu hình Playwright Headless | [x] Hoàn thành |
-| **Giai đoạn 1** | Quản lý Màu sắc sản phẩm (Colors CRUD) | [ ] Chưa hoàn thành |
+| **Giai đoạn 1** | Quản lý Màu sắc sản phẩm (Colors CRUD) | [x] Hoàn thành |
 | **Giai đoạn 2** | Quản lý Tùy chọn dung lượng (StorageOptions CRUD) | [ ] Chưa hoàn thành |
 | **Giai đoạn 3** | Quản trị Danh mục sản phẩm (Categories Admin UI) | [ ] Chưa hoàn thành |
 | **Giai đoạn 4** | Quản lý Dòng sản phẩm (Products CRUD) | [ ] Chưa hoàn thành |
@@ -43,26 +43,26 @@
 
 ### GIAI ĐOẠN 1: QUẢN LÝ MÀU SẮC SẢN PHẨM (COLORS CRUD)
 #### Backend (`apple-store-app`):
-- [ ] Tạo DTOs tại `Application/Features/Catalog/Colors/DTOs/` (`ColorDto.cs`, `CreateColorRequest.cs`, `UpdateColorRequest.cs`, `ColorPagedRequest.cs`)
-- [ ] Tạo Specifications tại `Application/Features/Catalog/Colors/Specifications/` (`ColorFilterSpec.cs`, `ColorByCodeSpec.cs`, `ColorByNameSpec.cs`)
-- [ ] Tạo Service interface & implementation tại `Application/Features/Catalog/Colors/Services/` (`IColorService.cs`, `ColorService.cs`)
-- [ ] Đăng ký `services.AddScoped<IColorService, ColorService>();` trong `DependencyInjection.cs`
-- [ ] Tạo Controller tại `Host/Controllers/Manager/ColorsController.cs` và `Host/Controllers/Public/ColorsController.cs`
+- [x] Tạo DTOs tại `Application/Features/Catalog/Colors/DTOs/` (`ColorDto.cs`, `CreateColorRequest.cs`, `UpdateColorRequest.cs`, `ColorPagedRequest.cs`)
+- [x] Tạo Specifications tại `Application/Features/Catalog/Colors/Specifications/` (`ColorFilterSpec.cs`, `ColorByCodeSpec.cs`, `ColorByNameSpec.cs`)
+- [x] Tạo Service interface & implementation tại `Application/Features/Catalog/Colors/Services/` (`IColorService.cs`, `ColorService.cs`)
+- [x] Đăng ký `services.AddScoped<IColorService, ColorService>();` trong `DependencyInjection.cs`
+- [x] Tạo Controller tại `Host/Controllers/Manager/ColorsController.cs` và `Host/Controllers/Public/ColorsController.cs`
 
 #### Frontend (`apple-store-web`):
-- [ ] Tạo types tại `src/features/admin/colors/types/colors.types.ts`
-- [ ] Tạo API client tại `src/features/admin/colors/api/colors.api.ts`
-- [ ] Tạo React Query hooks tại `src/features/admin/colors/hooks/useColors.ts`
-- [ ] Tạo components: Bảng màu sắc `ColorsTable.tsx`, Modal tạo/sửa `ColorFormModal.tsx` với ColorPicker
-- [ ] Tạo trang quản trị `src/pages/admin/Colors/ColorsPage.tsx`
-- [ ] Cập nhật định tuyến `AppRouter.tsx` (`/admin/colors`) và menu sidebar `menuItems.ts`
+- [x] Tạo types tại `src/features/admin/colors/types/colors.types.ts`
+- [x] Tạo API client tại `src/features/admin/colors/api/colors.api.ts`
+- [x] Tạo React Query hooks tại `src/features/admin/colors/hooks/useColors.ts`
+- [x] Tạo components: Bảng màu sắc `ColorsTable.tsx`, Modal tạo/sửa `ColorFormModal.tsx` với ColorPicker
+- [x] Tạo trang quản trị `src/pages/admin/Colors/ColorsPage.tsx`
+- [x] Cập nhật định tuyến `AppRouter.tsx` (`/admin/colors`) và menu sidebar `menuItems.ts`
 
 #### Kiểm thử & Hoàn tất:
-- [ ] Viết kịch bản kiểm thử headless `e2e/admin-colors.spec.ts` (test tạo mới, xem danh sách, cập nhật, xóa, bắt lỗi trùng code)
-- [ ] Chạy ngầm kịch bản: `npx playwright test e2e/admin-colors.spec.ts`
-- [ ] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
-- [ ] Commit: `feat: implement manager colors crud module` & `git push`
-- [ ] Đánh dấu `[x]` hoàn thành Giai đoạn 1
+- [x] Viết kịch bản kiểm thử headless `e2e/admin-colors.spec.ts` (test tạo mới, xem danh sách, cập nhật, xóa, bắt lỗi trùng code)
+- [x] Chạy ngầm kịch bản: `npx playwright test e2e/admin-colors.spec.ts`
+- [x] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
+- [x] Commit: `feat: implement manager colors crud module` & `git push`
+- [x] Đánh dấu `[x]` hoàn thành Giai đoạn 1
 
 ---
 

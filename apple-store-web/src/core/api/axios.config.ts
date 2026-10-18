@@ -83,8 +83,10 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => {
     const apiResponse = response.data;
-    // Unwrap the response if it matches the standard format
     if (apiResponse && Object.prototype.hasOwnProperty.call(apiResponse, 'data')) {
+      if (apiResponse.data && typeof apiResponse.data === 'object' && apiResponse.meta) {
+        Object.assign(apiResponse.data, { meta: apiResponse.meta });
+      }
       return apiResponse.data;
     }
     return response.data;
@@ -177,19 +179,18 @@ instance.interceptors.response.use(
     }
 
     if (status === 403) {
-      message.error('You do not have permission to access this feature.');
-    } else if (status === 500) {
-      message.error('System unavailable. Please try again later.');
+      message.error("Bạn không có quyền truy cập vào tính năng này.");
+    } else if (status === 500 || status === 503) {
+      message.error("Hệ thống đang bận hoặc gặp sự cố. Vui lòng thử lại sau.");
     } else if (status === 400) {
-      message.error(errorMsg || 'Invalid request.');
+      message.error(errorMsg || "Yêu cầu không hợp lệ.");
     } else if (error.code === 'ECONNABORTED') {
-      message.error('Network connection timeout. Please check your internet connection.');
+      message.error("Kết nối mạng bị gián đoạn. Vui lòng kiểm tra lại đường truyền internet.");
     } else if (!status) {
-      message.error('Unable to connect to the server.');
+      message.error("Không thể kết nối đến máy chủ.");
     } else {
-      // Show generic toast for error status other than 401 (login page has its own alert handling for 401)
       if (status !== 401) {
-        message.error(errorMsg || 'An error occurred, please try again.');
+        message.error(errorMsg || "Đã xảy ra lỗi, vui lòng thử lại.");
       }
     }
 
