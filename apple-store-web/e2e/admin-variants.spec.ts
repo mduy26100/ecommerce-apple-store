@@ -8,6 +8,11 @@ test.describe("Admin - Quản lý Biến thể & Tồn kho (Product Variants CRU
   test.beforeEach(async ({ page }) => {
     await page.goto("/admin/products");
     await page.waitForLoadState("networkidle");
+    const searchInput = page.locator("input[placeholder*='Tìm theo tên']");
+    if (await searchInput.isVisible()) {
+      await searchInput.fill(testProductName);
+      await page.waitForLoadState("networkidle");
+    }
   });
 
   test("Khởi tạo sản phẩm mẫu để phục vụ kiểm thử biến thể", async ({ page }) => {

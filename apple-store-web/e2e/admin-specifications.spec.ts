@@ -8,6 +8,11 @@ test.describe("Admin - Quản lý Thông số kỹ thuật sản phẩm (Product
   test.beforeEach(async ({ page }) => {
     await page.goto("/admin/products");
     await page.waitForLoadState("networkidle");
+    const searchInput = page.locator("input[placeholder*='Tìm theo tên']");
+    if (await searchInput.isVisible()) {
+      await searchInput.fill(testProductName);
+      await page.waitForLoadState("networkidle");
+    }
   });
 
   test("Khởi tạo sản phẩm mẫu để phục vụ kiểm thử thông số kỹ thuật", async ({ page }) => {

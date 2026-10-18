@@ -9,6 +9,11 @@ test.describe("Admin - Quản lý Ảnh Biến thể (Variant Images & Gallery)"
   test.beforeEach(async ({ page }) => {
     await page.goto("/admin/products");
     await page.waitForLoadState("networkidle");
+    const searchInput = page.locator("input[placeholder*='Tìm theo tên']");
+    if (await searchInput.isVisible()) {
+      await searchInput.fill(testProductName);
+      await page.waitForLoadState("networkidle");
+    }
   });
 
   test("Khởi tạo sản phẩm và phiên bản phục vụ kiểm thử thư viện ảnh", async ({ page }) => {

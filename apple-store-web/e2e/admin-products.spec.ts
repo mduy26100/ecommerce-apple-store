@@ -81,13 +81,17 @@ test.describe("Admin - Quản lý Sản phẩm (Products CRUD)", () => {
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
+    await expect(page.locator(".ant-modal")).not.toBeVisible();
+
+    await page.fill("input[placeholder*='Tìm theo tên']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
 
     const row = page.locator(`.ant-table-row:has-text('${testName}')`);
-    await row.locator("button[title='Chỉnh sửa'], button:has(.anticon-edit)").click();
+    await row.locator("button[aria-label='Chỉnh sửa sản phẩm'], button:has(.anticon-edit)").click();
 
-    const modal = page.locator(".ant-modal");
-    await expect(modal).toBeVisible();
+    const editModal = page.locator(".ant-modal");
+    await expect(editModal).toBeVisible();
 
     await page.fill("input#name", updatedName);
 
@@ -98,7 +102,9 @@ test.describe("Admin - Quản lý Sản phẩm (Products CRUD)", () => {
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
-    await expect(modal).not.toBeVisible();
+    await expect(editModal).not.toBeVisible();
+    await page.fill("input[placeholder*='Tìm theo tên']", updatedName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(updatedName);
   });
 
@@ -123,6 +129,8 @@ test.describe("Admin - Quản lý Sản phẩm (Products CRUD)", () => {
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
+    await page.fill("input[placeholder*='Tìm theo tên']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
 
     const row = page.locator(`.ant-table-row:has-text('${testName}')`);

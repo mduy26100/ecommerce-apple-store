@@ -33,6 +33,8 @@ test.describe("Admin - Quản lý Tùy chọn Dung lượng (StorageOptions CRUD
 
     expect(response.status()).toBeLessThan(400);
     await expect(modal).not.toBeVisible();
+    await page.fill("input[placeholder*='đơn vị']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
   });
 
@@ -53,7 +55,7 @@ test.describe("Admin - Quản lý Tùy chọn Dung lượng (StorageOptions CRUD
   test("Thực hiện chỉnh sửa tùy chọn dung lượng thành công", async ({ page }) => {
     const uniqueSuffix = Date.now();
     const testName = `1TB_${uniqueSuffix}`;
-    const updatedName = `2TB_${uniqueSuffix}`;
+    const updatedName = `${testName}_Updated`;
 
     await page.click("button:has-text('Thêm dung lượng')");
     await page.fill("input#name", testName);
@@ -66,6 +68,8 @@ test.describe("Admin - Quản lý Tùy chọn Dung lượng (StorageOptions CRUD
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
+    await page.fill("input[placeholder*='đơn vị']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
 
     const row = page.locator(`.ant-table-row:has-text('${testName}')`);
@@ -75,7 +79,6 @@ test.describe("Admin - Quản lý Tùy chọn Dung lượng (StorageOptions CRUD
     await expect(modal).toBeVisible();
 
     await page.fill("input#name", updatedName);
-    await page.fill("input#capacityValue", "2048");
 
     await Promise.all([
       page.waitForResponse(
@@ -85,16 +88,18 @@ test.describe("Admin - Quản lý Tùy chọn Dung lượng (StorageOptions CRUD
     ]);
 
     await expect(modal).not.toBeVisible();
+    await page.fill("input[placeholder*='đơn vị']", updatedName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(updatedName);
   });
 
   test("Thực hiện xóa tùy chọn dung lượng thành công", async ({ page }) => {
     const uniqueSuffix = Date.now();
-    const testName = `DeleteOpt_${uniqueSuffix}`;
+    const testName = `DelStorage_${uniqueSuffix}`;
 
     await page.click("button:has-text('Thêm dung lượng')");
     await page.fill("input#name", testName);
-    await page.fill("input#capacityValue", "64");
+    await page.fill("input#capacityValue", "128");
 
     await Promise.all([
       page.waitForResponse(
@@ -103,6 +108,8 @@ test.describe("Admin - Quản lý Tùy chọn Dung lượng (StorageOptions CRUD
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
+    await page.fill("input[placeholder*='đơn vị']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
 
     const row = page.locator(`.ant-table-row:has-text('${testName}')`);

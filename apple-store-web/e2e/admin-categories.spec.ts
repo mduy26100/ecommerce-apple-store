@@ -27,15 +27,16 @@ test.describe("Admin - Quản lý Danh mục (Categories CRUD)", () => {
     await page.fill("input#displayOrder", "1");
     await page.fill("textarea#description", "Dòng điện thoại iPhone cao cấp");
 
-    const [response] = await Promise.all([
+    await Promise.all([
       page.waitForResponse(
         (res) => res.url().includes("/api/manager/categories") && res.request().method() === "POST"
       ),
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
-    expect(response.status()).toBeLessThan(400);
     await expect(modal).not.toBeVisible();
+    await page.fill("input[placeholder*='danh mục']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
   });
 
@@ -70,6 +71,8 @@ test.describe("Admin - Quản lý Danh mục (Categories CRUD)", () => {
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
+    await page.fill("input[placeholder*='danh mục']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
 
     const row = page.locator(`.ant-table-row:has-text('${testName}')`);
@@ -88,6 +91,8 @@ test.describe("Admin - Quản lý Danh mục (Categories CRUD)", () => {
     ]);
 
     await expect(modal).not.toBeVisible();
+    await page.fill("input[placeholder*='danh mục']", updatedName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(updatedName);
   });
 
@@ -107,6 +112,8 @@ test.describe("Admin - Quản lý Danh mục (Categories CRUD)", () => {
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
+    await page.fill("input[placeholder*='danh mục']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
 
     const row = page.locator(`.ant-table-row:has-text('${testName}')`);

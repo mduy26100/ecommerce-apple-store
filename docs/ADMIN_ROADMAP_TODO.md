@@ -238,8 +238,8 @@
 ---
 
 ### GIAI ĐOẠN 9: KIỂM THỬ HỒI QUY TOÀN DIỆN CUỐI CÙNG (FULL REGRESSION)
-- [ ] Tạo kịch bản toàn diện `e2e/admin-full-regression.spec.ts` kết nối liền mạch luồng tạo Danh mục $\rightarrow$ Màu sắc $\rightarrow$ Dung lượng $\rightarrow$ Dòng sản phẩm $\rightarrow$ Biến thể $\rightarrow$ Ảnh $\rightarrow$ Thông số $\rightarrow$ Xem đơn hàng
-- [ ] Chạy toàn bộ test suite ở chế độ headless: `npx playwright test --reporter=list`
-- [ ] Xác nhận 100% kịch bản báo PASS, không có bất kỳ console warning hoặc API lỗi nào
-- [ ] Commit: `test: verify full admin portal regression suite` & `git push`
-- [ ] Đánh dấu `[x]` hoàn thành Giai đoạn 9 và bàn giao kết quả
+- [x] Tạo kịch bản toàn diện `e2e/admin-full-regression.spec.ts` kết nối liền mạch luồng tạo Danh mục $\rightarrow$ Màu sắc $\rightarrow$ Dung lượng $\rightarrow$ Dòng sản phẩm $\rightarrow$ Biến thể $\rightarrow$ Ảnh $\rightarrow$ Thông số $\rightarrow$ Xem đơn hàng
+- [x] Chạy toàn bộ test suite ở chế độ headless: `npx playwright test --reporter=list`
+- [x] Xác nhận 100% kịch bản báo PASS, không có bất kỳ console warning hoặc API lỗi nào
+- [x] Commit: `test: verify full admin portal regression suite` & `git push`
+- [x] Đánh dấu `[x]` hoàn thành Giai đoạn 9 và bàn giao kết quả

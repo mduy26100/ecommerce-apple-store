@@ -36,6 +36,8 @@ test.describe("Admin - Quản lý Màu sắc (Colors CRUD)", () => {
 
     expect(response.status()).toBeLessThan(400);
     await expect(modal).not.toBeVisible();
+    await page.fill("input[placeholder*='màu']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
   });
 
@@ -55,14 +57,15 @@ test.describe("Admin - Quản lý Màu sắc (Colors CRUD)", () => {
 
   test("Thực hiện chỉnh sửa màu sắc thành công", async ({ page }) => {
     const uniqueSuffix = Date.now();
-    const testName = `Titan Tự Nhiên ${uniqueSuffix}`;
-    const testCode = `TITAN_NATURAL_${uniqueSuffix}`;
+    const testName = `Xanh Titan ${uniqueSuffix}`;
+    const testCode = `TITAN_BLUE_${uniqueSuffix}`;
+    const testHex = "#4A5568";
     const updatedName = `${testName} Cập nhật`;
 
     await page.click("button:has-text('Thêm màu sắc')");
     await page.fill("input#name", testName);
     await page.fill("input#code", testCode);
-    await page.fill("input#hexCode", "#9E9A95");
+    await page.fill("input#hexCode", testHex);
 
     await Promise.all([
       page.waitForResponse(
@@ -71,6 +74,8 @@ test.describe("Admin - Quản lý Màu sắc (Colors CRUD)", () => {
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
+    await page.fill("input[placeholder*='màu']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
 
     const row = page.locator(`.ant-table-row:has-text('${testName}')`);
@@ -89,18 +94,21 @@ test.describe("Admin - Quản lý Màu sắc (Colors CRUD)", () => {
     ]);
 
     await expect(modal).not.toBeVisible();
+    await page.fill("input[placeholder*='màu']", updatedName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(updatedName);
   });
 
   test("Thực hiện xóa màu sắc thành công", async ({ page }) => {
     const uniqueSuffix = Date.now();
-    const testName = `Màu Xóa ${uniqueSuffix}`;
-    const testCode = `DELETE_CLR_${uniqueSuffix}`;
+    const testName = `DeleteColor_${uniqueSuffix}`;
+    const testCode = `DEL_COLOR_${uniqueSuffix}`;
+    const testHex = "#000000";
 
     await page.click("button:has-text('Thêm màu sắc')");
     await page.fill("input#name", testName);
     await page.fill("input#code", testCode);
-    await page.fill("input#hexCode", "#123456");
+    await page.fill("input#hexCode", testHex);
 
     await Promise.all([
       page.waitForResponse(
@@ -109,6 +117,8 @@ test.describe("Admin - Quản lý Màu sắc (Colors CRUD)", () => {
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
+    await page.fill("input[placeholder*='màu']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
 
     const row = page.locator(`.ant-table-row:has-text('${testName}')`);
