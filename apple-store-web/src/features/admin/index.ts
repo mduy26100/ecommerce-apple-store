@@ -3,3 +3,4 @@ export * from "./colors";
 export * from "./storage-options";
 export * from "./categories";
 export * from "./products";
+export * from "./variants";

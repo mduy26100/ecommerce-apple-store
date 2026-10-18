@@ -5,6 +5,7 @@ import PageHeader from "@shared/components/page-header/PageHeader";
 import {
   ProductsTable,
   ProductFormModal,
+  ProductVariantsDrawer,
   useProductsPaged,
   useCreateProduct,
   useUpdateProduct,
@@ -29,6 +30,8 @@ export const ProductsPage = () => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
+  const [variantDrawerOpen, setVariantDrawerOpen] = useState(false);
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<ProductItem | null>(null);
 
   const { data, isLoading } = useProductsPaged(params);
   const { data: categories = [] } = useCategoriesAll();
@@ -113,6 +116,16 @@ export const ProductsPage = () => {
     };
   }, [data, params]);
 
+  const handleManageVariants = (product: ProductItem) => {
+    setSelectedProductForVariants(product);
+    setVariantDrawerOpen(true);
+  };
+
+  const handleCloseVariantDrawer = () => {
+    setVariantDrawerOpen(false);
+    setSelectedProductForVariants(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -172,6 +185,7 @@ export const ProductsPage = () => {
           pagination={paginationConfig}
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
+          onManageVariants={handleManageVariants}
           isDeleting={deleteMutation.isPending}
         />
       </Card>
@@ -182,6 +196,12 @@ export const ProductsPage = () => {
         confirmLoading={createMutation.isPending || updateMutation.isPending}
         onCancel={handleCloseModal}
         onSubmit={handleSubmit}
+      />
+
+      <ProductVariantsDrawer
+        open={variantDrawerOpen}
+        product={selectedProductForVariants}
+        onClose={handleCloseVariantDrawer}
       />
     </div>
   );

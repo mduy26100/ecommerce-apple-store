@@ -1,5 +1,10 @@
 import { Table, Tag, Button, Space, Popconfirm } from "antd";
-import { EditOutlined, DeleteOutlined, ShoppingOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  DeleteOutlined,
+  ShoppingOutlined,
+  AppstoreOutlined,
+} from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { ProductItem } from "../types/product.types";
 
@@ -9,6 +14,7 @@ export interface ProductsTableProps {
   pagination?: TablePaginationConfig;
   onEdit: (product: ProductItem) => void;
   onDelete: (id: number) => void;
+  onManageVariants?: (product: ProductItem) => void;
   isDeleting?: boolean;
 }
 
@@ -26,6 +32,7 @@ export const ProductsTable = ({
   pagination,
   onEdit,
   onDelete,
+  onManageVariants,
   isDeleting,
 }: ProductsTableProps) => {
   const columns: ColumnsType<ProductItem> = [
@@ -83,10 +90,14 @@ export const ProductsTable = ({
       title: "Số phiên bản",
       dataIndex: "variantsCount",
       key: "variantsCount",
-      width: 110,
+      width: 120,
       align: "center",
-      render: (count: number) => (
-        <Tag color={count > 0 ? "geekblue" : "default"}>
+      render: (count: number, record) => (
+        <Tag
+          color={count > 0 ? "geekblue" : "default"}
+          className={onManageVariants ? "cursor-pointer hover:opacity-80" : ""}
+          onClick={() => onManageVariants && onManageVariants(record)}
+        >
           {count} phiên bản
         </Tag>
       ),
@@ -126,10 +137,19 @@ export const ProductsTable = ({
     {
       title: "Thao tác",
       key: "actions",
-      width: 110,
+      width: 140,
       align: "center",
       render: (_, record) => (
         <Space size="small">
+          {onManageVariants && (
+            <Button
+              type="text"
+              icon={<AppstoreOutlined />}
+              onClick={() => onManageVariants(record)}
+              className="text-purple-600 hover:bg-purple-50"
+              title="Quản lý phiên bản"
+            />
+          )}
           <Button
             type="text"
             icon={<EditOutlined />}

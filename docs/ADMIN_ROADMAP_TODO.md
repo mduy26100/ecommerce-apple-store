@@ -140,26 +140,26 @@
 
 ### GIAI ĐOẠN 5: QUẢN LÝ BIẾN THỂ & TỒN KHO (PRODUCT VARIANTS CRUD)
 #### Backend (`apple-store-app`):
-- [ ] Tạo DTOs tại `Application/Features/Catalog/ProductVariants/DTOs/` (`ProductVariantDto.cs`, `CreateProductVariantRequest.cs`, `UpdateProductVariantRequest.cs`)
-- [ ] Tạo Specifications tại `Application/Features/Catalog/ProductVariants/Specifications/` (`VariantsByProductSpec.cs`, `VariantBySkuSpec.cs`)
-- [ ] Tạo Service tại `Application/Features/Catalog/ProductVariants/Services/` (`IProductVariantService.cs`, `ProductVariantService.cs`) với kiểm tra trùng SKU, non-negative price, kiểm soát `RowVersion`
-- [ ] Đăng ký DI trong `DependencyInjection.cs`
-- [ ] Tạo Controller tại `Host/Controllers/Manager/ProductVariantsController.cs`
+- [x] Tạo DTOs tại `Application/Features/Catalog/ProductVariants/DTOs/` (`ProductVariantDto.cs`, `CreateProductVariantRequest.cs`, `UpdateProductVariantRequest.cs`)
+- [x] Tạo Specifications tại `Application/Features/Catalog/ProductVariants/Specifications/` (`VariantsByProductSpec.cs`, `VariantBySkuSpec.cs`)
+- [x] Tạo Service tại `Application/Features/Catalog/ProductVariants/Services/` (`IProductVariantService.cs`, `ProductVariantService.cs`) với kiểm tra trùng SKU, non-negative price, kiểm soát `RowVersion`
+- [x] Đăng ký DI trong `DependencyInjection.cs`
+- [x] Tạo Controller tại `Host/Controllers/Manager/ProductVariantsController.cs`
 
 #### Frontend (`apple-store-web`):
-- [ ] Tạo types tại `src/features/admin/variants/types/variant.types.ts`
-- [ ] Tạo API client tại `src/features/admin/variants/api/variants.api.ts`
-- [ ] Tạo hooks React Query tại `src/features/admin/variants/hooks/useVariants.ts`
-- [ ] Tạo components: Bảng biến thể `VariantsTable.tsx`, Modal tạo/sửa biến thể `VariantFormModal.tsx`
-- [ ] Tích hợp tab hoặc drawer quản lý biến thể vào trang chi tiết sản phẩm (`/admin/products/:id`)
-- [ ] Kiểm tra định dạng tiền tệ VNĐ, badge màu sắc và nhãn dung lượng
+- [x] Tạo types tại `src/features/admin/variants/types/variant.types.ts`
+- [x] Tạo API client tại `src/features/admin/variants/api/variants.api.ts`
+- [x] Tạo hooks React Query tại `src/features/admin/variants/hooks/useVariants.ts`
+- [x] Tạo components: Bảng biến thể `VariantsTable.tsx`, Modal tạo/sửa biến thể `VariantFormModal.tsx`
+- [x] Tích hợp tab hoặc drawer quản lý biến thể vào trang chi tiết sản phẩm (`/admin/products/:id`)
+- [x] Kiểm tra định dạng tiền tệ VNĐ, badge màu sắc và nhãn dung lượng
 
 #### Kiểm thử & Hoàn tất:
-- [ ] Viết kịch bản `e2e/admin-variants.spec.ts` (tạo biến thể 256GB Desert Titanium, kiểm tra SKU trùng ném lỗi)
-- [ ] Chạy ngầm: `npx playwright test e2e/admin-variants.spec.ts`
-- [ ] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
-- [ ] Commit: `feat: implement product variants and stock management` & `git push`
-- [ ] Đánh dấu `[x]` hoàn thành Giai đoạn 5
+- [x] Viết kịch bản `e2e/admin-variants.spec.ts` (tạo biến thể 256GB Desert Titanium, kiểm tra SKU trùng ném lỗi)
+- [x] Chạy ngầm: `npx playwright test e2e/admin-variants.spec.ts`
+- [x] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
+- [x] Commit: `feat: implement product variants and stock management` & `git push`
+- [x] Đánh dấu `[x]` hoàn thành Giai đoạn 5
 
 ---
 
