@@ -9,6 +9,7 @@ import DashboardPage from "@pages/admin/Dashboard/DashboardPage";
 import ColorsPage from "@pages/admin/Colors/ColorsPage";
 import StorageOptionsPage from "@pages/admin/StorageOptions/StorageOptionsPage";
 import CategoriesPage from "@pages/admin/Categories/CategoriesPage";
+import ProductsPage from "@pages/admin/Products/ProductsPage";
 import UsersPage from "@pages/admin/Users/UsersPage";
 import RolesPage from "@pages/admin/Roles/RolesPage";
 import TenantsPage from "@pages/admin/Tenants/TenantsPage";
@@ -58,6 +59,10 @@ const router = createBrowserRouter([
           {
             path: "categories",
             element: <CategoriesPage />,
+          },
+          {
+            path: "products",
+            element: <ProductsPage />,
           },
           {
             path: "colors",

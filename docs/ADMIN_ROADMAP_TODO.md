@@ -115,26 +115,26 @@
 
 ### GIAI ĐOẠN 4: QUẢN LÝ DÒNG SẢN PHẨM (PRODUCTS CRUD)
 #### Backend (`apple-store-app`):
-- [ ] Tạo DTOs tại `Application/Features/Catalog/Products/DTOs/` (`ProductSummaryDto.cs`, `ProductDetailDto.cs`, `CreateProductRequest.cs`, `UpdateProductRequest.cs`, `ProductPagedRequest.cs`)
-- [ ] Tạo Specifications tại `Application/Features/Catalog/Products/Specifications/` (`ProductFilterSpec.cs`, `ProductBySlugSpec.cs`, `ProductWithDetailsSpec.cs`)
-- [ ] Tạo Service tại `Application/Features/Catalog/Products/Services/` (`IProductService.cs`, `ProductService.cs`)
-- [ ] Đăng ký DI trong `DependencyInjection.cs`
-- [ ] Tạo Controllers tại `Host/Controllers/Manager/ProductsController.cs` và `Host/Controllers/Public/ProductsController.cs`
+- [x] Tạo DTOs tại `Application/Features/Catalog/Products/DTOs/` (`ProductSummaryDto.cs`, `ProductDetailDto.cs`, `CreateProductRequest.cs`, `UpdateProductRequest.cs`, `ProductPagedRequest.cs`)
+- [x] Tạo Specifications tại `Application/Features/Catalog/Products/Specifications/` (`ProductFilterSpec.cs`, `ProductBySlugSpec.cs`, `ProductWithDetailsSpec.cs`)
+- [x] Tạo Service tại `Application/Features/Catalog/Products/Services/` (`IProductService.cs`, `ProductService.cs`)
+- [x] Đăng ký DI trong `DependencyInjection.cs`
+- [x] Tạo Controllers tại `Host/Controllers/Manager/ProductsController.cs` và `Host/Controllers/Public/ProductsController.cs`
 
 #### Frontend (`apple-store-web`):
-- [ ] Tạo types tại `src/features/admin/products/types/product.types.ts`
-- [ ] Tạo API client tại `src/features/admin/products/api/products.api.ts`
-- [ ] Tạo hooks React Query tại `src/features/admin/products/hooks/useProducts.ts`
-- [ ] Tạo components: `ProductsTable.tsx`, `ProductFormDrawer.tsx`, bộ lọc theo danh mục
-- [ ] Tạo trang danh sách `src/pages/admin/Products/ProductsPage.tsx`
-- [ ] Đăng ký route `/admin/products` và mục menu "Sản phẩm" trong `menuItems.ts`
+- [x] Tạo types tại `src/features/admin/products/types/product.types.ts`
+- [x] Tạo API client tại `src/features/admin/products/api/products.api.ts`
+- [x] Tạo hooks React Query tại `src/features/admin/products/hooks/useProducts.ts`
+- [x] Tạo components: `ProductsTable.tsx`, `ProductFormDrawer.tsx`, bộ lọc theo danh mục
+- [x] Tạo trang danh sách `src/pages/admin/Products/ProductsPage.tsx`
+- [x] Đăng ký route `/admin/products` và mục menu "Sản phẩm" trong `menuItems.ts`
 
 #### Kiểm thử & Hoàn tất:
-- [ ] Viết kịch bản `e2e/admin-products.spec.ts` (tạo sản phẩm iPhone 16 Pro, kiểm tra lọc danh mục, chỉnh sửa)
-- [ ] Chạy ngầm: `npx playwright test e2e/admin-products.spec.ts`
-- [ ] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
-- [ ] Commit: `feat: implement manager products catalog module` & `git push`
-- [ ] Đánh dấu `[x]` hoàn thành Giai đoạn 4
+- [x] Viết kịch bản `e2e/admin-products.spec.ts` (tạo sản phẩm iPhone 16 Pro, kiểm tra lọc danh mục, chỉnh sửa)
+- [x] Chạy ngầm: `npx playwright test e2e/admin-products.spec.ts`
+- [x] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
+- [x] Commit: `feat: implement manager products catalog module` & `git push`
+- [x] Đánh dấu `[x]` hoàn thành Giai đoạn 4
 
 ---
 
