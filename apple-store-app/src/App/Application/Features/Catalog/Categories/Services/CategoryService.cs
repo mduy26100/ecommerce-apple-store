@@ -10,10 +10,14 @@ namespace Application.Features.Catalog.Categories.Services
     public class CategoryService : ICategoryService
     {
         private readonly IRepository<Category> _categoryRepository;
+        private readonly IRepository<Product> _productRepository;
 
-        public CategoryService(IRepository<Category> categoryRepository)
+        public CategoryService(
+            IRepository<Category> categoryRepository,
+            IRepository<Product> productRepository)
         {
             _categoryRepository = categoryRepository;
+            _productRepository = productRepository;
         }
 
         public async Task<PagedList<CategoryDto>> GetPagedAsync(CategoryPagedRequest request, CancellationToken cancellationToken = default)
@@ -89,6 +93,13 @@ namespace Application.Features.Catalog.Categories.Services
         public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
             var category = await GetCategoryOrThrowAsync(id, cancellationToken);
+
+            var hasProducts = await _productRepository.AnyAsync(new ProductsByCategorySpec(id), cancellationToken);
+            if (hasProducts)
+            {
+                throw new ConflictException("Không thể xóa danh mục đang chứa sản phẩm liên kết.");
+            }
+
             await _categoryRepository.DeleteAsync(category, cancellationToken);
         }
 

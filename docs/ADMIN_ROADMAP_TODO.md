@@ -16,7 +16,7 @@
 | **Giai đoạn 0** | Nền tảng môi trường & Cấu hình Playwright Headless | [x] Hoàn thành |
 | **Giai đoạn 1** | Quản lý Màu sắc sản phẩm (Colors CRUD) | [x] Hoàn thành |
 | **Giai đoạn 2** | Quản lý Tùy chọn dung lượng (StorageOptions CRUD) | [x] Hoàn thành |
-| **Giai đoạn 3** | Quản trị Danh mục sản phẩm (Categories Admin UI) | [ ] Chưa hoàn thành |
+| **Giai đoạn 3** | Quản trị Danh mục sản phẩm (Categories Admin UI) | [x] Hoàn thành |
 | **Giai đoạn 4** | Quản lý Dòng sản phẩm (Products CRUD) | [ ] Chưa hoàn thành |
 | **Giai đoạn 5** | Quản lý Biến thể & Tồn kho (ProductVariants CRUD) | [ ] Chưa hoàn thành |
 | **Giai đoạn 6** | Quản lý Ảnh biến thể (VariantImages CRUD & Gallery) | [ ] Chưa hoàn thành |
@@ -93,23 +93,23 @@
 
 ### GIAI ĐOẠN 3: QUẢN TRỊ DANH MỤC SẢN PHẨM (CATEGORIES ADMIN UI)
 #### Backend (`apple-store-app`):
-- [ ] Xác nhận Backend `CategoriesController.cs` và `CategoryService.cs` đã đáp ứng đầy đủ API Manager
-- [ ] Kiểm tra các ràng buộc logic: không cho phép xóa danh mục khi có sản phẩm liên kết
+- [x] Xác nhận Backend `CategoriesController.cs` và `CategoryService.cs` đã đáp ứng đầy đủ API Manager
+- [x] Kiểm tra các ràng buộc logic: không cho phép xóa danh mục khi có sản phẩm liên kết
 
 #### Frontend (`apple-store-web`):
-- [ ] Tạo types tại `src/features/admin/categories/types/category.types.ts`
-- [ ] Tạo API client tại `src/features/admin/categories/api/categories.api.ts`
-- [ ] Tạo hooks React Query tại `src/features/admin/categories/hooks/useCategories.ts`
-- [ ] Tạo components: `CategoriesTable.tsx`, `CategoryFormModal.tsx`
-- [ ] Tạo trang quản trị `src/pages/admin/Categories/CategoriesPage.tsx`
-- [ ] Đăng ký route `/admin/categories` và mục menu "Danh mục" trong `menuItems.ts`
+- [x] Tạo types tại `src/features/admin/categories/types/category.types.ts`
+- [x] Tạo API client tại `src/features/admin/categories/api/categories.api.ts`
+- [x] Tạo hooks React Query tại `src/features/admin/categories/hooks/useCategories.ts`
+- [x] Tạo components: `CategoriesTable.tsx`, `CategoryFormModal.tsx`
+- [x] Tạo trang quản trị `src/pages/admin/Categories/CategoriesPage.tsx`
+- [x] Đăng ký route `/admin/categories` và mục menu "Danh mục" trong `menuItems.ts`
 
 #### Kiểm thử & Hoàn tất:
-- [ ] Viết kịch bản `e2e/admin-categories.spec.ts` (test tạo danh mục iPhone/Mac, sửa tên, phân trang)
-- [ ] Chạy ngầm: `npx playwright test e2e/admin-categories.spec.ts`
-- [ ] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
-- [ ] Commit: `feat: implement manager categories management ui` & `git push`
-- [ ] Đánh dấu `[x]` hoàn thành Giai đoạn 3
+- [x] Viết kịch bản `e2e/admin-categories.spec.ts` (test tạo danh mục iPhone/Mac, sửa tên, phân trang)
+- [x] Chạy ngầm: `npx playwright test e2e/admin-categories.spec.ts`
+- [x] Đọc log terminal, sửa lỗi nếu có đến khi PASS 100%
+- [x] Commit: `feat: implement manager categories management ui` & `git push`
+- [x] Đánh dấu `[x]` hoàn thành Giai đoạn 3
 
 ---
 

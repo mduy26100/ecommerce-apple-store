@@ -11,6 +11,7 @@ import {
   PartitionOutlined,
   BgColorsOutlined,
   DatabaseOutlined,
+  FolderOutlined,
 } from "@ant-design/icons";
 import type { MenuItem } from "../models/menu-item.model";
 import { USER_ROLES } from "@core/constants/role.constants";
@@ -34,6 +35,12 @@ export const menuItems: MenuItem[] = [
     label: "Quản lý sản phẩm",
     icon: React.createElement(ClusterOutlined),
     children: [
+      {
+        key: "categories",
+        label: "Danh mục",
+        path: "/admin/categories",
+        icon: React.createElement(FolderOutlined),
+      },
       {
         key: "colors",
         label: "Màu sắc",
