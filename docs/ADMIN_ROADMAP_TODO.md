@@ -17,12 +17,12 @@
 | **Giai đoạn 1** | Quản lý Màu sắc sản phẩm (Colors CRUD) | [x] Hoàn thành |
 | **Giai đoạn 2** | Quản lý Tùy chọn dung lượng (StorageOptions CRUD) | [x] Hoàn thành |
 | **Giai đoạn 3** | Quản trị Danh mục sản phẩm (Categories Admin UI) | [x] Hoàn thành |
-| **Giai đoạn 4** | Quản lý Dòng sản phẩm (Products CRUD) | [ ] Chưa hoàn thành |
-| **Giai đoạn 5** | Quản lý Biến thể & Tồn kho (ProductVariants CRUD) | [ ] Chưa hoàn thành |
-| **Giai đoạn 6** | Quản lý Ảnh biến thể (VariantImages CRUD & Gallery) | [ ] Chưa hoàn thành |
-| **Giai đoạn 7** | Quản lý Thông số kỹ thuật (ProductSpecifications CRUD) | [ ] Chưa hoàn thành |
-| **Giai đoạn 8** | Quản lý Đơn hàng & Snapshot (Orders & OrderItems View/Status) | [ ] Chưa hoàn thành |
-| **Giai đoạn 9** | Kiểm thử Hồi quy Toàn diện Cuối cùng (Full Headless Regression Test) | [ ] Chưa hoàn thành |
+| **Giai đoạn 4** | Quản lý Dòng sản phẩm (Products CRUD) | [x] Hoàn thành |
+| **Giai đoạn 5** | Quản lý Biến thể & Tồn kho (ProductVariants CRUD) | [x] Hoàn thành |
+| **Giai đoạn 6** | Quản lý Ảnh biến thể (VariantImages CRUD & Gallery) | [x] Hoàn thành |
+| **Giai đoạn 7** | Quản lý Thông số kỹ thuật (ProductSpecifications CRUD) | [x] Hoàn thành |
+| **Giai đoạn 8** | Quản lý Đơn hàng & Snapshot (Orders & OrderItems View/Status) | [x] Hoàn thành |
+| **Giai đoạn 9** | Kiểm thử Hồi quy Toàn diện Cuối cùng (Full Headless Regression Test) | [x] Hoàn thành |
 
 ---
 

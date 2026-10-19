@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
 import { Modal, Form, Select } from "antd";
-import type { OrderSummaryDto, UpdateOrderStatusPayload } from "../types/order.types";
+import type { OrderSummaryDto, OrderDetailDto, UpdateOrderStatusPayload } from "../types/order.types";
 
 interface OrderStatusModalProps {
   open: boolean;
-  order: OrderSummaryDto | null;
+  order: OrderSummaryDto | OrderDetailDto | null;
   onCancel: () => void;
   onSubmit: (values: UpdateOrderStatusPayload) => void;
   loading?: boolean;

@@ -1,6 +1,5 @@
 import { api } from "@core/api/axios.config";
 import type {
-  OrderSummaryDto,
   OrderDetailDto,
   OrderPagedParams,
   UpdateOrderStatusPayload,

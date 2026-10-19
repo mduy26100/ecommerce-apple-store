@@ -116,7 +116,7 @@ export const VariantFormModal = ({
                   <div className="flex items-center gap-2">
                     <span
                       className="w-3 h-3 rounded-full border border-slate-300 inline-block"
-                      style={{ backgroundColor: c.hexCode }}
+                      style={{ backgroundColor: c.hexCode || undefined }}
                     />
                     <span>{c.name}</span>
                   </div>
@@ -176,7 +176,7 @@ export const VariantFormModal = ({
               },
             ]}
           >
-            <InputNumber
+            <InputNumber<number>
               id="price"
               className="w-full"
               min={0}
@@ -190,7 +190,7 @@ export const VariantFormModal = ({
             label="Giá so sánh / Giá gốc"
             name="compareAtPrice"
           >
-            <InputNumber
+            <InputNumber<number>
               id="compareAtPrice"
               className="w-full"
               min={0}
