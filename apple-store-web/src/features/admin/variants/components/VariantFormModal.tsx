@@ -107,6 +107,7 @@ export const VariantFormModal = ({
           >
             <Select
               id="colorId"
+              className="w-full!"
               allowClear
               placeholder="Chọn màu sắc"
               loading={isLoadingColors}
@@ -131,6 +132,7 @@ export const VariantFormModal = ({
           >
             <Select
               id="storageOptionId"
+              className="w-full!"
               allowClear
               placeholder="Chọn dung lượng"
               loading={isLoadingStorage}
@@ -161,7 +163,7 @@ export const VariantFormModal = ({
           <Input id="variantName" placeholder="Ví dụ: 256GB - Titan Sa Mạc" />
         </Form.Item>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
           <Form.Item
             label="Giá bán (VNĐ)"
             name="price"
@@ -178,7 +180,7 @@ export const VariantFormModal = ({
           >
             <InputNumber<number>
               id="price"
-              className="w-full"
+              className="w-full!"
               min={0}
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
               parser={(value) => (value ? Number(value.replace(/\$\s?|(,*)/g, "")) : 0)}
@@ -187,31 +189,33 @@ export const VariantFormModal = ({
           </Form.Item>
 
           <Form.Item
-            label="Giá so sánh / Giá gốc"
+            label="Giá so sánh / Giá gốc (VNĐ)"
             name="compareAtPrice"
           >
             <InputNumber<number>
               id="compareAtPrice"
-              className="w-full"
+              className="w-full!"
               min={0}
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
               parser={(value) => (value ? Number(value.replace(/\$\s?|(,*)/g, "")) : 0)}
               placeholder="36,990,000"
             />
           </Form.Item>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
           <Form.Item
             label="Số lượng tồn kho"
             name="quantityInStock"
             rules={[{ required: true, message: "Vui lòng nhập số lượng!" }]}
           >
-            <InputNumber id="quantityInStock" className="w-full" min={0} placeholder="10" />
+            <InputNumber id="quantityInStock" className="w-full!" min={0} placeholder="10" />
+          </Form.Item>
+
+          <Form.Item label="Trạng thái kích hoạt" name="isActive" valuePropName="checked">
+            <Switch checkedChildren="Hoạt động" unCheckedChildren="Tạm khóa" />
           </Form.Item>
         </div>
-
-        <Form.Item label="Trạng thái kích hoạt" name="isActive" valuePropName="checked">
-          <Switch checkedChildren="Hoạt động" unCheckedChildren="Tạm khóa" />
-        </Form.Item>
       </Form>
     </Modal>
   );

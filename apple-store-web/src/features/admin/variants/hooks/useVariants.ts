@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { message } from "antd";
 import { variantsApi } from "../api/variants.api";
-import { PRODUCTS_QUERY_KEYS } from "@features/admin/products/hooks/useProducts";
+import { PRODUCTS_QUERY_KEYS } from "../../products/hooks/useProducts";
 import type {
   CreateVariantPayload,
   UpdateVariantPayload,

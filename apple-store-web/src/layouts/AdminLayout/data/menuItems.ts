@@ -5,7 +5,6 @@ import {
   TeamOutlined,
   SettingOutlined,
   ClusterOutlined,
-  LineChartOutlined,
   SafetyCertificateOutlined,
   ProfileOutlined,
   PartitionOutlined,
@@ -22,19 +21,12 @@ export const menuItems: MenuItem[] = [
   {
     key: "dashboard",
     label: "Bảng điều khiển",
+    path: "/admin/dashboard",
     icon: React.createElement(DashboardOutlined),
-    children: [
-      {
-        key: "dashboard-overview",
-        label: "Tổng quan",
-        path: "/admin/dashboard",
-        icon: React.createElement(LineChartOutlined),
-      },
-    ],
   },
   {
     key: "catalog-management",
-    label: "Quản lý sản phẩm & Đơn hàng",
+    label: "Quản lý sản phẩm",
     icon: React.createElement(ClusterOutlined),
     children: [
       {
@@ -50,12 +42,6 @@ export const menuItems: MenuItem[] = [
         icon: React.createElement(ShoppingOutlined),
       },
       {
-        key: "orders",
-        label: "Đơn hàng",
-        path: "/admin/orders",
-        icon: React.createElement(OrderedListOutlined),
-      },
-      {
         key: "colors",
         label: "Màu sắc",
         path: "/admin/colors",
@@ -68,6 +54,12 @@ export const menuItems: MenuItem[] = [
         icon: React.createElement(DatabaseOutlined),
       },
     ],
+  },
+  {
+    key: "orders",
+    label: "Đơn hàng",
+    path: "/admin/orders",
+    icon: React.createElement(OrderedListOutlined),
   },
   {
     key: "user-management",

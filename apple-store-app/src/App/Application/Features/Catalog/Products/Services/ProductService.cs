@@ -1,6 +1,7 @@
 using Application.Common.Interfaces.Persistence;
 using Application.Features.Catalog.Products.DTOs;
 using Application.Features.Catalog.Products.Specifications;
+using Application.Features.Catalog.ProductVariants.DTOs;
 using Application.Wrappers;
 using Domain.Entities.Catalog;
 using Domain.Entities.Sales;
@@ -184,8 +185,34 @@ namespace Application.Features.Catalog.Products.Services
                 Description = product.Description,
                 WarrantyMonths = product.WarrantyMonths,
                 IsActive = product.IsActive,
+                Variants = product.Variants?.Select(MapToVariantDto).ToList() ?? new List<ProductVariantDto>(),
                 CreatedOn = product.CreatedOn,
                 LastModifiedOn = product.LastModifiedOn
+            };
+        }
+
+        private static ProductVariantDto MapToVariantDto(ProductVariant variant)
+        {
+            return new ProductVariantDto
+            {
+                Id = variant.Id,
+                ProductId = variant.ProductId,
+                ProductName = variant.Product?.Name ?? string.Empty,
+                SKU = variant.SKU,
+                VariantName = variant.VariantName,
+                ColorId = variant.ColorId,
+                ColorName = variant.Color?.Name,
+                ColorHexCode = variant.Color?.HexCode,
+                StorageOptionId = variant.StorageOptionId,
+                StorageCapacity = variant.StorageOption?.Name,
+                Price = variant.Price,
+                CompareAtPrice = variant.CompareAtPrice,
+                QuantityInStock = variant.QuantityInStock,
+                RowVersion = variant.RowVersion != null ? Convert.ToBase64String(variant.RowVersion) : string.Empty,
+                IsActive = variant.IsActive,
+                PrimaryImageUrl = variant.Images?.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? variant.Images?.FirstOrDefault()?.ImageUrl,
+                CreatedOn = variant.CreatedOn,
+                LastModifiedOn = variant.LastModifiedOn
             };
         }
     }

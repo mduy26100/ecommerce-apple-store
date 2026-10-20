@@ -8,6 +8,11 @@ namespace Application.Features.Catalog.Products.Specifications
         {
             Query.Include(p => p.Category)
                  .Include(p => p.Variants)
+                    .ThenInclude(v => v.Color)
+                 .Include(p => p.Variants)
+                    .ThenInclude(v => v.StorageOption)
+                 .Include(p => p.Variants)
+                    .ThenInclude(v => v.Images)
                  .Where(p => p.Id == id);
         }
     }

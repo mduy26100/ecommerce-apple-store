@@ -1,10 +1,7 @@
 import { Table, Tag, Button, Space, Popconfirm } from "antd";
 import {
-  EditOutlined,
   DeleteOutlined,
   ShoppingOutlined,
-  AppstoreOutlined,
-  SlidersOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { ProductItem } from "../types/product.types";
@@ -13,8 +10,9 @@ export interface ProductsTableProps {
   data: ProductItem[];
   loading?: boolean;
   pagination?: TablePaginationConfig;
-  onEdit: (product: ProductItem) => void;
+  onEdit?: (product: ProductItem) => void;
   onDelete: (id: number) => void;
+  onSelectProduct?: (product: ProductItem) => void;
   onManageVariants?: (product: ProductItem) => void;
   onManageSpecifications?: (product: ProductItem) => void;
   isDeleting?: boolean;
@@ -32,10 +30,9 @@ export const ProductsTable = ({
   data,
   loading,
   pagination,
-  onEdit,
   onDelete,
+  onSelectProduct,
   onManageVariants,
-  onManageSpecifications,
   isDeleting,
 }: ProductsTableProps) => {
   const columns: ColumnsType<ProductItem> = [
@@ -98,8 +95,15 @@ export const ProductsTable = ({
       render: (count: number, record) => (
         <Tag
           color={count > 0 ? "geekblue" : "default"}
-          className={onManageVariants ? "cursor-pointer hover:opacity-80" : ""}
-          onClick={() => onManageVariants && onManageVariants(record)}
+          className="cursor-pointer hover:opacity-80"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onSelectProduct) {
+              onSelectProduct(record);
+            } else if (onManageVariants) {
+              onManageVariants(record);
+            }
+          }}
         >
           {count} phiên bản
         </Tag>
@@ -140,38 +144,10 @@ export const ProductsTable = ({
     {
       title: "Thao tác",
       key: "actions",
-      width: 160,
+      width: 80,
       align: "center",
       render: (_, record) => (
-        <Space size="small">
-          {onManageVariants && (
-            <Button
-              type="text"
-              icon={<AppstoreOutlined />}
-              onClick={() => onManageVariants(record)}
-              className="text-purple-600 hover:bg-purple-50"
-              title="Quản lý phiên bản"
-              aria-label="Quản lý phiên bản"
-            />
-          )}
-          {onManageSpecifications && (
-            <Button
-              type="text"
-              icon={<SlidersOutlined />}
-              onClick={() => onManageSpecifications(record)}
-              className="text-emerald-600 hover:bg-emerald-50"
-              title="Quản lý thông số"
-              aria-label="Quản lý thông số"
-            />
-          )}
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => onEdit(record)}
-            className="text-blue-600 hover:bg-blue-50"
-            title="Chỉnh sửa"
-            aria-label="Chỉnh sửa sản phẩm"
-          />
+        <Space size="small" onClick={(e) => e.stopPropagation()}>
           <Popconfirm
             title="Xác nhận xóa"
             description="Bạn có chắc chắn muốn xóa sản phẩm này?"
@@ -186,6 +162,7 @@ export const ProductsTable = ({
               icon={<DeleteOutlined />}
               loading={isDeleting}
               title="Xóa"
+              aria-label="Xóa sản phẩm"
             />
           </Popconfirm>
         </Space>
@@ -202,6 +179,25 @@ export const ProductsTable = ({
       pagination={pagination}
       scroll={{ x: "max-content" }}
       className="custom-scrollbar"
+      onRow={(record) => ({
+        onClick: (e) => {
+          const target = e.target as HTMLElement;
+          if (
+            target.closest("button") ||
+            target.closest(".ant-popconfirm") ||
+            target.closest(".ant-popover") ||
+            target.closest(".ant-modal")
+          ) {
+            return;
+          }
+          if (onSelectProduct) {
+            onSelectProduct(record);
+          } else if (onManageVariants) {
+            onManageVariants(record);
+          }
+        },
+        className: "cursor-pointer hover:bg-blue-50/40 transition-colors",
+      })}
     />
   );
 };

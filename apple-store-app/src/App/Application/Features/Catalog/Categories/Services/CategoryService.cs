@@ -1,3 +1,4 @@
+using Application.Common.Helpers;
 using Application.Common.Interfaces.Persistence;
 using Application.Features.Catalog.Categories.DTOs;
 using Application.Features.Catalog.Categories.Specifications;
@@ -22,6 +23,8 @@ namespace Application.Features.Catalog.Categories.Services
 
         public async Task<PagedList<CategoryDto>> GetPagedAsync(CategoryPagedRequest request, CancellationToken cancellationToken = default)
         {
+            await EnsureNormalizedOrdersAsync(cancellationToken);
+
             var spec = new CategoryFilterSpec(request);
 
             return await _categoryRepository.GetPagedAsync(
@@ -34,6 +37,8 @@ namespace Application.Features.Catalog.Categories.Services
 
         public async Task<IReadOnlyList<CategoryDto>> GetAllAsync(CancellationToken cancellationToken = default)
         {
+            await EnsureNormalizedOrdersAsync(cancellationToken);
+
             var spec = new ActiveCategoriesSpec();
             var categories = await _categoryRepository.ListAsync(spec, cancellationToken);
 
@@ -72,6 +77,19 @@ namespace Application.Features.Catalog.Categories.Services
             };
 
             await _categoryRepository.AddAsync(category, cancellationToken);
+
+            var allCategories = await _categoryRepository.ListAsync(cancellationToken);
+            var target = allCategories.FirstOrDefault(c => c.Id == category.Id) ?? category;
+
+            SequenceNormalizer.Reorder(
+                allCategories,
+                target,
+                request.DisplayOrder,
+                c => c.DisplayOrder,
+                (c, order) => c.DisplayOrder = order,
+                startFrom: 1);
+
+            await _categoryRepository.SaveChangesAsync(cancellationToken);
         }
 
         public async Task UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken cancellationToken = default)
@@ -88,6 +106,19 @@ namespace Application.Features.Catalog.Categories.Services
             category.IsActive = request.IsActive;
 
             await _categoryRepository.UpdateAsync(category, cancellationToken);
+
+            var allCategories = await _categoryRepository.ListAsync(cancellationToken);
+            var target = allCategories.FirstOrDefault(c => c.Id == category.Id) ?? category;
+
+            SequenceNormalizer.Reorder(
+                allCategories,
+                target,
+                request.DisplayOrder,
+                c => c.DisplayOrder,
+                (c, order) => c.DisplayOrder = order,
+                startFrom: 1);
+
+            await _categoryRepository.SaveChangesAsync(cancellationToken);
         }
 
         public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
@@ -101,6 +132,45 @@ namespace Application.Features.Catalog.Categories.Services
             }
 
             await _categoryRepository.DeleteAsync(category, cancellationToken);
+
+            var remainingCategories = await _categoryRepository.ListAsync(cancellationToken);
+            SequenceNormalizer.Normalize(
+                remainingCategories,
+                c => c.DisplayOrder,
+                (c, order) => c.DisplayOrder = order,
+                c => c.Id,
+                startFrom: 1);
+
+            await _categoryRepository.SaveChangesAsync(cancellationToken);
+        }
+
+        private async Task EnsureNormalizedOrdersAsync(CancellationToken cancellationToken)
+        {
+            var allCategories = await _categoryRepository.ListAsync(cancellationToken);
+            if (allCategories.Count == 0) return;
+
+            var isSequential = true;
+            var sorted = allCategories.OrderBy(c => c.DisplayOrder).ToList();
+            for (var i = 0; i < sorted.Count; i++)
+            {
+                if (sorted[i].DisplayOrder != i + 1)
+                {
+                    isSequential = false;
+                    break;
+                }
+            }
+
+            if (!isSequential)
+            {
+                SequenceNormalizer.Normalize(
+                    allCategories,
+                    c => c.DisplayOrder,
+                    (c, order) => c.DisplayOrder = order,
+                    c => c.Id,
+                    startFrom: 1);
+
+                await _categoryRepository.SaveChangesAsync(cancellationToken);
+            }
         }
 
         private async Task<Category> GetCategoryOrThrowAsync(int id, CancellationToken cancellationToken)

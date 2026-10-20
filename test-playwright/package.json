@@ -1,0 +1,12 @@
+{
+  "name": "ecommerce-apple-store-playwright",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "echo 'Vui lòng chỉ định rõ file test: npx playwright test e2e/<file>.spec.ts' && exit 1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0"
+  }
+}

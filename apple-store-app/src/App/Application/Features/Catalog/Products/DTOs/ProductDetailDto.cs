@@ -1,3 +1,5 @@
+using Application.Features.Catalog.ProductVariants.DTOs;
+
 namespace Application.Features.Catalog.Products.DTOs
 {
     public class ProductDetailDto
@@ -12,6 +14,7 @@ namespace Application.Features.Catalog.Products.DTOs
         public string? Description { get; set; }
         public short? WarrantyMonths { get; set; }
         public bool IsActive { get; set; }
+        public IReadOnlyList<ProductVariantDto> Variants { get; set; } = new List<ProductVariantDto>();
         public DateTimeOffset CreatedOn { get; set; }
         public DateTimeOffset? LastModifiedOn { get; set; }
     }

@@ -196,6 +196,7 @@ export const ProductsPage = () => {
           data={data || []}
           loading={isLoading}
           pagination={paginationConfig}
+          onSelectProduct={handleManageVariants}
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
           onManageVariants={handleManageVariants}
@@ -216,6 +217,7 @@ export const ProductsPage = () => {
         open={variantDrawerOpen}
         product={selectedProductForVariants}
         onClose={handleCloseVariantDrawer}
+        onEditProduct={handleOpenEdit}
       />
 
       <ProductSpecificationsDrawer

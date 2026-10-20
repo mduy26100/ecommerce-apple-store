@@ -1,4 +1,5 @@
 import type { MetaInfo } from "@core/models/api.model";
+import type { ProductVariantItem } from "../../variants/types/variant.types";
 
 export interface ProductItem {
   id: number;
@@ -28,6 +29,7 @@ export interface ProductDetailItem {
   description?: string | null;
   warrantyMonths?: number | null;
   isActive: boolean;
+  variants?: ProductVariantItem[];
   createdOn: string;
   lastModifiedOn?: string | null;
 }
