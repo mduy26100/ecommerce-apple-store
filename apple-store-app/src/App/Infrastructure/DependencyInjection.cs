@@ -1,6 +1,9 @@
 using Application.Common.Interfaces.Persistence;
+using Application.Common.Interfaces.Storage;
 using Infrastructure.Identity.Models;
 using Infrastructure.Persistence;
+using Infrastructure.Settings;
+using Infrastructure.Storage;
 
 namespace Infrastructure
 {
@@ -10,6 +13,7 @@ namespace Infrastructure
         {
             services.AddPersistence(configuration);
             services.AddIdentityServices();
+            services.AddStorageServices(configuration);
 
             return services;
         }
@@ -61,6 +65,14 @@ namespace Infrastructure
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
+
+            return services;
+        }
+
+        private static IServiceCollection AddStorageServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
+            services.AddScoped<ICloudinaryService, CloudinaryStorageService>();
 
             return services;
         }

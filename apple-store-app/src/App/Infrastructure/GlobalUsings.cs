@@ -9,4 +9,9 @@ global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Ardalis.Specification;
 global using Ardalis.Specification.EntityFrameworkCore;
-
+global using System.Net;
+global using System.Net.Http;
+global using Microsoft.Extensions.Options;
+global using CloudinaryDotNet;
+global using CloudinaryDotNet.Actions;
+global using Expression = System.Linq.Expressions.Expression;

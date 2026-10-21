@@ -1,3 +1,5 @@
+using Application.Common.Interfaces.Storage;
+using Application.Common.Services.Storage;
 using Application.Features.Catalog.Categories.Services;
 using Application.Features.Catalog.Colors.Services;
 using Application.Features.Catalog.Products.Services;
@@ -13,6 +15,7 @@ namespace Application
     {
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
+            services.AddScoped<IUploadImageService, UploadImageService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IColorService, ColorService>();
             services.AddScoped<IStorageOptionService, StorageOptionService>();
