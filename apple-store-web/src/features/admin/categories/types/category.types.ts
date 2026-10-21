@@ -30,6 +30,7 @@ export interface CreateCategoryPayload {
   imageUrl?: string;
   displayOrder?: number;
   isActive?: boolean;
+  imageFile?: File;
 }
 
 export interface UpdateCategoryPayload {
@@ -39,4 +40,5 @@ export interface UpdateCategoryPayload {
   imageUrl?: string;
   displayOrder?: number;
   isActive?: boolean;
+  imageFile?: File;
 }

@@ -11,10 +11,17 @@ export interface VariantImageItem {
 
 export interface CreateVariantImagePayload {
   productVariantId: number;
-  imageUrl: string;
+  imageUrl?: string;
   altText?: string;
   displayOrder?: number;
   isPrimary?: boolean;
+  file?: File;
+}
+
+export interface CreateBatchVariantImagesPayload {
+  productVariantId: number;
+  files: File[];
+  altText?: string;
 }
 
 export interface UpdateVariantImagePayload {

@@ -19,7 +19,6 @@ import {
 } from "../hooks/useVariants";
 import { VariantsTable } from "./VariantsTable";
 import { VariantFormModal } from "./VariantFormModal";
-import { VariantImagesModal } from "@features/admin/variant-images";
 import { SpecificationsManager } from "@features/admin/specifications";
 import { useProductDetail } from "../../products/hooks/useProducts";
 import type {
@@ -52,8 +51,6 @@ export const ProductVariantsDrawer = ({
 }: ProductVariantsDrawerProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVariant, setEditingVariant] = useState<ProductVariantItem | null>(null);
-  const [imagesModalOpen, setImagesModalOpen] = useState(false);
-  const [selectedVariantForImages, setSelectedVariantForImages] = useState<ProductVariantItem | null>(null);
   const [activeTab, setActiveTab] = useState("variants");
 
   const productId = product?.id || 0;
@@ -98,11 +95,6 @@ export const ProductVariantsDrawer = ({
   const handleOpenEdit = (variant: ProductVariantItem) => {
     setEditingVariant(variant);
     setModalOpen(true);
-  };
-
-  const handleOpenImages = (variant: ProductVariantItem) => {
-    setSelectedVariantForImages(variant);
-    setImagesModalOpen(true);
   };
 
   const handleCloseModal = () => {
@@ -272,7 +264,6 @@ export const ProductVariantsDrawer = ({
                       loading={isLoadingVariants}
                       onEdit={handleOpenEdit}
                       onDelete={handleDelete}
-                      onManageImages={handleOpenImages}
                       isDeleting={deleteMutation.isPending}
                     />
                   </div>
@@ -374,16 +365,6 @@ export const ProductVariantsDrawer = ({
           onSubmit={handleSubmit}
         />
       )}
-
-      <VariantImagesModal
-        open={imagesModalOpen}
-        variant={selectedVariantForImages}
-        productId={productId}
-        onCancel={() => {
-          setImagesModalOpen(false);
-          setSelectedVariantForImages(null);
-        }}
-      />
     </Drawer>
   );
 };

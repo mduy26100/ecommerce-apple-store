@@ -3,6 +3,28 @@ using Application.Features.Catalog.Categories.Services;
 
 namespace Host.Controllers.Manager
 {
+    public class CreateCategoryForm
+    {
+        public string Name { get; set; } = default!;
+        public string Slug { get; set; } = default!;
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
+        public int DisplayOrder { get; set; } = 0;
+        public bool IsActive { get; set; } = true;
+        public IFormFile? Image { get; set; }
+    }
+
+    public class UpdateCategoryForm
+    {
+        public string Name { get; set; } = default!;
+        public string Slug { get; set; } = default!;
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+        public IFormFile? Image { get; set; }
+    }
+
     [Tags("Manager - Categories")]
     [Route("api/manager/categories")]
     public class CategoriesController : BaseManagerController
@@ -29,15 +51,43 @@ namespace Host.Controllers.Manager
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request, CancellationToken cancellationToken)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Create([FromForm] CreateCategoryForm form, CancellationToken cancellationToken)
         {
+            var request = new CreateCategoryRequest
+            {
+                Name = form.Name,
+                Slug = form.Slug,
+                Description = form.Description,
+                ImageUrl = form.ImageUrl,
+                DisplayOrder = form.DisplayOrder,
+                IsActive = form.IsActive,
+                ImageStream = form.Image?.OpenReadStream(),
+                ImageFileName = form.Image?.FileName,
+                ImageContentType = form.Image?.ContentType
+            };
+
             await _categoryService.CreateAsync(request, cancellationToken);
             return Ok();
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UpdateCategoryRequest request, CancellationToken cancellationToken)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Update(int id, [FromForm] UpdateCategoryForm form, CancellationToken cancellationToken)
         {
+            var request = new UpdateCategoryRequest
+            {
+                Name = form.Name,
+                Slug = form.Slug,
+                Description = form.Description,
+                ImageUrl = form.ImageUrl,
+                DisplayOrder = form.DisplayOrder,
+                IsActive = form.IsActive,
+                ImageStream = form.Image?.OpenReadStream(),
+                ImageFileName = form.Image?.FileName,
+                ImageContentType = form.Image?.ContentType
+            };
+
             await _categoryService.UpdateAsync(id, request, cancellationToken);
             return Ok();
         }

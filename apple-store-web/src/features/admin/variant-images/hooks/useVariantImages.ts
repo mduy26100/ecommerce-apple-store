@@ -4,6 +4,7 @@ import { variantImagesApi } from "../api/variant-images.api";
 import { VARIANTS_QUERY_KEYS } from "@features/admin/variants/hooks/useVariants";
 import type {
   CreateVariantImagePayload,
+  CreateBatchVariantImagesPayload,
   UpdateVariantImagePayload,
 } from "../types/variant-image.types";
 
@@ -30,6 +31,26 @@ export const useCreateVariantImage = (variantId: number, productId?: number) => 
       variantImagesApi.create(payload),
     onSuccess: () => {
       message.success("Thêm ảnh thành công!");
+      queryClient.invalidateQueries({
+        queryKey: VARIANT_IMAGES_QUERY_KEYS.BY_VARIANT(variantId),
+      });
+      if (productId) {
+        queryClient.invalidateQueries({
+          queryKey: VARIANTS_QUERY_KEYS.BY_PRODUCT(productId),
+        });
+      }
+    },
+  });
+};
+
+export const useCreateBatchVariantImages = (variantId: number, productId?: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateBatchVariantImagesPayload) =>
+      variantImagesApi.createBatch(payload),
+    onSuccess: (data) => {
+      message.success(`Đã thêm thành công ${data.length} ảnh vào bộ sưu tập!`);
       queryClient.invalidateQueries({
         queryKey: VARIANT_IMAGES_QUERY_KEYS.BY_VARIANT(variantId),
       });

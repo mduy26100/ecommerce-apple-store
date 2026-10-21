@@ -3,6 +3,22 @@ using Application.Features.Catalog.VariantImages.Services;
 
 namespace Host.Controllers.Manager
 {
+    public class CreateVariantImageForm
+    {
+        public int ProductVariantId { get; set; }
+        public string? AltText { get; set; }
+        public int DisplayOrder { get; set; } = 0;
+        public bool IsPrimary { get; set; } = false;
+        public IFormFile? File { get; set; }
+    }
+
+    public class CreateBatchVariantImagesForm
+    {
+        public int ProductVariantId { get; set; }
+        public List<IFormFile> Files { get; set; } = new();
+        public string? AltText { get; set; }
+    }
+
     [Tags("Manager - Variant Images")]
     [Route("api/manager/variant-images")]
     public class VariantImagesController : BaseManagerController
@@ -29,10 +45,42 @@ namespace Host.Controllers.Manager
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateVariantImageRequest request, CancellationToken cancellationToken)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Create([FromForm] CreateVariantImageForm form, CancellationToken cancellationToken)
         {
+            var request = new CreateVariantImageRequest
+            {
+                ProductVariantId = form.ProductVariantId,
+                AltText = form.AltText,
+                DisplayOrder = form.DisplayOrder,
+                IsPrimary = form.IsPrimary,
+                ImageStream = form.File?.OpenReadStream(),
+                ImageFileName = form.File?.FileName,
+                ImageContentType = form.File?.ContentType
+            };
+
             var id = await _imageService.CreateAsync(request, cancellationToken);
             return Ok(new { id });
+        }
+
+        [HttpPost("batch")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateBatch([FromForm] CreateBatchVariantImagesForm form, CancellationToken cancellationToken)
+        {
+            var request = new CreateBatchVariantImagesRequest
+            {
+                ProductVariantId = form.ProductVariantId,
+                Files = form.Files.Select(f => new VariantImageFileItem
+                {
+                    Stream = f.OpenReadStream(),
+                    FileName = f.FileName,
+                    ContentType = f.ContentType,
+                    AltText = form.AltText
+                }).ToList()
+            };
+
+            var results = await _imageService.CreateBatchAsync(request, cancellationToken);
+            return Ok(results);
         }
 
         [HttpPut("{id:int}")]

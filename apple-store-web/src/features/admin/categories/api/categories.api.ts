@@ -26,11 +26,25 @@ export const categoriesApi = {
   },
 
   create: async (payload: CreateCategoryPayload): Promise<void> => {
-    await api.post("/api/manager/categories", payload);
+    const formData = new FormData();
+    formData.append("name", payload.name);
+    formData.append("slug", payload.slug);
+    if (payload.description) formData.append("description", payload.description);
+    if (payload.displayOrder !== undefined) formData.append("displayOrder", payload.displayOrder.toString());
+    if (payload.isActive !== undefined) formData.append("isActive", payload.isActive.toString());
+    if (payload.imageFile) formData.append("image", payload.imageFile);
+    await api.post("/api/manager/categories", formData);
   },
 
   update: async (id: number, payload: UpdateCategoryPayload): Promise<void> => {
-    await api.put(`/api/manager/categories/${id}`, payload);
+    const formData = new FormData();
+    formData.append("name", payload.name);
+    formData.append("slug", payload.slug);
+    if (payload.description) formData.append("description", payload.description);
+    if (payload.displayOrder !== undefined) formData.append("displayOrder", payload.displayOrder.toString());
+    if (payload.isActive !== undefined) formData.append("isActive", payload.isActive.toString());
+    if (payload.imageFile) formData.append("image", payload.imageFile);
+    await api.put(`/api/manager/categories/${id}`, formData);
   },
 
   delete: async (id: number): Promise<void> => {

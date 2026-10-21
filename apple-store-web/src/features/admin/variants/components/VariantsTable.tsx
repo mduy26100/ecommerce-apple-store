@@ -1,5 +1,5 @@
 import { Table, Tag, Button, Space, Popconfirm } from "antd";
-import { EditOutlined, DeleteOutlined, PictureOutlined } from "@ant-design/icons";
+import { DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { ProductVariantItem } from "../types/variant.types";
 
@@ -8,7 +8,6 @@ export interface VariantsTableProps {
   loading?: boolean;
   onEdit: (variant: ProductVariantItem) => void;
   onDelete: (id: number) => void;
-  onManageImages?: (variant: ProductVariantItem) => void;
   isDeleting?: boolean;
 }
 
@@ -25,7 +24,6 @@ export const VariantsTable = ({
   loading,
   onEdit,
   onDelete,
-  onManageImages,
   isDeleting,
 }: VariantsTableProps) => {
   const columns: ColumnsType<ProductVariantItem> = [
@@ -125,26 +123,10 @@ export const VariantsTable = ({
     {
       title: "Thao tác",
       key: "actions",
-      width: 130,
+      width: 80,
       align: "center",
       render: (_, record) => (
-        <Space size="small">
-          {onManageImages && (
-            <Button
-              type="text"
-              icon={<PictureOutlined />}
-              onClick={() => onManageImages(record)}
-              className="text-amber-600 hover:bg-amber-50"
-              title="Bộ sưu tập ảnh"
-            />
-          )}
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => onEdit(record)}
-            className="text-blue-600 hover:bg-blue-50"
-            title="Chỉnh sửa"
-          />
+        <Space size="small" onClick={(e) => e.stopPropagation()}>
           <Popconfirm
             title="Xác nhận xóa"
             description="Bạn có chắc chắn muốn xóa phiên bản này?"
@@ -158,7 +140,7 @@ export const VariantsTable = ({
               danger
               icon={<DeleteOutlined />}
               loading={isDeleting}
-              title="Xóa"
+              title="Xóa phiên bản"
             />
           </Popconfirm>
         </Space>
@@ -175,6 +157,10 @@ export const VariantsTable = ({
       pagination={false}
       scroll={{ x: "max-content" }}
       className="custom-scrollbar"
+      onRow={(record) => ({
+        onClick: () => onEdit(record),
+        className: "cursor-pointer hover:bg-blue-50/40 transition-colors",
+      })}
     />
   );
 };

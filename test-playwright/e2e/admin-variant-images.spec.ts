@@ -1,22 +1,17 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Admin - Quản lý Ảnh Biến thể (Variant Images & Gallery)", () => {
-  const uniqueId = Date.now();
-  const testProductName = `iPhone 16 Pro Max Gallery ${uniqueId}`;
-  const testProductSlug = `iphone-16-pro-max-gallery-${uniqueId}`;
-  const testSku = `GALLERY-SKU-${uniqueId}`;
+test.describe("Admin - Quản lý Ảnh Biến thể (Variant Images, Batch Upload & Free Cropper)", () => {
+  const sampleImagePath = "C:/Users/Admin/Documents/KryzoSoft/images/opengraph-image.png";
 
-  test.beforeEach(async ({ page }) => {
+  test("Quy trình kiểm thử toàn diện Quản lý Ảnh Biến thể: Tạo mới, Cắt ảnh tự do, Tải nhiều ảnh batch, Chuẩn hóa thứ tự 1-n và Xóa ảnh", async ({ page }) => {
+    const uniqueId = Date.now();
+    const testProductName = `iPhone 16 Pro Max Gallery ${uniqueId}`;
+    const testProductSlug = `iphone-16-pro-max-gallery-${uniqueId}`;
+    const testSku = `GALLERY-SKU-${uniqueId}`;
+
     await page.goto("/admin/products");
     await page.waitForLoadState("networkidle");
-    const searchInput = page.locator("input[placeholder*='Tìm theo tên']");
-    if (await searchInput.isVisible()) {
-      await searchInput.fill(testProductName);
-      await page.waitForLoadState("networkidle");
-    }
-  });
 
-  test("Khởi tạo sản phẩm và phiên bản phục vụ kiểm thử thư viện ảnh", async ({ page }) => {
     await page.click("button:has-text('Thêm sản phẩm')");
     await page.locator(".ant-modal input#categoryId").click();
     await page.waitForSelector(".ant-select-dropdown:not(.ant-select-dropdown-hidden)");
@@ -27,18 +22,22 @@ test.describe("Admin - Quản lý Ảnh Biến thể (Variant Images & Gallery)"
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/api/manager/products") && res.request().method() === "POST"
+        (res) => res.url().includes("/api/manager/products") && res.request().method() === "POST",
+        { timeout: 20000 }
       ),
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
-    await expect(page.locator(".ant-table")).toContainText(testProductName);
+    const searchInput = page.locator("input[placeholder*='Tìm theo tên']");
+    await searchInput.fill(testProductName);
+    await page.waitForLoadState("networkidle");
 
     const row = page.locator(`.ant-table-row:has-text('${testProductName}')`);
-    await row.locator("button[title='Quản lý phiên bản'], button:has(.anticon-appstore)").click();
+    await expect(row).toBeVisible({ timeout: 10000 });
+    await row.locator(".ant-tag:has-text('phiên bản'), .ant-table-cell:first-child").first().click();
 
     const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
+    await expect(drawer).toBeVisible({ timeout: 10000 });
 
     await drawer.locator("button:has-text('Thêm phiên bản')").click();
     await page.fill("input#sku", testSku);
@@ -46,105 +45,95 @@ test.describe("Admin - Quản lý Ảnh Biến thể (Variant Images & Gallery)"
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/api/manager/product-variants") && res.request().method() === "POST"
+        (res) => res.url().includes("/api/manager/product-variants") && res.request().method() === "POST",
+        { timeout: 20000 }
       ),
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
-    await expect(drawer.locator(".ant-table")).toContainText(testSku);
-  });
-
-  test("Mở hộp thoại bộ sưu tập ảnh và thêm ảnh mới thành công", async ({ page }) => {
-    const row = page.locator(`.ant-table-row:has-text('${testProductName}')`);
-    await row.locator("button[title='Quản lý phiên bản'], button:has(.anticon-appstore)").click();
-
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-
     const variantRow = drawer.locator(`.ant-table-row:has-text('${testSku}')`);
-    await variantRow.locator("button[title='Bộ sưu tập ảnh'], button:has(.anticon-picture)").click();
+    await expect(variantRow).toBeVisible({ timeout: 10000 });
+    await variantRow.click();
 
-    const imagesModal = page.locator(".ant-modal");
-    await expect(imagesModal).toBeVisible();
+    const imagesModal = page.locator(".ant-modal").first();
+    await expect(imagesModal).toBeVisible({ timeout: 10000 });
     await expect(imagesModal).toContainText("Bộ sưu tập hình ảnh");
 
-    const img1Url = "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5";
-    await imagesModal.locator("input#imageUrl").fill(img1Url);
-    await imagesModal.locator("input#altText").fill("Ảnh mặt trước");
+    const fileInput = imagesModal.locator("input#variantImageUploadInput");
+    await fileInput.setInputFiles(sampleImagePath);
+
+    const cropBtn = imagesModal.locator("button#btnCropVariantImage");
+    await expect(cropBtn).toBeVisible({ timeout: 10000 });
+    await cropBtn.click();
+
+    const cropperModal = page.locator(".ant-modal:has-text('Cắt ảnh sản phẩm (Tự do ngang dọc)')");
+    await expect(cropperModal).toBeVisible({ timeout: 10000 });
+
+    const confirmCropBtn = cropperModal.locator(".ant-modal-footer button:has-text('Xác nhận')");
+    await expect(confirmCropBtn).toBeVisible({ timeout: 10000 });
+    await confirmCropBtn.click();
+    await expect(cropperModal).not.toBeVisible({ timeout: 10000 });
+
+    const uploadBtn = imagesModal.locator("button#btnUploadVariantImages");
+    await expect(uploadBtn).toBeVisible({ timeout: 10000 });
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/api/manager/variant-images") && res.request().method() === "POST"
+        (res) => res.url().includes("/api/manager/variant-images") && res.request().method() === "POST" && res.status() < 400,
+        { timeout: 35000 }
       ),
-      imagesModal.locator("button:has-text('Thêm ảnh vào bộ sưu tập')").click(),
+      uploadBtn.click(),
     ]);
 
-    await expect(imagesModal.locator(".ant-tag:has-text('Ảnh chính')")).toBeVisible();
-  });
+    await expect(imagesModal.locator(".ant-tag:has-text('Ảnh chính')")).toBeVisible({ timeout: 10000 });
+    await expect(imagesModal.locator(".relative.group .ant-tag:has-text('#1')")).toBeVisible({ timeout: 10000 });
 
-  test("Thêm ảnh thứ hai và chuyển đổi ảnh đại diện chính", async ({ page }) => {
-    const row = page.locator(`.ant-table-row:has-text('${testProductName}')`);
-    await row.locator("button[title='Quản lý phiên bản'], button:has(.anticon-appstore)").click();
-
-    const drawer = page.locator(".ant-drawer");
-    const variantRow = drawer.locator(`.ant-table-row:has-text('${testSku}')`);
-    await variantRow.locator("button[title='Bộ sưu tập ảnh'], button:has(.anticon-picture)").click();
-
-    const imagesModal = page.locator(".ant-modal");
-    await expect(imagesModal).toBeVisible();
-
-    const img2Url = "https://images.unsplash.com/photo-1592750475338-74b7b21085ab";
-    await imagesModal.locator("input#imageUrl").fill(img2Url);
-    await imagesModal.locator("input#altText").fill("Ảnh mặt lưng");
+    await fileInput.setInputFiles([sampleImagePath, sampleImagePath]);
+    await expect(uploadBtn).toBeVisible({ timeout: 10000 });
+    await expect(uploadBtn).toContainText("Tải lên 2 ảnh đã chọn");
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/api/manager/variant-images") && res.request().method() === "POST"
+        (res) => res.url().includes("/api/manager/variant-images/batch") && res.request().method() === "POST" && res.status() < 400,
+        { timeout: 45000 }
       ),
-      imagesModal.locator("button:has-text('Thêm ảnh vào bộ sưu tập')").click(),
+      uploadBtn.click(),
     ]);
+
+    await expect(imagesModal.locator(".relative.group")).toHaveCount(3, { timeout: 15000 });
+    await expect(imagesModal.locator(".relative.group .ant-tag:has-text('#1')")).toBeVisible();
+    await expect(imagesModal.locator(".relative.group .ant-tag:has-text('#2')")).toBeVisible();
+    await expect(imagesModal.locator(".relative.group .ant-tag:has-text('#3')")).toBeVisible();
 
     const setPrimaryBtn = imagesModal.locator("button:has-text('Đặt chính')").first();
-    await expect(setPrimaryBtn).toBeVisible();
+    await expect(setPrimaryBtn).toBeVisible({ timeout: 10000 });
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/primary") && (res.request().method() === "PUT" || res.request().method() === "PATCH")
+        (res) => res.url().includes("/primary") && (res.request().method() === "PUT" || res.request().method() === "PATCH"),
+        { timeout: 20000 }
       ),
       setPrimaryBtn.click(),
     ]);
 
-    await expect(imagesModal.locator(".ant-tag:has-text('Ảnh chính')")).toBeVisible();
-  });
-
-  test("Thực hiện xóa ảnh khỏi bộ sưu tập thành công", async ({ page }) => {
-    const row = page.locator(`.ant-table-row:has-text('${testProductName}')`);
-    await row.locator("button[title='Quản lý phiên bản'], button:has(.anticon-appstore)").click();
-
-    const drawer = page.locator(".ant-drawer");
-    const variantRow = drawer.locator(`.ant-table-row:has-text('${testSku}')`);
-    await variantRow.locator("button[title='Bộ sưu tập ảnh'], button:has(.anticon-picture)").click();
-
-    const imagesModal = page.locator(".ant-modal");
-    await expect(imagesModal).toBeVisible();
-
-    await expect(imagesModal.locator(".relative.group").first()).toBeVisible();
-    const initialCards = await imagesModal.locator(".relative.group").count();
-    expect(initialCards).toBeGreaterThan(0);
+    await expect(imagesModal.locator(".ant-tag:has-text('Ảnh chính')")).toBeVisible({ timeout: 10000 });
 
     const firstDeleteBtn = imagesModal.locator(".relative.group button:has(.anticon-delete)").first();
     await firstDeleteBtn.click();
 
     const popconfirm = page.locator(".ant-popconfirm, .ant-popover");
-    await expect(popconfirm).toBeVisible();
+    await expect(popconfirm).toBeVisible({ timeout: 10000 });
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/api/manager/variant-images") && res.request().method() === "DELETE"
+        (res) => res.url().includes("/api/manager/variant-images") && res.request().method() === "DELETE",
+        { timeout: 30000 }
       ),
       popconfirm.locator("button:has-text('Xóa')").click(),
     ]);
 
-    await expect(imagesModal.locator(".relative.group")).toHaveCount(initialCards - 1);
+    await expect(imagesModal.locator(".relative.group")).toHaveCount(2, { timeout: 10000 });
+    await expect(imagesModal.locator(".relative.group .ant-tag:has-text('#1')")).toBeVisible();
+    await expect(imagesModal.locator(".ant-tag:has-text('Ảnh chính')")).toBeVisible();
   });
 });

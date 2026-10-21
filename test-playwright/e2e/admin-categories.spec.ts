@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Admin - Quản lý Danh mục (Categories CRUD)", () => {
+test.describe("Admin - Quản lý Danh mục (Categories CRUD & Image Cropper)", () => {
+  const sampleImagePath = "C:/Users/Admin/Documents/KryzoSoft/images/opengraph-image.png";
+
   test.beforeEach(async ({ page }) => {
     await page.goto("/admin/categories");
     await page.waitForLoadState("networkidle");
@@ -12,29 +14,42 @@ test.describe("Admin - Quản lý Danh mục (Categories CRUD)", () => {
     await expect(page.locator("button:has-text('Thêm danh mục')")).toBeVisible();
   });
 
-  test("Thực hiện tạo danh mục sản phẩm mới thành công", async ({ page }) => {
+  test("Thực hiện tạo danh mục kèm tải và cắt ảnh 1:1 qua ImageCropperModal thành công", async ({ page }) => {
     const uniqueSuffix = Date.now();
-    const testName = `iPhone ${uniqueSuffix}`;
-    const testSlug = `iphone-${uniqueSuffix}`;
+    const testName = `iPad Pro ${uniqueSuffix}`;
+    const testSlug = `ipad-pro-${uniqueSuffix}`;
 
     await page.click("button:has-text('Thêm danh mục')");
 
-    const modal = page.locator(".ant-modal");
+    const modal = page.locator(".ant-modal").first();
     await expect(modal).toBeVisible();
 
     await page.fill("input#name", testName);
     await page.fill("input#slug", testSlug);
     await page.fill("input#displayOrder", "1");
-    await page.fill("textarea#description", "Dòng điện thoại iPhone cao cấp");
+    await page.fill("textarea#description", "Dòng máy tính bảng iPad Pro cao cấp");
+
+    const fileInput = page.locator("input#categoryImageUploadInput");
+    await fileInput.setInputFiles(sampleImagePath);
+
+    const cropperModal = page.locator(".ant-modal:has-text('Cắt ảnh danh mục')");
+    await expect(cropperModal).toBeVisible();
+
+    const confirmCropBtn = cropperModal.locator(".ant-modal-footer button:has-text('Xác nhận')");
+    await confirmCropBtn.click();
+
+    await expect(cropperModal).not.toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".ant-tag:has-text('Đã cắt ảnh 1:1 sẵn sàng tải lên')")).toBeVisible();
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/api/manager/categories") && res.request().method() === "POST"
+        (res) => res.url().includes("/api/manager/categories") && res.request().method() === "POST" && res.status() < 400,
+        { timeout: 30000 }
       ),
-      page.click(".ant-modal-footer button:has-text('Lưu')"),
+      modal.locator(".ant-modal-footer button:has-text('Lưu')").click(),
     ]);
 
-    await expect(modal).not.toBeVisible();
+    await expect(modal).not.toBeVisible({ timeout: 10000 });
     await page.fill("input[placeholder*='danh mục']", testName);
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
@@ -66,7 +81,8 @@ test.describe("Admin - Quản lý Danh mục (Categories CRUD)", () => {
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/api/manager/categories") && res.request().method() === "POST"
+        (res) => res.url().includes("/api/manager/categories") && res.request().method() === "POST",
+        { timeout: 30000 }
       ),
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
@@ -85,7 +101,8 @@ test.describe("Admin - Quản lý Danh mục (Categories CRUD)", () => {
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/api/manager/categories") && res.request().method() === "PUT"
+        (res) => res.url().includes("/api/manager/categories") && res.request().method() === "PUT",
+        { timeout: 30000 }
       ),
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
@@ -107,7 +124,8 @@ test.describe("Admin - Quản lý Danh mục (Categories CRUD)", () => {
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/api/manager/categories") && res.request().method() === "POST"
+        (res) => res.url().includes("/api/manager/categories") && res.request().method() === "POST",
+        { timeout: 30000 }
       ),
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
@@ -124,11 +142,15 @@ test.describe("Admin - Quản lý Danh mục (Categories CRUD)", () => {
 
     await Promise.all([
       page.waitForResponse(
-        (res) => res.url().includes("/api/manager/categories") && res.request().method() === "DELETE"
+        (res) => res.url().includes("/api/manager/categories") && res.request().method() === "DELETE",
+        { timeout: 30000 }
       ),
       popconfirm.locator("button:has-text('Xóa')").click(),
     ]);
 
-    await expect(page.locator(".ant-table")).not.toContainText(testName);
+    await page.waitForResponse(
+      (res) => res.url().includes("/api/manager/categories") && res.request().method() === "GET"
+    );
+    await expect(page.locator(`.ant-table-row:has-text('${testName}')`)).not.toBeVisible();
   });
 });

@@ -70,19 +70,17 @@ namespace Application.Common.Services.Storage
             Func<Task> removeFromDatabaseCallback,
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(currentImageUrl))
-            {
-                return;
-            }
-
             await removeFromDatabaseCallback();
 
-            try
+            if (!string.IsNullOrWhiteSpace(currentImageUrl))
             {
-                await _cloudinaryService.DeleteFileAsync(currentImageUrl, cancellationToken);
-            }
-            catch
-            {
+                try
+                {
+                    await _cloudinaryService.DeleteFileAsync(currentImageUrl, cancellationToken);
+                }
+                catch
+                {
+                }
             }
         }
     }

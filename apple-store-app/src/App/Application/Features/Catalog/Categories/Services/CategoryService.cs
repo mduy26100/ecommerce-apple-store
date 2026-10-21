@@ -1,5 +1,6 @@
 using Application.Common.Helpers;
 using Application.Common.Interfaces.Persistence;
+using Application.Common.Interfaces.Storage;
 using Application.Features.Catalog.Categories.DTOs;
 using Application.Features.Catalog.Categories.Specifications;
 using Application.Wrappers;
@@ -12,13 +13,16 @@ namespace Application.Features.Catalog.Categories.Services
     {
         private readonly IRepository<Category> _categoryRepository;
         private readonly IRepository<Product> _productRepository;
+        private readonly IUploadImageService _uploadImageService;
 
         public CategoryService(
             IRepository<Category> categoryRepository,
-            IRepository<Product> productRepository)
+            IRepository<Product> productRepository,
+            IUploadImageService uploadImageService)
         {
             _categoryRepository = categoryRepository;
             _productRepository = productRepository;
+            _uploadImageService = uploadImageService;
         }
 
         public async Task<PagedList<CategoryDto>> GetPagedAsync(CategoryPagedRequest request, CancellationToken cancellationToken = default)
@@ -76,7 +80,25 @@ namespace Application.Features.Catalog.Categories.Services
                 IsActive = request.IsActive
             };
 
-            await _categoryRepository.AddAsync(category, cancellationToken);
+            if (request.ImageStream != null && !string.IsNullOrWhiteSpace(request.ImageFileName))
+            {
+                await _uploadImageService.UploadAndReplaceImageAsync(
+                    request.ImageStream,
+                    request.ImageFileName,
+                    request.ImageContentType,
+                    "categories",
+                    null,
+                    async newUrl =>
+                    {
+                        category.ImageUrl = newUrl;
+                        await _categoryRepository.AddAsync(category, cancellationToken);
+                    },
+                    cancellationToken);
+            }
+            else
+            {
+                await _categoryRepository.AddAsync(category, cancellationToken);
+            }
 
             var allCategories = await _categoryRepository.ListAsync(cancellationToken);
             var target = allCategories.FirstOrDefault(c => c.Id == category.Id) ?? category;
@@ -101,11 +123,29 @@ namespace Application.Features.Catalog.Categories.Services
             category.Name = request.Name.Trim();
             category.Slug = request.Slug.Trim().ToLower();
             category.Description = request.Description?.Trim();
-            category.ImageUrl = request.ImageUrl?.Trim();
             category.DisplayOrder = request.DisplayOrder;
             category.IsActive = request.IsActive;
 
-            await _categoryRepository.UpdateAsync(category, cancellationToken);
+            if (request.ImageStream != null && !string.IsNullOrWhiteSpace(request.ImageFileName))
+            {
+                await _uploadImageService.UploadAndReplaceImageAsync(
+                    request.ImageStream,
+                    request.ImageFileName,
+                    request.ImageContentType,
+                    "categories",
+                    category.ImageUrl,
+                    async newUrl =>
+                    {
+                        category.ImageUrl = newUrl;
+                        await _categoryRepository.UpdateAsync(category, cancellationToken);
+                    },
+                    cancellationToken);
+            }
+            else
+            {
+                category.ImageUrl = request.ImageUrl?.Trim();
+                await _categoryRepository.UpdateAsync(category, cancellationToken);
+            }
 
             var allCategories = await _categoryRepository.ListAsync(cancellationToken);
             var target = allCategories.FirstOrDefault(c => c.Id == category.Id) ?? category;
@@ -131,7 +171,13 @@ namespace Application.Features.Catalog.Categories.Services
                 throw new ConflictException("Không thể xóa danh mục đang chứa sản phẩm liên kết.");
             }
 
-            await _categoryRepository.DeleteAsync(category, cancellationToken);
+            await _uploadImageService.DeleteImageAsync(
+                category.ImageUrl,
+                async () =>
+                {
+                    await _categoryRepository.DeleteAsync(category, cancellationToken);
+                },
+                cancellationToken);
 
             var remainingCategories = await _categoryRepository.ListAsync(cancellationToken);
             SequenceNormalizer.Normalize(

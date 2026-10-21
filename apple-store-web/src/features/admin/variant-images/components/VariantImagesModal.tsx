@@ -30,11 +30,22 @@ export const VariantImagesModal = ({
       }
       onCancel={onCancel}
       footer={null}
-      width={760}
+      width={780}
+      zIndex={1500}
+      styles={{
+        mask: { zIndex: 1500 },
+        wrapper: { zIndex: 1500 },
+        body: {
+          maxHeight: "75vh",
+          overflowY: "auto",
+          overflowX: "hidden",
+          paddingRight: "6px",
+        },
+      }}
       destroyOnHidden
     >
       {variant && (
-        <div className="mt-4">
+        <div className="mt-2">
           <VariantImageGallery
             variantId={variant.id}
             productId={productId || variant.productId}
