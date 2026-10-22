@@ -24,16 +24,25 @@ test.describe("Storefront HomePage - Khối Danh Mục và Lưới Sản Phẩm"
   });
 
   test("Mỗi khối danh mục có đầy đủ 3 phần: Tiêu đề trung tâm, Lưới 4 sản phẩm, và Chân khối", async ({ page }) => {
+    const categoriesToCheck = [
+      "iphone",
+      "macbook",
+      "ipad",
+      "apple-watch",
+      "airpods-am-thanh",
+      "imac-mac-desktop",
+      "phu-kien-apple",
+    ];
+
+    for (const slug of categoriesToCheck) {
+      const section = page.locator(`[data-testid='category-block-${slug}']`);
+      await expect(section).toBeVisible({ timeout: 10000 });
+      const cards = section.locator("[data-testid^='product-card-']");
+      await expect(cards).toHaveCount(4);
+    }
+
     const macbookSection = page.locator("[data-testid='category-block-macbook']");
-    await expect(macbookSection).toBeVisible({ timeout: 10000 });
-
-    const header = macbookSection.locator("h3:has-text('MacBook')");
-    await expect(header).toBeVisible();
-
-    const productCards = macbookSection.locator("[data-testid^='product-card-']");
-    await expect(productCards).toHaveCount(4);
-
-    const firstCard = productCards.first();
+    const firstCard = macbookSection.locator("[data-testid^='product-card-']").first();
     await expect(firstCard.locator("[data-testid^='chip-badge-']")).toBeVisible();
     await expect(firstCard.locator("[data-testid^='status-badge-']")).toBeVisible();
     await expect(firstCard.locator("[data-testid='product-image-container']")).toBeVisible();

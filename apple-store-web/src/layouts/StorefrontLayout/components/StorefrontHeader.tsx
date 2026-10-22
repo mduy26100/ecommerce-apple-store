@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Button, Badge, Drawer, Dropdown } from "antd";
 import {
   ShoppingCartOutlined,
@@ -28,6 +28,15 @@ export const StorefrontHeader = () => {
   const { mutate: logout } = useLogout();
   const isSuperAdmin = user?.role === USER_ROLES.SUPER_ADMIN;
   const { data: categories } = useCategories();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const activeCategorySlug = useMemo(() => {
+    if (location.pathname === "/products") {
+      return (searchParams.get("category") || "").toLowerCase();
+    }
+    return "";
+  }, [location.pathname, searchParams]);
 
   const { mainCategories, overflowCategories } = useMemo(() => {
     const list = categories || [];
@@ -39,6 +48,11 @@ export const StorefrontHeader = () => {
       overflowCategories: list.slice(5),
     };
   }, [categories]);
+
+  const isOverflowActive = useMemo(() => {
+    if (!activeCategorySlug) return false;
+    return overflowCategories.some((cat) => cat.slug.toLowerCase() === activeCategorySlug);
+  }, [overflowCategories, activeCategorySlug]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -116,29 +130,46 @@ export const StorefrontHeader = () => {
           </div>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-3 lg:gap-5 xl:gap-7 shrink min-w-0">
-          {mainCategories.map((cat) => (
-            <a
-              key={cat.id}
-              href={`/#${cat.slug}`}
-              title={cat.name}
-              className="text-xs lg:text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors duration-150 truncate max-w-20 md:max-w-23.75 lg:max-w-28.75 xl:max-w-35 whitespace-nowrap block"
-            >
-              {cat.name}
-            </a>
-          ))}
+        <nav className="hidden md:flex items-center gap-1 lg:gap-2.5 xl:gap-4 shrink min-w-0">
+          {mainCategories.map((cat) => {
+            const isActive = activeCategorySlug === cat.slug.toLowerCase();
+            return (
+              <Link
+                key={cat.id}
+                to={`/products?category=${cat.slug}`}
+                title={cat.name}
+                data-testid={`header-nav-category-${cat.slug}`}
+                data-active={isActive ? "true" : undefined}
+                className={`text-xs lg:text-sm transition-all duration-150 truncate max-w-20 md:max-w-23.75 lg:max-w-28.75 xl:max-w-35 whitespace-nowrap block px-2.5 py-1.5 rounded-full ${
+                  isActive
+                    ? "text-blue-600 font-bold bg-blue-50/90 shadow-2xs"
+                    : "text-slate-600 font-medium hover:text-blue-600 hover:bg-slate-50"
+                }`}
+              >
+                {cat.name}
+              </Link>
+            );
+          })}
 
           {overflowCategories.length > 0 && (
             <div className="relative shrink-0" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
-                className={`flex items-center justify-center w-8 h-8 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors cursor-pointer ${isDropdownOpen ? "bg-slate-100 text-blue-600" : ""
-                  }`}
+                className={`relative flex items-center justify-center w-8 h-8 rounded-lg transition-colors cursor-pointer ${
+                  isOverflowActive
+                    ? "bg-blue-50 text-blue-600 font-bold"
+                    : isDropdownOpen
+                    ? "bg-slate-100 text-blue-600"
+                    : "text-slate-600 hover:text-blue-600 hover:bg-slate-100"
+                }`}
                 aria-label="Xem thêm danh mục"
                 aria-expanded={isDropdownOpen}
               >
                 <EllipsisOutlined className="text-lg" />
+                {isOverflowActive && (
+                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-blue-600" />
+                )}
               </button>
 
               {isDropdownOpen && (
@@ -146,18 +177,29 @@ export const StorefrontHeader = () => {
                   <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     Danh mục khác
                   </div>
-                  {overflowCategories.map((cat) => (
-                    <a
-                      key={cat.id}
-                      href={`/#${cat.slug}`}
-                      title={cat.name}
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-lg mx-1 transition-colors"
-                    >
-                      <span className="truncate max-w-42.5 whitespace-nowrap">{cat.name}</span>
-                      <span className="text-slate-300 ml-1 shrink-0">&rsaquo;</span>
-                    </a>
-                  ))}
+                  {overflowCategories.map((cat) => {
+                    const isActive = activeCategorySlug === cat.slug.toLowerCase();
+                    return (
+                      <Link
+                        key={cat.id}
+                        to={`/products?category=${cat.slug}`}
+                        title={cat.name}
+                        data-testid={`header-nav-category-${cat.slug}`}
+                        data-active={isActive ? "true" : undefined}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className={`flex items-center justify-between px-3 py-2 text-xs rounded-lg mx-1 transition-colors ${
+                          isActive
+                            ? "bg-blue-50 text-blue-600 font-bold"
+                            : "font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600"
+                        }`}
+                      >
+                        <span className="truncate max-w-42.5 whitespace-nowrap">{cat.name}</span>
+                        <span className={`ml-1 shrink-0 ${isActive ? "text-blue-600 font-bold" : "text-slate-300"}`}>
+                          &rsaquo;
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -283,18 +325,29 @@ export const StorefrontHeader = () => {
           </div>
 
           <div className="flex flex-col">
-            {mainCategories.map((cat) => (
-              <a
-                key={cat.id}
-                href={`/#${cat.slug}`}
-                title={cat.name}
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600"
-              >
-                <span className="truncate max-w-60 whitespace-nowrap">{cat.name}</span>
-                <span className="text-slate-300 ml-1 shrink-0">&rsaquo;</span>
-              </a>
-            ))}
+            {mainCategories.map((cat) => {
+              const isActive = activeCategorySlug === cat.slug.toLowerCase();
+              return (
+                <Link
+                  key={cat.id}
+                  to={`/products?category=${cat.slug}`}
+                  title={cat.name}
+                  data-testid={`mobile-nav-category-${cat.slug}`}
+                  data-active={isActive ? "true" : undefined}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    isActive
+                      ? "bg-blue-50 text-blue-600 font-bold border-l-4 border-blue-600"
+                      : "font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600"
+                  }`}
+                >
+                  <span className="truncate max-w-60 whitespace-nowrap">{cat.name}</span>
+                  <span className={`ml-1 shrink-0 ${isActive ? "text-blue-600 font-bold" : "text-slate-300"}`}>
+                    &rsaquo;
+                  </span>
+                </Link>
+              );
+            })}
 
             {overflowCategories.length > 0 && (
               <div className="mt-1">
@@ -309,18 +362,29 @@ export const StorefrontHeader = () => {
 
                 {isMobileMoreOpen && (
                   <div className="max-h-60 overflow-y-auto custom-scrollbar flex flex-col pl-2 border-l-2 border-slate-100 ml-3 mt-1">
-                    {overflowCategories.map((cat) => (
-                      <a
-                        key={cat.id}
-                        href={`/#${cat.slug}`}
-                        title={cat.name}
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-600"
-                      >
-                        <span className="truncate max-w-55 whitespace-nowrap">{cat.name}</span>
-                        <span className="text-slate-300 ml-1 shrink-0">&rsaquo;</span>
-                      </a>
-                    ))}
+                    {overflowCategories.map((cat) => {
+                      const isActive = activeCategorySlug === cat.slug.toLowerCase();
+                      return (
+                        <Link
+                          key={cat.id}
+                          to={`/products?category=${cat.slug}`}
+                          title={cat.name}
+                          data-testid={`mobile-nav-category-${cat.slug}`}
+                          data-active={isActive ? "true" : undefined}
+                          onClick={() => setMobileOpen(false)}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                            isActive
+                              ? "bg-blue-50 text-blue-600 font-bold border-l-4 border-blue-600"
+                              : "font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-600"
+                          }`}
+                        >
+                          <span className="truncate max-w-55 whitespace-nowrap">{cat.name}</span>
+                          <span className={`ml-1 shrink-0 ${isActive ? "text-blue-600 font-bold" : "text-slate-300"}`}>
+                            &rsaquo;
+                          </span>
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>

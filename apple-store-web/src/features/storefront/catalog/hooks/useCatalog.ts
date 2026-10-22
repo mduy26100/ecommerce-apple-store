@@ -21,3 +21,20 @@ export const useFeaturedProducts = () => {
     staleTime: 5 * 60 * 1000,
   });
 };
+
+export const useProductCardsPaged = (params?: import("../types/catalog.types").ProductCardPagedParams) => {
+  return useQuery({
+    queryKey: ["catalog", "products-paged", params],
+    queryFn: () => catalogApi.getProductCardsPaged(params),
+    staleTime: 60 * 1000,
+  });
+};
+
+export const useHomeShowcase = (countPerCategory: number = 4) => {
+  return useQuery({
+    queryKey: ["catalog", "home-showcase", countPerCategory],
+    queryFn: () => catalogApi.getHomeShowcase(countPerCategory),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+

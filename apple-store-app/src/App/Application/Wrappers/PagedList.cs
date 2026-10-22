@@ -8,6 +8,7 @@ namespace Application.Wrappers
         public int TotalPages => PageSize > 0 ? (int)Math.Ceiling(TotalCount / (double)PageSize) : 0;
         public bool HasPreviousPage => PageNumber > 1;
         public bool HasNextPage => PageNumber < TotalPages;
+        public int ItemCount { get; set; }
     }
 
     public class PagedList<T> : IPagedList
@@ -25,7 +26,8 @@ namespace Application.Wrappers
             {
                 TotalCount = totalCount,
                 PageNumber = pageNumber,
-                PageSize = pageSize
+                PageSize = pageSize,
+                ItemCount = Items.Count
             };
         }
     }

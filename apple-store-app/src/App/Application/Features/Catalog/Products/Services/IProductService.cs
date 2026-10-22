@@ -7,6 +7,8 @@ namespace Application.Features.Catalog.Products.Services
     {
         Task<PagedList<ProductSummaryDto>> GetPagedAsync(ProductPagedRequest request, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<ProductCardDto>> GetCardsAsync(int? categoryId = null, int limit = 100, CancellationToken cancellationToken = default);
+        Task<PagedList<ProductCardDto>> GetCardsPagedAsync(ProductCardPagedRequest request, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<CategoryProductShowcaseDto>> GetHomeShowcaseAsync(int countPerCategory = 4, CancellationToken cancellationToken = default);
         Task<ProductDetailDto> GetByIdAsync(int id, CancellationToken cancellationToken = default);
         Task<int> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default);
         Task UpdateAsync(int id, UpdateProductRequest request, CancellationToken cancellationToken = default);

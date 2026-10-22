@@ -51,4 +51,14 @@ test.describe("Storefront HomePage - Hero Section Giới Thiệu Thương Hiệu
     await exploreLink.click();
     await expect(page.locator("#categories")).toBeVisible();
   });
+
+  test("5. Các thẻ danh mục trong Carousel có liên kết chuẩn tới /products?category={slug}", async ({ page }) => {
+    const iphoneCarouselItem = page.locator("[data-testid='carousel-category-item-iphone']").first();
+    await expect(iphoneCarouselItem).toBeVisible();
+    await expect(iphoneCarouselItem).toHaveAttribute("href", "/products?category=iphone");
+
+    await iphoneCarouselItem.click();
+    await page.waitForURL("**/products?category=iphone");
+    await expect(page.locator("h1")).toContainText("iPhone");
+  });
 });

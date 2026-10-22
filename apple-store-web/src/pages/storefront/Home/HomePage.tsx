@@ -1,11 +1,9 @@
 import { useRef, useEffect, useMemo, useState } from "react";
-import { Button, message } from "antd";
+import { message } from "antd";
 import { Link } from "react-router-dom";
 import {
-  SafetyCertificateOutlined,
   ThunderboltOutlined,
   ArrowRightOutlined,
-  CheckCircleFilled,
   LeftOutlined,
   RightOutlined,
   ShoppingCartOutlined,
@@ -17,8 +15,8 @@ import {
   DesktopOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
-import { useFeaturedProducts, useCategories } from "@features/storefront/catalog";
-import type { Product, Category } from "@features/storefront/catalog";
+import { useHomeShowcase, useCategories } from "@features/storefront/catalog";
+import type { ProductCardItem, Category } from "@features/storefront/catalog";
 import { AppleLogo, UrbanStitchLogo } from "@shared/components/icons";
 
 const getCategoryIcon = (slug?: string, name?: string) => {
@@ -56,7 +54,11 @@ const CategoryCarouselItem = ({ cat }: { cat: Category }) => {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="group shrink-0 w-36 sm:w-44 flex flex-col items-center justify-center p-4 sm:p-5 bg-white rounded-2xl border border-slate-100 hover:border-blue-500 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer text-center">
+    <Link
+      to={`/products?category=${cat.slug}`}
+      data-testid={`carousel-category-item-${cat.slug}`}
+      className="group shrink-0 w-36 sm:w-44 flex flex-col items-center justify-center p-4 sm:p-5 bg-white rounded-2xl border border-slate-100 hover:border-blue-500 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer text-center no-underline"
+    >
       <div className="w-14 h-14 rounded-xl bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center text-blue-600 mb-3 transition-colors overflow-hidden">
         {cat.imageUrl && !imgError ? (
           <img
@@ -75,13 +77,13 @@ const CategoryCarouselItem = ({ cat }: { cat: Category }) => {
       <span className="text-[11px] text-slate-400 mt-0.5">
         {cat.productCount ? `${cat.productCount} sản phẩm` : "Chính hãng"}
       </span>
-    </div>
+    </Link>
   );
 };
 
 interface CategoryProductCardProps {
-  product: Product;
-  onAddToCart: (product: Product) => void;
+  product: ProductCardItem;
+  onAddToCart: (product: ProductCardItem) => void;
 }
 
 const CategoryProductCard = ({
@@ -170,7 +172,7 @@ const CategoryProductCard = ({
 };
 
 export const HomePage = () => {
-  const { data: products, isLoading: isProductsLoading } = useFeaturedProducts();
+  const { data: showcase, isLoading: isShowcaseLoading } = useHomeShowcase(4);
   const { data: categories } = useCategories();
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentScrollRef = useRef(0);
@@ -188,19 +190,18 @@ export const HomePage = () => {
   }, [categories]);
 
   const categoryGroups = useMemo(() => {
-    if (!categories || categories.length === 0 || !products || products.length === 0) return [];
+    if (!showcase || showcase.length === 0) return [];
 
-    return categories.map((cat) => {
-      const catProducts = products.filter(
-        (p) => String(p.categoryId) === String(cat.id) || p.categoryName === cat.name
-      );
-
-      return {
-        category: cat,
-        items: catProducts.slice(0, 4),
-      };
-    });
-  }, [categories, products]);
+    return showcase.map((group) => ({
+      category: {
+        id: group.categoryId,
+        name: group.categoryName,
+        slug: group.categorySlug,
+        description: group.categoryDescription,
+      },
+      items: group.products,
+    }));
+  }, [showcase]);
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -328,7 +329,7 @@ export const HomePage = () => {
     }
   };
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: ProductCardItem) => {
     message.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
   };
 
@@ -439,7 +440,7 @@ export const HomePage = () => {
         </div>
       </section>
 
-      {isProductsLoading ? (
+      {isShowcaseLoading ? (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-16">
           {[1, 2, 3].map((placeholderIdx) => (
             <div key={placeholderIdx} className="space-y-6">
@@ -502,107 +503,6 @@ export const HomePage = () => {
           ))}
         </div>
       )}
-
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white p-8 sm:p-12 flex flex-col justify-between min-h-95">
-            <div className="relative z-10">
-              <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
-                Đỉnh Cao Hiệu Năng
-              </span>
-              <h3 className="text-2xl sm:text-3xl font-black tracking-tight mt-1 mb-3">
-                MacBook Pro M4 Series
-              </h3>
-              <p className="text-slate-300 text-xs sm:text-sm max-w-md leading-relaxed">
-                Được trang bị chip M4, M4 Pro và M4 Max. Xử lý tác vụ đồ họa và lập trình chuyên sâu mượt mà chưa từng thấy.
-              </p>
-            </div>
-
-            <div className="relative z-10 pt-6">
-              <span className="text-xl font-bold block mb-4 text-white">
-                Giá từ 39.990.000₫
-              </span>
-              <Button
-                type="primary"
-                onClick={() => message.success("Đang mở chi tiết MacBook Pro M4!")}
-                className="bg-white hover:bg-slate-100 text-slate-900 border-none font-bold rounded-xl h-10 px-6 text-xs"
-              >
-                Khám phá ngay
-              </Button>
-            </div>
-
-            <div className="absolute right-0 bottom-0 w-1/2 h-full opacity-20 md:opacity-30 pointer-events-none">
-              <img
-                src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=600"
-                alt="MacBook Pro"
-                className="w-full h-full object-cover object-left"
-              />
-            </div>
-          </div>
-
-          <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-indigo-900 via-slate-900 to-slate-950 text-white p-8 sm:p-12 flex flex-col justify-between min-h-95">
-            <div className="relative z-10">
-              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">
-                Sáng Tạo Không Giới Hạn
-              </span>
-              <h3 className="text-2xl sm:text-3xl font-black tracking-tight mt-1 mb-3">
-                iPad Pro M4 Mỏng Kỷ Lục
-              </h3>
-              <p className="text-slate-300 text-xs sm:text-sm max-w-md leading-relaxed">
-                Màn hình Ultra Retina XDR Tandem OLED hai lớp đột phá cùng Apple Pencil Pro thế hệ mới.
-              </p>
-            </div>
-
-            <div className="relative z-10 pt-6">
-              <span className="text-xl font-bold block mb-4 text-white">
-                Giá từ 28.990.000₫
-              </span>
-              <Button
-                type="primary"
-                onClick={() => message.success("Đang mở chi tiết iPad Pro M4!")}
-                className="bg-white hover:bg-slate-100 text-slate-900 border-none font-bold rounded-xl h-10 px-6 text-xs"
-              >
-                Khám phá ngay
-              </Button>
-            </div>
-
-            <div className="absolute right-0 bottom-0 w-1/2 h-full opacity-20 md:opacity-30 pointer-events-none">
-              <img
-                src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&q=80&w=600"
-                alt="iPad Pro"
-                className="w-full h-full object-cover object-left"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="bg-linear-to-r from-blue-600 to-indigo-700 rounded-3xl p-8 sm:p-12 text-white shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8">
-          <div className="max-w-2xl text-center lg:text-left">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold mb-4">
-              <CheckCircleFilled />
-              Hệ Thống Phân Phối &amp; Quản Lý Toàn Diện
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-black tracking-tight">
-              Khu Vực Dành Cho Ban Quản Trị Hệ Thống
-            </h3>
-            <p className="text-blue-100 text-xs sm:text-sm mt-2 leading-relaxed">
-              Bạn là nhân viên hoặc quản trị viên của Urban Stitch? Truy cập hệ thống quản lý kho hàng, đơn đặt hàng, quản trị người dùng và cấu hình dịch vụ tại cổng quản trị.
-            </p>
-          </div>
-
-          <div className="shrink-0 flex flex-col sm:flex-row gap-3">
-            <Link
-              to="/admin/dashboard"
-              className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-blue-600 font-bold px-6 py-3.5 rounded-xl text-xs shadow-lg transition-all"
-            >
-              <SafetyCertificateOutlined className="text-base" />
-              <span>Truy Cập Cổng Quản Trị (/admin)</span>
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 };

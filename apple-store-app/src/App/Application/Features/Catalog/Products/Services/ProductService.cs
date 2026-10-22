@@ -1,4 +1,5 @@
 using Application.Common.Interfaces.Persistence;
+using Application.Features.Catalog.Categories.Specifications;
 using Application.Features.Catalog.Products.DTOs;
 using Application.Features.Catalog.Products.Specifications;
 using Application.Features.Catalog.ProductVariants.DTOs;
@@ -42,6 +43,56 @@ namespace Application.Features.Catalog.Products.Services
             var spec = new ProductCardsSpec(categoryId, limit);
             var products = await _productRepository.ListAsync(spec, cancellationToken);
             return products.Select(MapToCardDto).ToList();
+        }
+
+        public async Task<PagedList<ProductCardDto>> GetCardsPagedAsync(ProductCardPagedRequest request, CancellationToken cancellationToken = default)
+        {
+            var effectivePageSize = request.Limit.HasValue && request.Limit.Value > 0
+                ? request.Limit.Value
+                : request.PageSize;
+
+            var spec = new ProductCardsPagedSpec(
+                request.CategoryId,
+                request.CategorySlug,
+                request.Search,
+                request.SortBy,
+                request.MinPrice,
+                request.MaxPrice);
+
+            return await _productRepository.GetPagedAsync(
+                spec,
+                request.PageNumber,
+                effectivePageSize,
+                MapToCardDto,
+                cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<CategoryProductShowcaseDto>> GetHomeShowcaseAsync(int countPerCategory = 4, CancellationToken cancellationToken = default)
+        {
+            var categories = await _categoryRepository.ListAsync(new ActiveCategoriesSpec(), cancellationToken);
+            if (categories.Count == 0)
+            {
+                return Array.Empty<CategoryProductShowcaseDto>();
+            }
+
+            var safeCount = countPerCategory <= 0 ? 4 : Math.Min(countPerCategory, 12);
+            var showcase = new List<CategoryProductShowcaseDto>(categories.Count);
+
+            foreach (var category in categories)
+            {
+                var spec = new ProductCardsSpec(category.Id, safeCount);
+                var products = await _productRepository.ListAsync(spec, cancellationToken);
+                showcase.Add(new CategoryProductShowcaseDto
+                {
+                    CategoryId = category.Id,
+                    CategoryName = category.Name,
+                    CategorySlug = category.Slug,
+                    CategoryDescription = category.Description,
+                    Products = products.Select(MapToCardDto).ToList()
+                });
+            }
+
+            return showcase;
         }
 
         public async Task<ProductDetailDto> GetByIdAsync(int id, CancellationToken cancellationToken = default)

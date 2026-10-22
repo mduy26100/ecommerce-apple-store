@@ -1,3 +1,4 @@
+using Application.Features.Catalog.Products.DTOs;
 using Application.Features.Catalog.Products.Services;
 
 namespace Host.Controllers.Public
@@ -14,9 +15,16 @@ namespace Host.Controllers.Public
         }
 
         [HttpGet("cards")]
-        public async Task<IActionResult> GetCards([FromQuery] int? categoryId, [FromQuery] int limit = 100, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetCards([FromQuery] ProductCardPagedRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _productService.GetCardsAsync(categoryId, limit, cancellationToken);
+            var result = await _productService.GetCardsPagedAsync(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpGet("showcase")]
+        public async Task<IActionResult> GetHomeShowcase([FromQuery] int countPerCategory = 4, CancellationToken cancellationToken = default)
+        {
+            var result = await _productService.GetHomeShowcaseAsync(countPerCategory, cancellationToken);
             return Ok(result);
         }
     }
