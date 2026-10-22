@@ -16,7 +16,7 @@ export const storageOptionsApi = {
   },
 
   getAll: async (): Promise<StorageOptionItem[]> => {
-    const response = await api.get<StorageOptionItem[]>("/api/storage-options");
+    const response = await api.get<StorageOptionItem[]>("/api/manager/storage-options/all");
     return response;
   },
 

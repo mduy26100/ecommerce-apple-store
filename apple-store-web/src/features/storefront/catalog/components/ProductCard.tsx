@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Tag, Button } from "antd";
 import { ShoppingCartOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import type { Product } from "../types/catalog.types";
+import { AppleLogo } from "@shared/components/icons";
 
 export interface ProductCardProps {
   product: Product;
@@ -20,16 +22,23 @@ export const ProductCard = ({
   onAddToCart,
   onBuyNow,
 }: ProductCardProps) => {
+  const [imageError, setImageError] = useState(false);
+
   return (
     <div className="group flex flex-col justify-between h-full bg-white rounded-2xl border border-slate-100 hover:border-slate-200 shadow-xs hover:shadow-xl transition-all duration-300 overflow-hidden p-5">
       <div>
         <div className="relative w-full aspect-square rounded-xl bg-slate-50 flex items-center justify-center overflow-hidden mb-4">
-          <img
-            src={product.thumbnail}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-          />
+          {!imageError && product.thumbnail ? (
+            <img
+              src={product.thumbnail}
+              alt={product.name}
+              onError={() => setImageError(true)}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+          ) : (
+            <AppleLogo size={56} className="text-slate-300 group-hover:scale-110 transition-transform duration-300" />
+          )}
 
           <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10">
             {product.isNew && (

@@ -14,7 +14,7 @@ export const colorsApi = {
   },
 
   getAll: async (): Promise<ColorItem[]> => {
-    const response = await api.get<ColorItem[]>("/api/colors");
+    const response = await api.get<ColorItem[]>("/api/manager/colors/all");
     return response;
   },
 

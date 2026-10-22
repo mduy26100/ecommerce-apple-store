@@ -102,13 +102,13 @@ export const StorefrontHeader = () => {
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-sm border-b border-slate-200/70 select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2 group shrink-0">
-          <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-200">
-            <AppleLogo size={18} className="text-white" />
+        <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+          <div className="flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+            <AppleLogo size={32} />
           </div>
-          <div className="flex flex-col">
-            <span className="font-extrabold text-slate-900 tracking-tight text-base sm:text-lg leading-tight">
-              Apple Store
+          <div className="hidden sm:flex flex-col">
+            <span className="font-extrabold tracking-tight text-base sm:text-lg leading-tight bg-linear-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
+              Urban Stitch
             </span>
             <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase -mt-0.5">
               Chính Hãng VN
@@ -252,8 +252,8 @@ export const StorefrontHeader = () => {
       <Drawer
         title={
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-slate-900 text-base">Apple Store</span>
-            <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-semibold">Chính hãng</span>
+            <AppleLogo size={22} />
+            <span className="font-extrabold text-base bg-linear-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">Urban Stitch</span>
           </div>
         }
         placement="right"

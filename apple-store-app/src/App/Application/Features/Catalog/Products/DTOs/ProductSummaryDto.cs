@@ -14,6 +14,10 @@ namespace Application.Features.Catalog.Products.DTOs
         public int VariantsCount { get; set; }
         public decimal? MinPrice { get; set; }
         public decimal? MaxPrice { get; set; }
+        public string? PrimaryImageUrl { get; set; }
+        public IReadOnlyList<string> VariantImages { get; set; } = new List<string>();
+        public string? ChipName { get; set; }
+        public string? BadgeText { get; set; }
         public DateTimeOffset CreatedOn { get; set; }
         public DateTimeOffset? LastModifiedOn { get; set; }
     }

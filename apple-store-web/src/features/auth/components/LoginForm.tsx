@@ -56,7 +56,7 @@ export const LoginForm = ({ onSubmit, isPending, error, isAdmin = false }: Login
         >
           <Input
             prefix={<MailOutlined className="text-slate-400 mr-1" />}
-            placeholder={isAdmin ? "admin@apple-store.com" : "username hoặc email..."}
+            placeholder={isAdmin ? "admin@urbanstitch.vn" : "username hoặc email..."}
             size="large"
             className="rounded-xl text-xs hover:border-slate-300 focus:border-blue-500 py-2.5"
           />

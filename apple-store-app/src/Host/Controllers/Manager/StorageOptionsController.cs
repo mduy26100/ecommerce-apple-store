@@ -21,6 +21,13 @@ namespace Host.Controllers.Manager
             return Ok(result);
         }
 
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+        {
+            var result = await _storageOptionService.GetAllAsync(cancellationToken);
+            return Ok(result);
+        }
+
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
         {

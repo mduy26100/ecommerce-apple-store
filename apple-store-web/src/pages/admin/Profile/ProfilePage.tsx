@@ -14,7 +14,7 @@ export const ProfilePage = () => {
   const handleUpdateProfile = async (values: { fullName?: string; phone?: string; title?: string }) => {
     try {
       setUpdating(true);
-      await api.put("/api/users/profile", {
+      await api.put("/api/auth/profile", {
         fullName: values.fullName,
         phoneNumber: values.phone,
       });

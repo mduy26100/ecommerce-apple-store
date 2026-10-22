@@ -51,7 +51,7 @@ export const NotFoundPage = ({
         </div>
 
         <p className="text-xs sm:text-sm text-slate-500 max-w-xs mx-auto mb-8 leading-relaxed">
-          Đường dẫn bạn truy cập có thể đã bị xóa hoặc không còn tồn tại trên hệ thống Apple Store.
+          Đường dẫn bạn truy cập có thể đã bị xóa hoặc không còn tồn tại trên hệ thống Urban Stitch.
         </p>
 
         <Space size="middle" className="justify-center">

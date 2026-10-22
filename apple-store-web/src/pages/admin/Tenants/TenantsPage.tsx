@@ -4,9 +4,9 @@ import PageHeader from "@shared/components/page-header/PageHeader";
 
 export const TenantsPage = () => {
   const data = [
-    { key: "1", name: "Apple Store Ba Đình (Hà Nội)", plan: "Chi nhánh chính", users: 45, status: "Hoạt động" },
-    { key: "2", name: "Apple Store Quận 1 (TP.HCM)", plan: "Chi nhánh chính", users: 60, status: "Hoạt động" },
-    { key: "3", name: "Apple Store Hải Châu (Đà Nẵng)", plan: "Chi nhánh liên kết", users: 20, status: "Tạm dừng" },
+    { key: "1", name: "Urban Stitch Ba Đình (Hà Nội)", plan: "Chi nhánh chính", users: 45, status: "Hoạt động" },
+    { key: "2", name: "Urban Stitch Quận 1 (TP.HCM)", plan: "Chi nhánh chính", users: 60, status: "Hoạt động" },
+    { key: "3", name: "Urban Stitch Hải Châu (Đà Nẵng)", plan: "Chi nhánh liên kết", users: 20, status: "Tạm dừng" },
   ];
 
   const columns = [

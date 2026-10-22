@@ -138,7 +138,7 @@ export const AdminSidebar = ({
         {!collapsed && (
           <div className="flex flex-col opacity-100 transition-opacity duration-300">
             <span className="text-sm font-bold text-slate-800 tracking-wide">
-              Apple Admin
+              Urban Stitch Admin
             </span>
             <span className="text-xxs text-slate-400 font-medium">
               Cổng Quản Trị Hệ Thống

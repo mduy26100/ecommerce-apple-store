@@ -55,17 +55,6 @@ namespace Application.Features.Catalog.Categories.Services
             return MapToDto(category);
         }
 
-        public async Task<CategoryDto> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
-        {
-            var category = await _categoryRepository.FirstOrDefaultAsync(new CategoryBySlugSpec(slug), cancellationToken);
-            if (category == null || !category.IsActive)
-            {
-                throw new NotFoundException(nameof(Category), slug);
-            }
-
-            return MapToDto(category);
-        }
-
         public async Task CreateAsync(CreateCategoryRequest request, CancellationToken cancellationToken = default)
         {
             await ValidateCategoryAsync(request.Name, request.Slug, null, cancellationToken);

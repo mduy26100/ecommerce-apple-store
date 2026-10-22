@@ -1,4 +1,3 @@
-using Application.Features.Catalog.Products.DTOs;
 using Application.Features.Catalog.Products.Services;
 
 namespace Host.Controllers.Public
@@ -14,24 +13,10 @@ namespace Host.Controllers.Public
             _productService = productService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetPaged([FromQuery] ProductPagedRequest request, CancellationToken cancellationToken)
+        [HttpGet("cards")]
+        public async Task<IActionResult> GetCards([FromQuery] int? categoryId, [FromQuery] int limit = 100, CancellationToken cancellationToken = default)
         {
-            var result = await _productService.GetPagedAsync(request, cancellationToken);
-            return Ok(result);
-        }
-
-        [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
-        {
-            var result = await _productService.GetByIdAsync(id, cancellationToken);
-            return Ok(result);
-        }
-
-        [HttpGet("slug/{slug}")]
-        public async Task<IActionResult> GetBySlug(string slug, CancellationToken cancellationToken)
-        {
-            var result = await _productService.GetBySlugAsync(slug, cancellationToken);
+            var result = await _productService.GetCardsAsync(categoryId, limit, cancellationToken);
             return Ok(result);
         }
     }

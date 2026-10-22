@@ -14,7 +14,7 @@ export const SettingsPage = () => {
         <Form
           layout="vertical"
           initialValues={{
-            systemName: "Hệ Thống Phân Phối Apple Store Việt Nam",
+            systemName: "Hệ Thống Phân Phối Urban Stitch Việt Nam",
             defaultRole: "operator",
             acceptOrders: true,
           }}

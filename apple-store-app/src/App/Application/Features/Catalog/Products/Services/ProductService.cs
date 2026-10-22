@@ -37,23 +37,19 @@ namespace Application.Features.Catalog.Products.Services
                 cancellationToken);
         }
 
+        public async Task<IReadOnlyList<ProductCardDto>> GetCardsAsync(int? categoryId = null, int limit = 100, CancellationToken cancellationToken = default)
+        {
+            var spec = new ProductCardsSpec(categoryId, limit);
+            var products = await _productRepository.ListAsync(spec, cancellationToken);
+            return products.Select(MapToCardDto).ToList();
+        }
+
         public async Task<ProductDetailDto> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
             var product = await _productRepository.FirstOrDefaultAsync(new ProductByIdWithDetailsSpec(id), cancellationToken);
             if (product == null)
             {
                 throw new NotFoundException(nameof(Product), id);
-            }
-
-            return MapToDetailDto(product);
-        }
-
-        public async Task<ProductDetailDto> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
-        {
-            var product = await _productRepository.FirstOrDefaultAsync(new ProductBySlugSpec(slug), cancellationToken);
-            if (product == null || !product.IsActive)
-            {
-                throw new NotFoundException(nameof(Product), slug);
             }
 
             return MapToDetailDto(product);
@@ -150,8 +146,66 @@ namespace Application.Features.Catalog.Products.Services
             await _productRepository.DeleteAsync(product, cancellationToken);
         }
 
+        private static ProductCardDto MapToCardDto(Product product)
+        {
+            var activeVariants = product.Variants?
+                .Where(v => v.IsActive && !v.IsDeleted)
+                .ToList();
+
+            var minPrice = activeVariants != null && activeVariants.Any()
+                ? activeVariants.Min(v => v.Price)
+                : 0;
+
+            var primaryImage = activeVariants?
+                .SelectMany(v => v.Images ?? Enumerable.Empty<VariantImage>())
+                .Where(img => img.IsActive && !img.IsDeleted && !string.IsNullOrWhiteSpace(img.ImageUrl))
+                .OrderByDescending(img => img.IsPrimary)
+                .ThenBy(img => img.DisplayOrder)
+                .Select(img => img.ImageUrl)
+                .FirstOrDefault();
+
+            var chipSpec = product.Specifications?
+                .FirstOrDefault(s => s.IsActive && !s.IsDeleted && (s.Name == "Chip xử lý" || s.Name.ToLower().Contains("chip")))?
+                .Value;
+
+            var badgeSpec = product.Specifications?
+                .FirstOrDefault(s => s.IsActive && !s.IsDeleted && (s.Name == "Huy hiệu" || s.Name == "Trạng thái"))?
+                .Value;
+
+            return new ProductCardDto
+            {
+                Id = product.Id,
+                CategoryId = product.CategoryId,
+                CategoryName = product.Category?.Name ?? string.Empty,
+                Name = product.Name,
+                Slug = product.Slug,
+                ChipName = chipSpec ?? "Apple Silicon",
+                BadgeText = badgeSpec ?? "SẴN HÀNG",
+                ShortDescription = product.ShortDescription,
+                Price = minPrice,
+                ImageUrl = primaryImage
+            };
+        }
+
         private static ProductSummaryDto MapToSummaryDto(Product product)
         {
+            var variantImages = product.Variants?
+                .Where(v => v.Images != null && v.IsActive && !v.IsDeleted)
+                .SelectMany(v => v.Images!)
+                .Where(img => img.IsActive && !img.IsDeleted && !string.IsNullOrWhiteSpace(img.ImageUrl))
+                .OrderBy(img => img.DisplayOrder)
+                .Select(img => img.ImageUrl)
+                .Distinct()
+                .ToList() ?? new List<string>();
+
+            var chipSpec = product.Specifications?
+                .FirstOrDefault(s => s.IsActive && !s.IsDeleted && (s.Name == "Chip xử lý" || s.Name.ToLower().Contains("chip")))?
+                .Value;
+
+            var badgeSpec = product.Specifications?
+                .FirstOrDefault(s => s.IsActive && !s.IsDeleted && (s.Name == "Huy hiệu" || s.Name == "Trạng thái"))?
+                .Value;
+
             return new ProductSummaryDto
             {
                 Id = product.Id,
@@ -166,6 +220,10 @@ namespace Application.Features.Catalog.Products.Services
                 VariantsCount = product.Variants?.Count ?? 0,
                 MinPrice = product.Variants != null && product.Variants.Any() ? product.Variants.Min(v => v.Price) : null,
                 MaxPrice = product.Variants != null && product.Variants.Any() ? product.Variants.Max(v => v.Price) : null,
+                PrimaryImageUrl = variantImages.FirstOrDefault(),
+                VariantImages = variantImages,
+                ChipName = chipSpec ?? "Apple Silicon",
+                BadgeText = badgeSpec ?? "SẴN HÀNG",
                 CreatedOn = product.CreatedOn,
                 LastModifiedOn = product.LastModifiedOn
             };

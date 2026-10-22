@@ -115,7 +115,7 @@ export const StorefrontFooter = () => {
                 </Link>
               </li>
               <li><span className="text-slate-400">Hotline: 1800 1199 (Miễn phí)</span></li>
-              <li><span className="text-slate-400">Email: lienhe@apple-store.vn</span></li>
+              <li><span className="text-slate-400">Email: lienhe@urbanstitch.vn</span></li>
               <li><span className="text-slate-400">Giờ mở cửa: 08:00 - 22:00</span></li>
               <li><span className="text-slate-400">Trụ sở: Hà Nội & TP. Hồ Chí Minh</span></li>
             </ul>
@@ -124,7 +124,7 @@ export const StorefrontFooter = () => {
 
         <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
           <p>
-            &copy; {currentYear} <span className="text-white font-semibold">Apple Store Việt Nam</span>. Đại lý ủy quyền chính thức.
+            &copy; {currentYear} <span className="text-white font-semibold">Urban Stitch Việt Nam</span>. Đại lý ủy quyền chính thức.
           </p>
           <div className="flex gap-4">
             <span className="hover:text-white cursor-pointer">Điều khoản dịch vụ</span>

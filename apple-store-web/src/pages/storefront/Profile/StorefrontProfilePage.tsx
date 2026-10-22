@@ -24,7 +24,7 @@ export const StorefrontProfilePage = () => {
   const handleUpdateProfile = async (values: { firstName?: string; lastName?: string; phoneNumber?: string }) => {
     try {
       setUpdatingProfile(true);
-      await api.put("/api/users/profile", {
+      await api.put("/api/auth/profile", {
         firstName: values.firstName,
         lastName: values.lastName,
         phoneNumber: values.phoneNumber,

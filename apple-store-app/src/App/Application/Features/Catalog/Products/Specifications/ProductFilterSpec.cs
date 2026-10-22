@@ -9,7 +9,9 @@ namespace Application.Features.Catalog.Products.Specifications
         {
             Query.AsNoTracking()
                  .Include(p => p.Category)
-                 .Include(p => p.Variants);
+                 .Include(p => p.Variants)
+                    .ThenInclude(v => v.Images)
+                 .Include(p => p.Specifications);
 
             if (request.CategoryId.HasValue && request.CategoryId.Value > 0)
             {

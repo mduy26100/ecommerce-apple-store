@@ -80,6 +80,15 @@ namespace Host.Controllers.Public
         }
 
         [Authorize]
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
+        {
+            var userId = GetCurrentUserId();
+            await _userService.UpdateProfileAsync(userId, request, cancellationToken);
+            return Ok();
+        }
+
+        [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
         {
