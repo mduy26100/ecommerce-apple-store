@@ -1,3 +1,5 @@
+import { AppleLogo } from "@shared/components/icons";
+
 interface AuthHeaderProps {
   title: string;
   subtitle: string;
@@ -7,7 +9,7 @@ export const AuthHeader = ({ title, subtitle }: AuthHeaderProps) => {
   return (
     <div className="flex flex-col items-center text-center select-none">
       <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-900 text-white shadow-lg">
-        <span className="font-black text-2xl"></span>
+        <AppleLogo size={24} className="text-white" />
       </div>
 
       <div className="mt-4 flex flex-col gap-1">

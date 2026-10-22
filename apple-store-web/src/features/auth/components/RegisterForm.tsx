@@ -1,5 +1,5 @@
-import { Form, Input, Button, Alert } from "antd";
-import { MailOutlined, LockOutlined, UserOutlined, ShopOutlined } from "@ant-design/icons";
+import { Form, Input, Button, Alert, Row, Col } from "antd";
+import { MailOutlined, LockOutlined, UserOutlined, PhoneOutlined, IdcardOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import AuthHeader from "@layouts/AuthLayout/components/AuthHeader";
 import type { RegisterRequest } from "../types/auth.types";
@@ -20,8 +20,8 @@ export const RegisterForm = ({ onSubmit, isPending, error }: RegisterFormProps) 
   return (
     <div className="flex flex-col gap-6 w-full select-none">
       <AuthHeader
-        title="Tạo tài khoản quản trị"
-        subtitle="Thiết lập tài khoản quản lý và chi nhánh của bạn"
+        title="Đăng Ký Tài Khoản Khách Hàng"
+        subtitle="Tạo tài khoản để trải nghiệm dịch vụ và bảo hành chính hãng Apple"
       />
 
       {error && (
@@ -38,37 +38,59 @@ export const RegisterForm = ({ onSubmit, isPending, error }: RegisterFormProps) 
         layout="vertical"
         onFinish={handleRegister}
         requiredMark={false}
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-3.5"
       >
-        <Form.Item
-          label={<span className="text-xs font-semibold text-slate-600">Họ và tên</span>}
-          name="fullName"
-          rules={[
-            { required: true, message: "Vui lòng nhập họ và tên của bạn!" },
-            { whitespace: true, message: "Không được chỉ nhập khoảng trắng!" },
-          ]}
-          className="mb-0"
-        >
-          <Input
-            prefix={<UserOutlined className="text-slate-400 mr-1" />}
-            placeholder="Nguyễn Văn A"
-            size="large"
-            className="rounded-xl text-xs hover:border-slate-300 focus:border-blue-500 py-2.5"
-          />
-        </Form.Item>
+        <Row gutter={12}>
+          <Col xs={24} sm={14}>
+            <Form.Item
+              label={<span className="text-xs font-semibold text-slate-600">Họ và tên đệm</span>}
+              name="lastName"
+              rules={[
+                { required: true, message: "Vui lòng nhập họ và tên đệm!" },
+                { whitespace: true, message: "Không được chỉ nhập khoảng trắng!" },
+              ]}
+              className="mb-0"
+            >
+              <Input
+                prefix={<UserOutlined className="text-slate-400 mr-1" />}
+                placeholder="Nguyễn Văn"
+                size="large"
+                className="rounded-xl text-xs hover:border-slate-300 focus:border-blue-500 py-2.5"
+              />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={10}>
+            <Form.Item
+              label={<span className="text-xs font-semibold text-slate-600">Tên</span>}
+              name="firstName"
+              rules={[
+                { required: true, message: "Vui lòng nhập tên!" },
+                { whitespace: true, message: "Không được chỉ nhập khoảng trắng!" },
+              ]}
+              className="mb-0"
+            >
+              <Input
+                placeholder="An"
+                size="large"
+                className="rounded-xl text-xs hover:border-slate-300 focus:border-blue-500 py-2.5"
+              />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Form.Item
-          label={<span className="text-xs font-semibold text-slate-600">Tên công ty hoặc Chi nhánh</span>}
-          name="companyName"
+          label={<span className="text-xs font-semibold text-slate-600">Tên đăng nhập</span>}
+          name="userName"
           rules={[
-            { required: true, message: "Vui lòng nhập tên công ty hoặc chi nhánh!" },
+            { required: true, message: "Vui lòng nhập tên đăng nhập!" },
+            { min: 3, message: "Tên đăng nhập tối thiểu 3 ký tự!" },
             { whitespace: true, message: "Không được chỉ nhập khoảng trắng!" },
           ]}
           className="mb-0"
         >
           <Input
-            prefix={<ShopOutlined className="text-slate-400 mr-1" />}
-            placeholder="Apple Store Hà Nội"
+            prefix={<IdcardOutlined className="text-slate-400 mr-1" />}
+            placeholder="nguyenvanan"
             size="large"
             className="rounded-xl text-xs hover:border-slate-300 focus:border-blue-500 py-2.5"
           />
@@ -86,30 +108,77 @@ export const RegisterForm = ({ onSubmit, isPending, error }: RegisterFormProps) 
         >
           <Input
             prefix={<MailOutlined className="text-slate-400 mr-1" />}
-            placeholder="admin@apple-store.com"
+            placeholder="an.nguyen@example.com"
             size="large"
             className="rounded-xl text-xs hover:border-slate-300 focus:border-blue-500 py-2.5"
           />
         </Form.Item>
 
         <Form.Item
-          label={<span className="text-xs font-semibold text-slate-600">Mật khẩu</span>}
-          name="password"
+          label={<span className="text-xs font-semibold text-slate-600">Số điện thoại</span>}
+          name="phoneNumber"
           rules={[
-            { required: true, message: "Vui lòng nhập mật khẩu!" },
-            { min: 6, message: "Mật khẩu phải chứa ít nhất 6 ký tự!" },
+            { required: true, message: "Vui lòng nhập số điện thoại!" },
+            { whitespace: true, message: "Không được chỉ nhập khoảng trắng!" },
           ]}
           className="mb-0"
         >
-          <Input.Password
-            prefix={<LockOutlined className="text-slate-400 mr-1" />}
-            placeholder="••••••••"
+          <Input
+            prefix={<PhoneOutlined className="text-slate-400 mr-1" />}
+            placeholder="0912 345 678"
             size="large"
             className="rounded-xl text-xs hover:border-slate-300 focus:border-blue-500 py-2.5"
           />
         </Form.Item>
 
-        <Form.Item className="mb-0 mt-2">
+        <Row gutter={12}>
+          <Col xs={24} sm={12}>
+            <Form.Item
+              label={<span className="text-xs font-semibold text-slate-600">Mật khẩu</span>}
+              name="password"
+              rules={[
+                { required: true, message: "Vui lòng nhập mật khẩu!" },
+                { min: 6, message: "Mật khẩu phải chứa ít nhất 6 ký tự!" },
+              ]}
+              className="mb-0"
+            >
+              <Input.Password
+                prefix={<LockOutlined className="text-slate-400 mr-1" />}
+                placeholder="••••••••"
+                size="large"
+                className="rounded-xl text-xs hover:border-slate-300 focus:border-blue-500 py-2.5"
+              />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item
+              label={<span className="text-xs font-semibold text-slate-600">Nhập lại mật khẩu</span>}
+              name="confirmPassword"
+              dependencies={["password"]}
+              rules={[
+                { required: true, message: "Vui lòng nhập lại mật khẩu!" },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue("password") === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error("Mật khẩu nhập lại không khớp!"));
+                  },
+                }),
+              ]}
+              className="mb-0"
+            >
+              <Input.Password
+                prefix={<LockOutlined className="text-slate-400 mr-1" />}
+                placeholder="••••••••"
+                size="large"
+                className="rounded-xl text-xs hover:border-slate-300 focus:border-blue-500 py-2.5"
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Form.Item className="mb-0 mt-3">
           <Button
             type="primary"
             htmlType="submit"
@@ -121,9 +190,9 @@ export const RegisterForm = ({ onSubmit, isPending, error }: RegisterFormProps) 
         </Form.Item>
       </Form>
 
-      <div className="text-center text-xxs text-slate-400 font-medium select-none border-t border-slate-100 pt-4 mt-2">
-        Đã có tài khoản quản trị?{" "}
-        <Link to="/auth/login" className="text-blue-600 hover:underline font-semibold">
+      <div className="text-center text-xxs text-slate-400 font-medium select-none border-t border-slate-100 pt-4 mt-1">
+        Đã có tài khoản?{" "}
+        <Link to="/login" className="text-blue-600 hover:underline font-semibold">
           Đăng nhập ngay
         </Link>
       </div>

@@ -1,10 +1,10 @@
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { message } from 'antd';
-import { authApi } from '../api/auth.api';
-import { useAuthStore } from '../store/auth.store';
+import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { message } from "antd";
+import { authApi } from "../api/auth.api";
+import { useAuthStore } from "../store/auth.store";
 
-export const useLogout = () => {
+export const useLogout = (redirectUrl?: string) => {
   const navigate = useNavigate();
 
   return useMutation({
@@ -16,10 +16,12 @@ export const useLogout = () => {
       }
     },
     onSuccess: () => {
-      message.success('Sign out successful.');
+      message.success("Đăng xuất thành công!");
     },
     onSettled: () => {
-      navigate('/auth/login');
+      if (redirectUrl) {
+        navigate(redirectUrl);
+      }
     },
   });
 };

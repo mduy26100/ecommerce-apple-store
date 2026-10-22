@@ -1,26 +1,21 @@
-/**
- * Storage wrapper to manage authentication credentials in memory.
- * Acts as an abstraction layer so UI hooks, API configs, and mock systems do not access storage directly.
- */
-// [AUTH BYPASS] Tạm thời gán token giả lập để gửi kèm request header nếu cần
-let _inMemoryToken: string | null = "dev-mock-access-token";
+let inMemoryToken: string | null = null;
 
 export const tokenStorage = {
   getToken: (): string | null => {
-    return _inMemoryToken;
+    return inMemoryToken;
   },
 
   setToken: (token: string): void => {
-    _inMemoryToken = token;
+    inMemoryToken = token;
   },
 
   clearToken: (): void => {
-    _inMemoryToken = null;
+    inMemoryToken = null;
   },
 
   clearAll: (): void => {
-    _inMemoryToken = null;
-  }
+    inMemoryToken = null;
+  },
 };
 
 export default tokenStorage;

@@ -1,6 +1,10 @@
 import { LoginForm, useLogin } from "@features/auth";
 
-export const LoginPage = () => {
+interface LoginPageProps {
+  isAdmin?: boolean;
+}
+
+export const LoginPage = ({ isAdmin = false }: LoginPageProps) => {
   const { mutate: login, isPending, error } = useLogin();
 
   return (
@@ -8,6 +12,7 @@ export const LoginPage = () => {
       onSubmit={login}
       isPending={isPending}
       error={error}
+      isAdmin={isAdmin}
     />
   );
 };

@@ -1,7 +1,10 @@
 using Application.Common.Interfaces.Persistence;
 using Application.Common.Interfaces.Storage;
+using Application.Features.Identity.Services;
 using Infrastructure.Identity.Models;
+using Infrastructure.Identity.Services;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Seeders;
 using Infrastructure.Settings;
 using Infrastructure.Storage;
 
@@ -13,6 +16,7 @@ namespace Infrastructure
         {
             services.AddPersistence(configuration);
             services.AddIdentityServices();
+            services.AddJwtAuthentication(configuration);
             services.AddStorageServices(configuration);
 
             return services;
@@ -46,7 +50,6 @@ namespace Infrastructure
         {
             services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
             {
-                // Password policy
                 options.Password.RequiredLength = 6;
                 options.Password.RequireDigit = true;
                 options.Password.RequireLowercase = true;
@@ -54,17 +57,60 @@ namespace Infrastructure
                 options.Password.RequireNonAlphanumeric = true;
                 options.Password.RequiredUniqueChars = 1;
 
-                // Lockout policy
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.AllowedForNewUsers = true;
 
-                // User & SignIn policy
                 options.User.RequireUniqueEmail = true;
                 options.SignIn.RequireConfirmedEmail = false;
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
+
+            return services;
+        }
+
+        private static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddHttpContextAccessor();
+
+            services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+
+            services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+            services.AddScoped<IAuthCookieService, AuthCookieService>();
+            services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<ApplicationDbSeeder>();
+
+            var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.SaveToken = true;
+                options.RequireHttpsMetadata = false;
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+                    ClockSkew = TimeSpan.Zero,
+                    RoleClaimType = "role",
+                    NameClaimType = "sub"
+                };
+            });
+
+            services.AddAuthorization();
 
             return services;
         }

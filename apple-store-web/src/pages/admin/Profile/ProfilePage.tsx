@@ -1,17 +1,58 @@
+import { useState } from "react";
 import { Card, Form, Input, Button, Row, Col, Avatar, Tag, Divider, message } from "antd";
-import { UserOutlined, MailOutlined, KeyOutlined, LockOutlined } from "@ant-design/icons";
+import { UserOutlined, MailOutlined, KeyOutlined, LockOutlined, PhoneOutlined } from "@ant-design/icons";
 import PageHeader from "@shared/components/page-header/PageHeader";
 import { useAuthStore } from "@features/auth";
+import { api } from "@core/api/axios.config";
 
 export const ProfilePage = () => {
-  const user = useAuthStore((state) => state.user);
+  const { user, setAuth, accessToken } = useAuthStore();
+  const [updating, setUpdating] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordForm] = Form.useForm();
 
-  const handleUpdateProfile = () => {
-    message.success("Cập nhật thông tin hồ sơ thành công!");
+  const handleUpdateProfile = async (values: { fullName?: string; phone?: string; title?: string }) => {
+    try {
+      setUpdating(true);
+      await api.put("/api/v1/users/profile", {
+        fullName: values.fullName,
+        phoneNumber: values.phone,
+      });
+
+      if (accessToken && user) {
+        setAuth(accessToken, {
+          ...user,
+          fullName: values.fullName,
+          phoneNumber: values.phone,
+        });
+      }
+
+      message.success("Cập nhật thông tin hồ sơ thành công!");
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error?.message || error?.message || "Cập nhật hồ sơ thất bại!";
+      message.error(errorMsg);
+    } finally {
+      setUpdating(false);
+    }
   };
 
-  const handleChangePassword = () => {
-    message.success("Đổi mật khẩu bảo mật thành công!");
+  const handleChangePassword = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+    try {
+      setChangingPassword(true);
+      await api.post("/api/v1/auth/change-password", {
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+        confirmPassword: values.confirmPassword,
+      });
+
+      message.success("Đổi mật khẩu bảo mật thành công!");
+      passwordForm.resetFields();
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error?.message || error?.message || "Đổi mật khẩu thất bại!";
+      message.error(errorMsg);
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   return (
@@ -54,12 +95,12 @@ export const ProfilePage = () => {
                 <span className="font-medium text-slate-700">{user?.email || "admin@apple-store.com"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-semibold text-slate-400">Cấp bậc:</span>
-                <span className="font-medium text-slate-700">Tổng quản trị (SuperAdmin)</span>
+                <span className="font-semibold text-slate-400">Số điện thoại:</span>
+                <span className="font-medium text-slate-700">{user?.phoneNumber || "Chưa cập nhật"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-semibold text-slate-400">Ngày tham gia:</span>
-                <span className="font-medium text-slate-700">Tháng 06/2026</span>
+                <span className="font-semibold text-slate-400">Cấp bậc:</span>
+                <span className="font-medium text-slate-700">Tổng quản trị (SuperAdmin)</span>
               </div>
             </div>
           </Card>
@@ -73,36 +114,45 @@ export const ProfilePage = () => {
                 initialValues={{
                   fullName: user?.fullName || "Quản trị viên Apple",
                   email: user?.email || "admin@apple-store.com",
-                  phone: "0901 234 567",
+                  phone: user?.phoneNumber || "",
                   title: user?.role || "Quản trị viên cấp cao",
                 }}
                 onFinish={handleUpdateProfile}
               >
                 <Row gutter={16}>
                   <Col xs={24} md={12}>
-                    <Form.Item label={<span className="text-xs font-semibold text-slate-600">Họ và tên</span>} name="fullName">
+                    <Form.Item
+                      label={<span className="text-xs font-semibold text-slate-600">Họ và tên</span>}
+                      name="fullName"
+                      rules={[{ required: true, message: "Vui lòng nhập họ và tên!" }]}
+                    >
                       <Input prefix={<UserOutlined className="text-slate-400 mr-1" />} className="rounded-xl py-2 text-xs" />
                     </Form.Item>
                   </Col>
                   <Col xs={24} md={12}>
                     <Form.Item label={<span className="text-xs font-semibold text-slate-600">Địa chỉ Email</span>} name="email">
-                      <Input prefix={<MailOutlined className="text-slate-400 mr-1" />} className="rounded-xl py-2 text-xs" disabled />
+                      <Input prefix={<MailOutlined className="text-slate-400 mr-1" />} className="rounded-xl py-2 text-xs bg-slate-50 cursor-not-allowed" disabled />
                     </Form.Item>
                   </Col>
                 </Row>
                 <Row gutter={16}>
                   <Col xs={24} md={12}>
                     <Form.Item label={<span className="text-xs font-semibold text-slate-600">Số điện thoại</span>} name="phone">
-                      <Input className="rounded-xl py-2 text-xs" />
+                      <Input prefix={<PhoneOutlined className="text-slate-400 mr-1" />} className="rounded-xl py-2 text-xs" placeholder="0912 345 678 (Tùy chọn)" />
                     </Form.Item>
                   </Col>
                   <Col xs={24} md={12}>
                     <Form.Item label={<span className="text-xs font-semibold text-slate-600">Chức vụ</span>} name="title">
-                      <Input className="rounded-xl py-2 text-xs" />
+                      <Input className="rounded-xl py-2 text-xs bg-slate-50 cursor-not-allowed" disabled />
                     </Form.Item>
                   </Col>
                 </Row>
-                <Button type="primary" htmlType="submit" className="bg-blue-600 hover:bg-blue-700 mt-2 font-semibold text-xs rounded-xl h-10 px-5">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={updating}
+                  className="bg-blue-600 hover:bg-blue-700 mt-2 font-semibold text-xs rounded-xl h-10 px-5"
+                >
                   Lưu thông tin cá nhân
                 </Button>
               </Form>
@@ -110,25 +160,57 @@ export const ProfilePage = () => {
 
             <Card className="border-slate-100 shadow-xs rounded-2xl" title={<span className="text-slate-800 font-bold text-sm">Bảo Mật &amp; Mật Khẩu</span>}>
               <Form
+                form={passwordForm}
                 layout="vertical"
                 onFinish={handleChangePassword}
               >
-                <Form.Item label={<span className="text-xs font-semibold text-slate-600">Mật khẩu hiện tại</span>} name="currentPassword">
+                <Form.Item
+                  label={<span className="text-xs font-semibold text-slate-600">Mật khẩu hiện tại</span>}
+                  name="currentPassword"
+                  rules={[{ required: true, message: "Vui lòng nhập mật khẩu hiện tại!" }]}
+                >
                   <Input.Password prefix={<KeyOutlined className="text-slate-400 mr-1" />} className="rounded-xl py-2 text-xs" />
                 </Form.Item>
                 <Row gutter={16}>
                   <Col xs={24} md={12}>
-                    <Form.Item label={<span className="text-xs font-semibold text-slate-600">Mật khẩu mới</span>} name="newPassword">
+                    <Form.Item
+                      label={<span className="text-xs font-semibold text-slate-600">Mật khẩu mới</span>}
+                      name="newPassword"
+                      rules={[
+                        { required: true, message: "Vui lòng nhập mật khẩu mới!" },
+                        { min: 6, message: "Mật khẩu tối thiểu 6 ký tự!" },
+                      ]}
+                    >
                       <Input.Password prefix={<LockOutlined className="text-slate-400 mr-1" />} className="rounded-xl py-2 text-xs" />
                     </Form.Item>
                   </Col>
                   <Col xs={24} md={12}>
-                    <Form.Item label={<span className="text-xs font-semibold text-slate-600">Xác nhận mật khẩu mới</span>} name="confirmPassword">
+                    <Form.Item
+                      label={<span className="text-xs font-semibold text-slate-600">Xác nhận mật khẩu mới</span>}
+                      name="confirmPassword"
+                      dependencies={["newPassword"]}
+                      rules={[
+                        { required: true, message: "Vui lòng xác nhận lại mật khẩu!" },
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            if (!value || getFieldValue("newPassword") === value) {
+                              return Promise.resolve();
+                            }
+                            return Promise.reject(new Error("Mật khẩu xác nhận không khớp!"));
+                          },
+                        }),
+                      ]}
+                    >
                       <Input.Password prefix={<LockOutlined className="text-slate-400 mr-1" />} className="rounded-xl py-2 text-xs" />
                     </Form.Item>
                   </Col>
                 </Row>
-                <Button type="primary" htmlType="submit" className="bg-blue-600 hover:bg-blue-700 mt-2 font-semibold text-xs rounded-xl h-10 px-5">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={changingPassword}
+                  className="bg-blue-600 hover:bg-blue-700 mt-2 font-semibold text-xs rounded-xl h-10 px-5"
+                >
                   Đổi mật khẩu
                 </Button>
               </Form>

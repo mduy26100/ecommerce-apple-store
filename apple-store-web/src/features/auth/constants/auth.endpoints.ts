@@ -1,7 +1,3 @@
-/**
- * Authentication API endpoints configuration.
- * Avoids magic strings across the codebase.
- */
 const API_PREFIX = '/api/v1';
 
 export const AUTH_ENDPOINTS = {

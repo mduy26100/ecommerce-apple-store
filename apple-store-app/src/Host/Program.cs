@@ -3,32 +3,59 @@ using Host.Extensions;
 using Host.Filters;
 using Host.Middlewares;
 using Infrastructure;
+using Infrastructure.Persistence.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// Add CORS configuration from appsettings.json
 builder.Services.AddCustomCors(builder.Configuration);
 
-// Add Controllers with global ApiResponseFilterAttribute
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ApiResponseFilterAttribute>();
 });
 
-// Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Nhập 'Bearer' [khoảng trắng] rồi đến token."
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
-// Global Exception Handling Middleware (First in pipeline)
+using (var scope = app.Services.CreateScope())
+{
+    var seeder = scope.ServiceProvider.GetRequiredService<ApplicationDbSeeder>();
+    await seeder.SeedAsync();
+}
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

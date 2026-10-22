@@ -154,7 +154,7 @@ instance.interceptors.response.use(
             // Real refresh failure (Session expired)
             processQueue(refreshError, null);
             useAuthStore.getState().clearAuth();
-            message.error('Session expired. Please log in again.');
+            message.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
             reject(refreshError);
           })
           .finally(() => {

@@ -8,9 +8,10 @@ export interface LoginFormProps {
   onSubmit: (values: LoginRequest) => void;
   isPending: boolean;
   error: { message?: string } | null;
+  isAdmin?: boolean;
 }
 
-export const LoginForm = ({ onSubmit, isPending, error }: LoginFormProps) => {
+export const LoginForm = ({ onSubmit, isPending, error, isAdmin = false }: LoginFormProps) => {
   const [form] = Form.useForm();
 
   const handleLogin = (values: LoginRequest) => {
@@ -20,8 +21,12 @@ export const LoginForm = ({ onSubmit, isPending, error }: LoginFormProps) => {
   return (
     <div className="flex flex-col gap-6 w-full select-none">
       <AuthHeader
-        title="Chào mừng quay trở lại"
-        subtitle="Vui lòng đăng nhập thông tin tài khoản của bạn"
+        title={isAdmin ? "Cổng Quản Trị Hệ Thống" : "Đăng Nhập Khách Hàng"}
+        subtitle={
+          isAdmin
+            ? "Đăng nhập dành riêng cho Quản trị viên cấp cao (SuperAdmin)"
+            : "Vui lòng đăng nhập thông tin tài khoản mua sắm của bạn"
+        }
       />
 
       {error && (
@@ -51,7 +56,7 @@ export const LoginForm = ({ onSubmit, isPending, error }: LoginFormProps) => {
         >
           <Input
             prefix={<MailOutlined className="text-slate-400 mr-1" />}
-            placeholder="admin@apple-store.com"
+            placeholder={isAdmin ? "admin@apple-store.com" : "username hoặc email..."}
             size="large"
             className="rounded-xl text-xs hover:border-slate-300 focus:border-blue-500 py-2.5"
           />
@@ -99,12 +104,14 @@ export const LoginForm = ({ onSubmit, isPending, error }: LoginFormProps) => {
         </Form.Item>
       </Form>
 
-      <div className="text-center text-xxs text-slate-400 font-medium select-none border-t border-slate-100 pt-4 mt-2">
-        Chưa có tài khoản quản trị?{" "}
-        <Link to="/auth/register" className="text-blue-600 hover:underline font-semibold">
-          Đăng ký ngay
-        </Link>
-      </div>
+      {!isAdmin && (
+        <div className="text-center text-xxs text-slate-400 font-medium select-none border-t border-slate-100 pt-4 mt-2">
+          Chưa có tài khoản khách hàng?{" "}
+          <Link to="/register" className="text-blue-600 hover:underline font-semibold">
+            Đăng ký ngay
+          </Link>
+        </div>
+      )}
 
       <div className="text-center">
         <Link to="/" className="text-xxs text-slate-500 hover:text-blue-600 font-medium">

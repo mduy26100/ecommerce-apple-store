@@ -1,13 +1,13 @@
-/**
- * Authentication and User models for the application.
- */
-
 export interface UserDetails {
   id: string;
   role: string;
   tenantId: string | null;
   email?: string;
   fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  userName?: string;
+  phoneNumber?: string;
 }
 
 export interface AuthResponse {
@@ -22,8 +22,11 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
+  firstName: string;
+  lastName: string;
+  userName: string;
   email: string;
+  phoneNumber: string;
   password?: string;
-  fullName: string;
-  companyName: string;
+  confirmPassword?: string;
 }

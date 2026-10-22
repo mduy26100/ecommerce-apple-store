@@ -4,6 +4,7 @@ import { message } from "antd";
 import { authApi } from "../api/auth.api";
 import { useAuthStore } from "../store/auth.store";
 import type { RegisterRequest } from "../types/auth.types";
+import { USER_ROLES } from "@core/constants/role.constants";
 
 export const useRegister = () => {
   const navigate = useNavigate();
@@ -14,15 +15,20 @@ export const useRegister = () => {
       useAuthStore.getState().setAuth(data.accessToken, data.user);
       return data;
     },
-    onSuccess: () => {
-      message.success("Account registration and workspace creation successful!");
-      navigate("/admin/dashboard");
+    onSuccess: (data) => {
+      message.success("Đăng ký tài khoản thành công!");
+      if (data?.user?.role === USER_ROLES.SUPER_ADMIN) {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/");
+      }
     },
     onError: (error: any) => {
       const errorMsg =
+        error?.response?.data?.error?.message ||
         error?.response?.data?.message ||
         error?.message ||
-        "Registration failed. Please try again.";
+        "Đăng ký thất bại. Vui lòng thử lại!";
       message.error(errorMsg);
     },
   });

@@ -8,6 +8,7 @@ import {
 } from "@ant-design/icons";
 import { useFeaturedProducts, useCategories, ProductCard } from "@features/storefront/catalog";
 import type { Product } from "@features/storefront/catalog";
+import { AppleLogo } from "@shared/components/icons";
 
 export const HomePage = () => {
   const { data: products, isLoading: isProductsLoading } = useFeaturedProducts();
@@ -95,8 +96,8 @@ export const HomePage = () => {
               key={cat.id}
               className="group flex flex-col items-center justify-center p-5 bg-white rounded-2xl border border-slate-100 hover:border-blue-500 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer text-center"
             >
-              <div className="w-12 h-12 rounded-xl bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-lg mb-3 transition-colors">
-                
+              <div className="w-12 h-12 rounded-xl bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center text-blue-600 mb-3 transition-colors">
+                <AppleLogo size={22} className="text-blue-600 group-hover:scale-110 transition-transform duration-200" />
               </div>
               <h3 className="font-bold text-slate-800 text-xs sm:text-sm group-hover:text-blue-600 transition-colors">
                 {cat.name}

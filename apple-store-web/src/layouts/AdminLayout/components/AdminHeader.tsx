@@ -28,7 +28,7 @@ export const AdminHeader = ({
 }: AdminHeaderProps) => {
   const [searchVisible, setSearchVisible] = useState(false);
   const user = useAuthStore((state) => state.user);
-  const { mutate: logout } = useLogout();
+  const { mutate: logout } = useLogout("/admin/auth/login");
   const navigate = useNavigate();
   const searchPanelRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +49,11 @@ export const AdminHeader = ({
 
   const handleMenuClick = ({ key }: { key: string }) => {
     if (key === "logout") {
-      logout();
+      logout(undefined, {
+        onSettled: () => {
+          navigate("/admin/auth/login");
+        },
+      });
     } else if (key === "profile") {
       navigate("/admin/profile");
     } else if (key === "settings") {

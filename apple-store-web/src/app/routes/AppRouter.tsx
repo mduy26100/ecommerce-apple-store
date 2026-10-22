@@ -3,7 +3,10 @@ import StorefrontLayout from "@layouts/StorefrontLayout/StorefrontLayout";
 import AdminLayout from "@layouts/AdminLayout/AdminLayout";
 import AuthLayout from "@layouts/AuthLayout/AuthLayout";
 
+import { AuthCard } from "@layouts/AuthLayout/components/AuthCard";
+
 import HomePage from "@pages/storefront/Home/HomePage";
+import StorefrontProfilePage from "@pages/storefront/Profile/StorefrontProfilePage";
 
 import DashboardPage from "@pages/admin/Dashboard/DashboardPage";
 import ColorsPage from "@pages/admin/Colors/ColorsPage";
@@ -35,6 +38,56 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <HomePage />,
+      },
+      {
+        path: "profile",
+        element: <StorefrontProfilePage />,
+      },
+      {
+        path: "login",
+        element: (
+          <PublicRoute>
+            <div className="py-12 md:py-16 px-4 flex justify-center items-center">
+              <AuthCard>
+                <LoginPage isAdmin={false} />
+              </AuthCard>
+            </div>
+          </PublicRoute>
+        ),
+      },
+      {
+        path: "register",
+        element: (
+          <PublicRoute>
+            <div className="py-12 md:py-16 px-4 flex justify-center items-center">
+              <AuthCard>
+                <RegisterPage />
+              </AuthCard>
+            </div>
+          </PublicRoute>
+        ),
+      },
+    ],
+  },
+  {
+    path: "/auth/login",
+    element: <Navigate to="/login" replace />,
+  },
+  {
+    path: "/auth/register",
+    element: <Navigate to="/register" replace />,
+  },
+  {
+    path: "/admin/auth/login",
+    element: (
+      <PublicRoute>
+        <AuthLayout />
+      </PublicRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <LoginPage isAdmin={true} />,
       },
     ],
   },
@@ -100,33 +153,6 @@ const router = createBrowserRouter([
           {
             path: "*",
             element: <NotFoundPage inAdminContext={true} />,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    path: "/auth",
-    element: (
-      <PublicRoute>
-        <AuthLayout />
-      </PublicRoute>
-    ),
-    children: [
-      {
-        errorElement: <GlobalErrorBoundary inAuthContext={true} />,
-        children: [
-          {
-            path: "login",
-            element: <LoginPage />,
-          },
-          {
-            path: "register",
-            element: <RegisterPage />,
-          },
-          {
-            path: "*",
-            element: <NotFoundPage inAuthContext={true} />,
           },
         ],
       },

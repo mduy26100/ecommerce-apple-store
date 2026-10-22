@@ -1,10 +1,11 @@
-import { create } from 'zustand';
-import type { UserDetails } from '../types/auth.types';
-import { AUTH_STATUS } from '../constants/auth.constants';
-import type { AuthStatus } from '../constants/auth.constants';
-import { tokenStorage } from '@core/storage/token.storage';
-import { getUserDetailsFromToken } from '@core/utils/jwt';
-import { queryClient } from '@core/api/queryClient';
+import { create } from "zustand";
+import type { UserDetails } from "../types/auth.types";
+import { AUTH_STATUS } from "../constants/auth.constants";
+import type { AuthStatus } from "../constants/auth.constants";
+import { tokenStorage } from "@core/storage/token.storage";
+import { getUserDetailsFromToken } from "@core/utils/jwt";
+import { queryClient } from "@core/api/queryClient";
+import { authApi } from "../api/auth.api";
 
 interface AuthState {
   status: AuthStatus;
@@ -13,35 +14,21 @@ interface AuthState {
   setAuth: (token: string, user: UserDetails | null) => void;
   clearAuth: () => void;
   setNetworkTimeout: () => void;
+  initializeAuth: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  /* =========================================================================
-   * [AUTH BYPASS] Cấu hình auth gốc khi có Backend:
-   * =========================================================================
-  status: AUTH_STATUS.CHECKING_AUTH,
-  accessToken: tokenStorage.getToken(),
-  user: null, // Initialized as null (RAM-only)
-  * ========================================================================= */
+let initAuthPromise: Promise<void> | null = null;
 
-  // [AUTH BYPASS] Tạm thời cấu hình mock auth để không cần login mà vẫn vào thẳng Dashboard
-  status: AUTH_STATUS.AUTHENTICATED,
-  accessToken: "dev-mock-access-token",
-  user: {
-    id: "dev-admin-id",
-    email: "admin@apple-store.com",
-    fullName: "Apple Admin",
-    role: "SuperAdmin",
-    tenantId: "apple-tenant-1",
-  },
+export const useAuthStore = create<AuthState>((set, get) => ({
+  status: AUTH_STATUS.CHECKING_AUTH,
+  accessToken: null,
+  user: null,
 
   setAuth: (token, userParam) => {
     tokenStorage.setToken(token);
 
-    // Decode user details from JWT token
     const decodedUser = getUserDetailsFromToken(token);
-    
-    // Merge: prioritize token claims, keep metadata (like fullName/email) from API if available
+
     const mergedUser = decodedUser
       ? { ...userParam, ...decodedUser }
       : userParam;
@@ -67,5 +54,41 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({
       status: AUTH_STATUS.NETWORK_TIMEOUT,
     });
+  },
+
+  initializeAuth: async () => {
+    if (get().accessToken) {
+      return;
+    }
+
+    if (initAuthPromise) {
+      return initAuthPromise;
+    }
+
+    initAuthPromise = (async () => {
+      try {
+        const response = await authApi.refreshToken();
+        if (response && response.accessToken) {
+          get().setAuth(response.accessToken, response.user || null);
+          return;
+        }
+        set({
+          status: AUTH_STATUS.UNAUTHENTICATED,
+          accessToken: null,
+          user: null,
+        });
+      } catch {
+        tokenStorage.clearAll();
+        set({
+          status: AUTH_STATUS.UNAUTHENTICATED,
+          accessToken: null,
+          user: null,
+        });
+      } finally {
+        initAuthPromise = null;
+      }
+    })();
+
+    return initAuthPromise;
   },
 }));
