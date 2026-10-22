@@ -14,7 +14,7 @@ export const ProfilePage = () => {
   const handleUpdateProfile = async (values: { fullName?: string; phone?: string; title?: string }) => {
     try {
       setUpdating(true);
-      await api.put("/api/v1/users/profile", {
+      await api.put("/api/users/profile", {
         fullName: values.fullName,
         phoneNumber: values.phone,
       });
@@ -39,7 +39,7 @@ export const ProfilePage = () => {
   const handleChangePassword = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
     try {
       setChangingPassword(true);
-      await api.post("/api/v1/auth/change-password", {
+      await api.post("/api/auth/change-password", {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
         confirmPassword: values.confirmPassword,

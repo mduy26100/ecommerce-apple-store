@@ -5,7 +5,6 @@ namespace Host.Controllers.Public
 {
     [Tags("Public - Colors")]
     [Route("api/colors")]
-    [Route("api/public/colors")]
     public class ColorsController : BasePublicController
     {
         private readonly IColorService _colorService;
@@ -16,7 +15,6 @@ namespace Host.Controllers.Public
         }
 
         [HttpGet]
-        [HttpGet("all")]
         public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
         {
             var result = await _colorService.GetAllAsync(cancellationToken);

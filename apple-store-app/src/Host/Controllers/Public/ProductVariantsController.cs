@@ -5,7 +5,6 @@ namespace Host.Controllers.Public
 {
     [Tags("Public - Product Variants")]
     [Route("api/product-variants")]
-    [Route("api/public/product-variants")]
     public class ProductVariantsController : BasePublicController
     {
         private readonly IProductVariantService _variantService;

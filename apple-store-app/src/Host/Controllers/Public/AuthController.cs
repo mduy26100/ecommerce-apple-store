@@ -6,7 +6,6 @@ namespace Host.Controllers.Public
 {
     [Tags("Public - Auth")]
     [Route("api/auth")]
-    [Route("api/v1/auth")]
     public class AuthController : BasePublicController
     {
         private readonly IAuthService _authService;

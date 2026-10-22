@@ -5,7 +5,6 @@ namespace Host.Controllers.Public
 {
     [Tags("Public - Categories")]
     [Route("api/categories")]
-    [Route("api/public/categories")]
     public class CategoriesController : BasePublicController
     {
         private readonly ICategoryService _categoryService;
@@ -16,7 +15,6 @@ namespace Host.Controllers.Public
         }
 
         [HttpGet]
-        [HttpGet("all")]
         public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
         {
             var result = await _categoryService.GetAllAsync(cancellationToken);

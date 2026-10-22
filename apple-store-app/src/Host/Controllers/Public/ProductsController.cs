@@ -5,7 +5,6 @@ namespace Host.Controllers.Public
 {
     [Tags("Public - Products")]
     [Route("api/products")]
-    [Route("api/public/products")]
     public class ProductsController : BasePublicController
     {
         private readonly IProductService _productService;

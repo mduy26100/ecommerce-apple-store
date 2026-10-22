@@ -5,7 +5,6 @@ namespace Host.Controllers.Public
 {
     [Tags("Public - StorageOptions")]
     [Route("api/storage-options")]
-    [Route("api/public/storage-options")]
     public class StorageOptionsController : BasePublicController
     {
         private readonly IStorageOptionService _storageOptionService;
@@ -16,7 +15,6 @@ namespace Host.Controllers.Public
         }
 
         [HttpGet]
-        [HttpGet("all")]
         public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
         {
             var result = await _storageOptionService.GetAllAsync(cancellationToken);

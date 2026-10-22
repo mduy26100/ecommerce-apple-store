@@ -6,7 +6,6 @@ namespace Host.Controllers.Public
 {
     [Tags("Public - Users")]
     [Route("api/users")]
-    [Route("api/v1/users")]
     public class UsersController : BasePublicController
     {
         private readonly IUserService _userService;

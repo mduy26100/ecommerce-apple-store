@@ -24,7 +24,7 @@ export const StorefrontProfilePage = () => {
   const handleUpdateProfile = async (values: { firstName?: string; lastName?: string; phoneNumber?: string }) => {
     try {
       setUpdatingProfile(true);
-      await api.put("/api/v1/users/profile", {
+      await api.put("/api/users/profile", {
         firstName: values.firstName,
         lastName: values.lastName,
         phoneNumber: values.phoneNumber,
@@ -53,7 +53,7 @@ export const StorefrontProfilePage = () => {
   const handleChangePassword = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
     try {
       setChangingPassword(true);
-      await api.post("/api/v1/auth/change-password", {
+      await api.post("/api/auth/change-password", {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
         confirmPassword: values.confirmPassword,

@@ -1,4 +1,4 @@
-const API_PREFIX = '/api/v1';
+const API_PREFIX = '/api';
 
 export const AUTH_ENDPOINTS = {
   LOGIN: `${API_PREFIX}/auth/login`,

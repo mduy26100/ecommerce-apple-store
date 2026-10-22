@@ -5,7 +5,6 @@ namespace Host.Controllers.Public
 {
     [Tags("Public - Variant Images")]
     [Route("api/variant-images")]
-    [Route("api/public/variant-images")]
     public class VariantImagesController : BasePublicController
     {
         private readonly IVariantImageService _imageService;

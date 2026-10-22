@@ -4,6 +4,14 @@ test.describe("Admin - Quản lý Danh mục (Categories CRUD & Image Cropper)",
   const sampleImagePath = "C:/Users/Admin/Documents/KryzoSoft/images/opengraph-image.png";
 
   test.beforeEach(async ({ page }) => {
+    await page.goto("/admin/auth/login");
+    await page.waitForLoadState("networkidle");
+    if (page.url().includes("/admin/auth/login")) {
+      await page.fill("input#identifier, input[name='identifier']", "admin@apple-store.com");
+      await page.fill("input#password, input[name='password']", "Admin@123456");
+      await page.click("form button[type='submit'], form button:has-text('Đăng nhập')");
+      await page.waitForURL((url) => url.pathname.includes("/admin/dashboard"));
+    }
     await page.goto("/admin/categories");
     await page.waitForLoadState("networkidle");
   });

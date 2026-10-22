@@ -5,7 +5,6 @@ namespace Host.Controllers.Public
 {
     [Tags("Public - Product Specifications")]
     [Route("api/product-specifications")]
-    [Route("api/public/product-specifications")]
     public class ProductSpecificationsController : BasePublicController
     {
         private readonly IProductSpecificationService _specService;
