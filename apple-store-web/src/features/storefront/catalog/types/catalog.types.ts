@@ -13,9 +13,11 @@ export interface Product {
 }
 
 export interface Category {
-  id: string;
+  id: string | number;
   name: string;
   slug: string;
-  icon: string;
-  productCount: number;
+  imageUrl?: string | null;
+  icon?: string;
+  productCount?: number;
 }
+

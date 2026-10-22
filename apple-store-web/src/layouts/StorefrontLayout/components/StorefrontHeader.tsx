@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Badge, Drawer, Dropdown } from "antd";
 import {
@@ -8,27 +8,37 @@ import {
   SafetyCertificateOutlined,
   SearchOutlined,
   LogoutOutlined,
+  EllipsisOutlined,
+  DownOutlined,
+  UpOutlined,
 } from "@ant-design/icons";
 import { useAuthStore, useLogout, AUTH_STATUS } from "@features/auth";
 import { USER_ROLES } from "@core/constants/role.constants";
 import { AppleLogo } from "@shared/components/icons";
-
-const CATEGORIES = [
-  { label: "iPhone", path: "/#iphone" },
-  { label: "MacBook", path: "/#macbook" },
-  { label: "iPad", path: "/#ipad" },
-  { label: "Apple Watch", path: "/#watch" },
-  { label: "Tai nghe & AirPods", path: "/#airpods" },
-  { label: "Phụ kiện", path: "/#accessories" },
-];
+import { useCategories } from "@features/storefront/catalog";
 
 export const StorefrontHeader = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const status = useAuthStore((state) => state.status);
   const { mutate: logout } = useLogout();
   const isSuperAdmin = user?.role === USER_ROLES.SUPER_ADMIN;
+  const { data: categories } = useCategories();
+
+  const { mainCategories, overflowCategories } = useMemo(() => {
+    const list = categories || [];
+    if (list.length <= 5) {
+      return { mainCategories: list, overflowCategories: [] };
+    }
+    return {
+      mainCategories: list.slice(0, 5),
+      overflowCategories: list.slice(5),
+    };
+  }, [categories]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -39,6 +49,20 @@ export const StorefrontHeader = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   const handleProfileClick = () => {
     if (isSuperAdmin) {
@@ -92,33 +116,69 @@ export const StorefrontHeader = () => {
           </div>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
-          {CATEGORIES.map((cat) => (
+        <nav className="hidden md:flex items-center gap-3 lg:gap-5 xl:gap-7 shrink min-w-0">
+          {mainCategories.map((cat) => (
             <a
-              key={cat.label}
-              href={cat.path}
-              className="text-xs lg:text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors duration-150"
+              key={cat.id}
+              href={`/#${cat.slug}`}
+              title={cat.name}
+              className="text-xs lg:text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors duration-150 truncate max-w-20 md:max-w-23.75 lg:max-w-28.75 xl:max-w-35 whitespace-nowrap block"
             >
-              {cat.label}
+              {cat.name}
             </a>
           ))}
+
+          {overflowCategories.length > 0 && (
+            <div className="relative shrink-0" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+                className={`flex items-center justify-center w-8 h-8 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors cursor-pointer ${isDropdownOpen ? "bg-slate-100 text-blue-600" : ""
+                  }`}
+                aria-label="Xem thêm danh mục"
+                aria-expanded={isDropdownOpen}
+              >
+                <EllipsisOutlined className="text-lg" />
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-56 max-h-60 overflow-y-auto custom-scrollbar bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-50">
+                  <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Danh mục khác
+                  </div>
+                  {overflowCategories.map((cat) => (
+                    <a
+                      key={cat.id}
+                      href={`/#${cat.slug}`}
+                      title={cat.name}
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-lg mx-1 transition-colors"
+                    >
+                      <span className="truncate max-w-42.5 whitespace-nowrap">{cat.name}</span>
+                      <span className="text-slate-300 ml-1 shrink-0">&rsaquo;</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0">
           {isSuperAdmin && (
             <Link
               to="/admin/dashboard"
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors duration-200"
+              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors duration-200 shrink-0"
             >
-              <SafetyCertificateOutlined className="text-sm" />
-              <span>Trang Quản trị</span>
+              <SafetyCertificateOutlined className="text-sm shrink-0" />
+              <span className="truncate whitespace-nowrap">Trang Quản trị</span>
             </Link>
           )}
 
           <Button
             type="text"
             icon={<SearchOutlined />}
-            className="flex items-center justify-center w-9 h-9 text-slate-600 hover:bg-slate-100 rounded-lg text-base"
+            className="flex items-center justify-center w-9 h-9 text-slate-600 hover:bg-slate-100 rounded-lg text-base shrink-0"
             aria-label="Tìm kiếm"
           />
 
@@ -126,25 +186,25 @@ export const StorefrontHeader = () => {
             <Button
               type="text"
               icon={<ShoppingCartOutlined />}
-              className="flex items-center justify-center w-9 h-9 text-slate-600 hover:bg-slate-100 rounded-lg text-lg"
+              className="flex items-center justify-center w-9 h-9 text-slate-600 hover:bg-slate-100 rounded-lg text-lg shrink-0"
               aria-label="Giỏ hàng"
             />
           </Badge>
 
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center shrink-0">
             {status === AUTH_STATUS.CHECKING_AUTH ? (
-              <div className="w-8 h-8 rounded-full bg-slate-100 animate-pulse" />
+              <div className="w-8 h-8 rounded-full bg-slate-100 animate-pulse shrink-0" />
             ) : user ? (
               isSuperAdmin ? (
                 <div
                   onClick={handleProfileClick}
-                  className="flex items-center gap-2 pl-2 py-1 pr-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                  className="flex items-center gap-2 pl-2 py-1 pr-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors shrink-0"
                   title="Cổng Quản trị"
                 >
-                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center border border-slate-700">
+                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center border border-slate-700 shrink-0">
                     {user.fullName ? user.fullName.charAt(0).toUpperCase() : "A"}
                   </div>
-                  <span className="hidden xl:inline text-xs font-semibold text-slate-800">
+                  <span className="hidden xl:inline text-xs font-semibold text-slate-800 max-w-30 truncate whitespace-nowrap">
                     {user.fullName || "Quản trị viên"}
                   </span>
                 </div>
@@ -155,11 +215,11 @@ export const StorefrontHeader = () => {
                   trigger={["click"]}
                   arrow
                 >
-                  <div className="flex items-center gap-2 pl-2 py-1 pr-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold text-xs flex items-center justify-center border border-blue-200">
+                  <div className="flex items-center gap-2 pl-2 py-1 pr-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold text-xs flex items-center justify-center border border-blue-200 shrink-0">
                       {user.fullName ? user.fullName.charAt(0).toUpperCase() : "A"}
                     </div>
-                    <span className="hidden xl:inline text-xs font-semibold text-slate-800">
+                    <span className="hidden xl:inline text-xs font-semibold text-slate-800 max-w-30 truncate whitespace-nowrap">
                       {user.fullName || "Tài khoản"}
                     </span>
                   </div>
@@ -170,7 +230,7 @@ export const StorefrontHeader = () => {
                 type="primary"
                 icon={<UserOutlined />}
                 onClick={() => navigate("/login")}
-                className="bg-blue-600 hover:bg-blue-700 h-9 rounded-xl text-xs font-semibold border-none shadow-xs"
+                className="bg-blue-600 hover:bg-blue-700 h-9 rounded-xl text-xs font-semibold border-none shadow-xs shrink-0"
               >
                 Đăng nhập
               </Button>
@@ -222,17 +282,50 @@ export const StorefrontHeader = () => {
             Danh mục mua sắm
           </div>
 
-          {CATEGORIES.map((cat) => (
-            <a
-              key={cat.label}
-              href={cat.path}
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600"
-            >
-              <span>{cat.label}</span>
-              <span className="text-slate-300">&rsaquo;</span>
-            </a>
-          ))}
+          <div className="flex flex-col">
+            {mainCategories.map((cat) => (
+              <a
+                key={cat.id}
+                href={`/#${cat.slug}`}
+                title={cat.name}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600"
+              >
+                <span className="truncate max-w-60 whitespace-nowrap">{cat.name}</span>
+                <span className="text-slate-300 ml-1 shrink-0">&rsaquo;</span>
+              </a>
+            ))}
+
+            {overflowCategories.length > 0 && (
+              <div className="mt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMoreOpen((prev) => !prev)}
+                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                >
+                  <span>{isMobileMoreOpen ? "Thu gọn bớt danh mục" : `Xem thêm (${overflowCategories.length} danh mục)`}</span>
+                  {isMobileMoreOpen ? <UpOutlined className="text-[10px]" /> : <DownOutlined className="text-[10px]" />}
+                </button>
+
+                {isMobileMoreOpen && (
+                  <div className="max-h-60 overflow-y-auto custom-scrollbar flex flex-col pl-2 border-l-2 border-slate-100 ml-3 mt-1">
+                    {overflowCategories.map((cat) => (
+                      <a
+                        key={cat.id}
+                        href={`/#${cat.slug}`}
+                        title={cat.name}
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-600"
+                      >
+                        <span className="truncate max-w-55 whitespace-nowrap">{cat.name}</span>
+                        <span className="text-slate-300 ml-1 shrink-0">&rsaquo;</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="border-t border-slate-100 my-3 pt-3">
             {user ? (

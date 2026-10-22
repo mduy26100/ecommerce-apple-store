@@ -1,3 +1,4 @@
+import { useRef, useEffect, useMemo } from "react";
 import { Button, message } from "antd";
 import { Link } from "react-router-dom";
 import {
@@ -5,6 +6,8 @@ import {
   ThunderboltOutlined,
   ArrowRightOutlined,
   CheckCircleFilled,
+  LeftOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import { useFeaturedProducts, useCategories, ProductCard } from "@features/storefront/catalog";
 import type { Product } from "@features/storefront/catalog";
@@ -13,6 +16,146 @@ import { AppleLogo } from "@shared/components/icons";
 export const HomePage = () => {
   const { data: products, isLoading: isProductsLoading } = useFeaturedProducts();
   const { data: categories } = useCategories();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const currentScrollRef = useRef(0);
+  const isInteractingRef = useRef(false);
+  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loopedCategories = useMemo(() => {
+    if (!categories || categories.length === 0) return [];
+    const repeatCount = Math.max(6, Math.ceil(30 / categories.length));
+    const result = [];
+    for (let i = 0; i < repeatCount; i++) {
+      result.push(...categories);
+    }
+    return result;
+  }, [categories]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || !categories || categories.length === 0) return;
+
+    const calculateCycleWidth = () => {
+      const item0 = container.children[0] as HTMLElement | undefined;
+      const itemN = container.children[categories.length] as HTMLElement | undefined;
+      if (item0 && itemN) {
+        return itemN.offsetLeft - item0.offsetLeft;
+      }
+      return 0;
+    };
+
+    let cycleWidth = calculateCycleWidth();
+    if (cycleWidth > 0 && container.scrollLeft === 0) {
+      container.scrollLeft = cycleWidth * 2;
+      currentScrollRef.current = cycleWidth * 2;
+    }
+
+    let animationFrameId: number;
+    let lastTime = performance.now();
+    const speed = 40;
+
+    const step = (now: number) => {
+      const elapsed = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      if (!isInteractingRef.current && container) {
+        if (cycleWidth <= 0) {
+          cycleWidth = calculateCycleWidth();
+        }
+
+        currentScrollRef.current += speed * elapsed;
+
+        if (cycleWidth > 0) {
+          if (currentScrollRef.current >= cycleWidth * 3) {
+            currentScrollRef.current -= cycleWidth;
+          } else if (currentScrollRef.current < cycleWidth) {
+            currentScrollRef.current += cycleWidth;
+          }
+        }
+
+        container.scrollLeft = currentScrollRef.current;
+      }
+
+      animationFrameId = requestAnimationFrame(step);
+    };
+
+    animationFrameId = requestAnimationFrame(step);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      if (pauseTimeoutRef.current) {
+        clearTimeout(pauseTimeoutRef.current);
+      }
+    };
+  }, [categories, loopedCategories]);
+
+  const triggerPauseTemporarily = () => {
+    isInteractingRef.current = true;
+    if (pauseTimeoutRef.current) {
+      clearTimeout(pauseTimeoutRef.current);
+    }
+    pauseTimeoutRef.current = setTimeout(() => {
+      isInteractingRef.current = false;
+      if (scrollRef.current) {
+        currentScrollRef.current = scrollRef.current.scrollLeft;
+      }
+    }, 1200);
+  };
+
+  const handleScrollLeft = () => {
+    const container = scrollRef.current;
+    if (!container || !categories || categories.length === 0) return;
+    triggerPauseTemporarily();
+
+    const item0 = container.children[0] as HTMLElement | undefined;
+    const itemN = container.children[categories.length] as HTMLElement | undefined;
+    const cycleWidth = item0 && itemN ? itemN.offsetLeft - item0.offsetLeft : 300;
+
+    let target = container.scrollLeft - 300;
+    if (target < cycleWidth) {
+      container.scrollLeft += cycleWidth;
+      target += cycleWidth;
+    }
+    container.scrollTo({ left: target, behavior: "smooth" });
+    currentScrollRef.current = target;
+  };
+
+  const handleScrollRight = () => {
+    const container = scrollRef.current;
+    if (!container || !categories || categories.length === 0) return;
+    triggerPauseTemporarily();
+
+    const item0 = container.children[0] as HTMLElement | undefined;
+    const itemN = container.children[categories.length] as HTMLElement | undefined;
+    const cycleWidth = item0 && itemN ? itemN.offsetLeft - item0.offsetLeft : 300;
+
+    let target = container.scrollLeft + 300;
+    if (target >= cycleWidth * 3) {
+      container.scrollLeft -= cycleWidth;
+      target -= cycleWidth;
+    }
+    container.scrollTo({ left: target, behavior: "smooth" });
+    currentScrollRef.current = target;
+  };
+
+  const handleScroll = () => {
+    if (!isInteractingRef.current) return;
+    const container = scrollRef.current;
+    if (!container || !categories || categories.length === 0) return;
+    const item0 = container.children[0] as HTMLElement | undefined;
+    const itemN = container.children[categories.length] as HTMLElement | undefined;
+    if (!item0 || !itemN) return;
+    const cycleWidth = itemN.offsetLeft - item0.offsetLeft;
+    if (cycleWidth <= 0) return;
+
+    if (container.scrollLeft < cycleWidth * 0.8) {
+      container.scrollLeft += cycleWidth;
+      currentScrollRef.current = container.scrollLeft;
+    } else if (container.scrollLeft >= cycleWidth * 3.2) {
+      container.scrollLeft -= cycleWidth;
+      currentScrollRef.current = container.scrollLeft;
+    }
+  };
 
   const handleAddToCart = (product: Product) => {
     message.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
@@ -90,23 +233,61 @@ export const HomePage = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-          {categories?.map((cat) => (
-            <div
-              key={cat.id}
-              className="group flex flex-col items-center justify-center p-5 bg-white rounded-2xl border border-slate-100 hover:border-blue-500 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer text-center"
-            >
-              <div className="w-12 h-12 rounded-xl bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center text-blue-600 mb-3 transition-colors">
-                <AppleLogo size={22} className="text-blue-600 group-hover:scale-110 transition-transform duration-200" />
+        <div className="relative group/carousel">
+          <button
+            type="button"
+            onClick={handleScrollLeft}
+            aria-label="Cuộn sang trái"
+            className="absolute -left-3 lg:-left-5 top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-white/95 hover:bg-white text-slate-700 hover:text-blue-600 shadow-md hover:shadow-lg border border-slate-200 transition-all cursor-pointer hover:scale-105"
+          >
+            <LeftOutlined className="text-xs" />
+          </button>
+
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            onTouchStart={() => {
+              isInteractingRef.current = true;
+            }}
+            onTouchEnd={() => {
+              triggerPauseTemporarily();
+            }}
+            className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1 px-1 no-scrollbar select-none"
+          >
+            {loopedCategories.map((cat, idx) => (
+              <div
+                key={`${cat.id}-${idx}`}
+                className="group shrink-0 w-36 sm:w-44 flex flex-col items-center justify-center p-4 sm:p-5 bg-white rounded-2xl border border-slate-100 hover:border-blue-500 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer text-center"
+              >
+                <div className="w-14 h-14 rounded-xl bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center text-blue-600 mb-3 transition-colors overflow-hidden">
+                  {cat.imageUrl ? (
+                    <img
+                      src={cat.imageUrl}
+                      alt={cat.name}
+                      className="w-10 h-10 object-contain group-hover:scale-110 transition-transform duration-200"
+                    />
+                  ) : (
+                    <AppleLogo size={22} className="text-blue-600 group-hover:scale-110 transition-transform duration-200" />
+                  )}
+                </div>
+                <h3 className="font-bold text-slate-800 text-xs sm:text-sm group-hover:text-blue-600 transition-colors line-clamp-1">
+                  {cat.name}
+                </h3>
+                <span className="text-[11px] text-slate-400 mt-0.5">
+                  {cat.productCount ? `${cat.productCount} sản phẩm` : "Chính hãng"}
+                </span>
               </div>
-              <h3 className="font-bold text-slate-800 text-xs sm:text-sm group-hover:text-blue-600 transition-colors">
-                {cat.name}
-              </h3>
-              <span className="text-[11px] text-slate-400 mt-0.5">
-                {cat.productCount} sản phẩm
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleScrollRight}
+            aria-label="Cuộn sang phải"
+            className="absolute -right-3 lg:-right-5 top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-white/95 hover:bg-white text-slate-700 hover:text-blue-600 shadow-md hover:shadow-lg border border-slate-200 transition-all cursor-pointer hover:scale-105"
+          >
+            <RightOutlined className="text-xs" />
+          </button>
         </div>
       </section>
 

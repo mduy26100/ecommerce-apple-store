@@ -1,3 +1,4 @@
+import { api } from "@core/api/axios.config";
 import type { Product, Category } from "../types/catalog.types";
 
 const MOCK_CATEGORIES: Category[] = [
@@ -85,10 +86,19 @@ const MOCK_PRODUCTS: Product[] = [
 
 export const catalogApi = {
   getCategories: async (): Promise<Category[]> => {
-    return MOCK_CATEGORIES;
+    try {
+      const data = await api.get<Category[]>("/api/categories");
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+      return MOCK_CATEGORIES;
+    } catch {
+      return MOCK_CATEGORIES;
+    }
   },
 
   getFeaturedProducts: async (): Promise<Product[]> => {
     return MOCK_PRODUCTS;
   },
 };
+
