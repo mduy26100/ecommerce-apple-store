@@ -2,6 +2,14 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Admin - Quản lý Sản phẩm (Products CRUD)", () => {
   test.beforeEach(async ({ page }) => {
+    await page.goto("/admin/auth/login");
+    await page.waitForLoadState("networkidle");
+    if (page.url().includes("/admin/auth/login")) {
+      await page.fill("input#identifier, input[name='identifier']", "admin@apple-store.com");
+      await page.fill("input#password, input[name='password']", "Admin@123456");
+      await page.click("form button[type='submit'], form button:has-text('Đăng nhập')");
+      await page.waitForURL((url) => url.pathname.includes("/admin/dashboard"));
+    }
     await page.goto("/admin/products");
     await page.waitForLoadState("networkidle");
   });
@@ -42,6 +50,8 @@ test.describe("Admin - Quản lý Sản phẩm (Products CRUD)", () => {
 
     expect(response.status()).toBeLessThan(400);
     await expect(modal).not.toBeVisible();
+    await page.fill("input[placeholder*='Tìm theo tên']", testName);
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(".ant-table")).toContainText(testName);
   });
 
@@ -88,7 +98,11 @@ test.describe("Admin - Quản lý Sản phẩm (Products CRUD)", () => {
     await expect(page.locator(".ant-table")).toContainText(testName);
 
     const row = page.locator(`.ant-table-row:has-text('${testName}')`);
-    await row.locator("button[aria-label='Chỉnh sửa sản phẩm'], button:has(.anticon-edit)").click();
+    await row.click();
+
+    const drawer = page.locator(".ant-drawer");
+    await expect(drawer).toBeVisible();
+    await drawer.locator("button:has-text('Sửa sản phẩm')").click();
 
     const editModal = page.locator(".ant-modal");
     await expect(editModal).toBeVisible();
@@ -103,9 +117,11 @@ test.describe("Admin - Quản lý Sản phẩm (Products CRUD)", () => {
     ]);
 
     await expect(editModal).not.toBeVisible();
+    await drawer.locator("button.ant-drawer-close, .ant-drawer-close").click();
+    await expect(drawer).not.toBeVisible();
     await page.fill("input[placeholder*='Tìm theo tên']", updatedName);
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".ant-table")).toContainText(updatedName);
+    await expect(page.locator(".ant-table").first()).toContainText(updatedName);
   });
 
   test("Thực hiện xóa sản phẩm thành công", async ({ page }) => {

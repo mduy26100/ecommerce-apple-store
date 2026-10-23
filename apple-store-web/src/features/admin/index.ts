@@ -4,6 +4,7 @@ export * from "./storage-options";
 export * from "./categories";
 export * from "./products";
 export * from "./variants";
+export * from "./product-images";
 export * from "./variant-images";
 export * from "./specifications";
 export * from "./orders";

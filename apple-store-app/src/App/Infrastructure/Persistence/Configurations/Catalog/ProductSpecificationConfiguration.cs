@@ -11,9 +11,6 @@ namespace Infrastructure.Persistence.Configurations.Catalog
 
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.GroupName)
-                .HasMaxLength(100);
-
             builder.Property(x => x.Name)
                 .IsRequired()
                 .HasMaxLength(150);
@@ -28,18 +25,12 @@ namespace Infrastructure.Persistence.Configurations.Catalog
             builder.Property(x => x.DisplayOrder)
                 .HasDefaultValue(0);
 
-            builder.HasOne(x => x.Product)
-                .WithMany(p => p.Specifications)
-                .HasForeignKey(x => x.ProductId)
+            builder.HasOne(x => x.Group)
+                .WithMany(g => g.Specifications)
+                .HasForeignKey(x => x.GroupId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasOne(x => x.ProductVariant)
-                .WithMany(v => v.Specifications)
-                .HasForeignKey(x => x.ProductVariantId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasIndex(x => x.ProductId);
-            builder.HasIndex(x => x.ProductVariantId);
+            builder.HasIndex(x => x.GroupId);
         }
     }
 }

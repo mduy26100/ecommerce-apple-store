@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Drawer, Button, Empty, Tabs, Tag, Space, Descriptions, Card, Badge, Spin } from "antd";
+import { Drawer, Button, Empty, Tabs, Tag, Space, Descriptions, Badge, Spin } from "antd";
 import {
   PlusOutlined,
   AppstoreOutlined,
@@ -10,6 +10,8 @@ import {
   BarcodeOutlined,
   SafetyCertificateOutlined,
   LinkOutlined,
+  TagsOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
 import {
   useVariantsByProduct,
@@ -19,7 +21,9 @@ import {
 } from "../hooks/useVariants";
 import { VariantsTable } from "./VariantsTable";
 import { VariantFormModal } from "./VariantFormModal";
+import { ProductOptionsManager } from "./ProductOptionsManager";
 import { SpecificationsManager } from "@features/admin/specifications";
+import { ProductImagesByColorManager } from "@features/admin/product-images";
 import { useProductDetail } from "../../products/hooks/useProducts";
 import type {
   ProductVariantItem,
@@ -125,7 +129,7 @@ export const ProductVariantsDrawer = ({
     <Drawer
       open={open}
       onClose={onClose}
-      width={940}
+      width={1000}
       title={
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -156,7 +160,7 @@ export const ProductVariantsDrawer = ({
             <Button
               icon={<EditOutlined />}
               onClick={() => onEditProduct(displayProduct)}
-              className="rounded-xl font-medium"
+              className="rounded-lg font-medium"
             >
               Sửa sản phẩm
             </Button>
@@ -165,7 +169,7 @@ export const ProductVariantsDrawer = ({
             type="primary"
             icon={<PlusOutlined />}
             onClick={handleOpenCreate}
-            className="bg-blue-600 hover:bg-blue-700 font-semibold rounded-xl shadow-xs"
+            className="bg-blue-600 hover:bg-blue-700 font-semibold rounded-lg shadow-xs"
           >
             Thêm phiên bản
           </Button>
@@ -177,7 +181,7 @@ export const ProductVariantsDrawer = ({
         <Empty description="Không có thông tin sản phẩm" />
       ) : (
         <div className="space-y-6">
-          <Card className="border-slate-200/80 shadow-xs rounded-2xl bg-linear-to-br from-slate-50/80 to-white">
+          <div className="pb-5 border-b border-slate-200/90">
             <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
               <div className="space-y-2 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -205,7 +209,7 @@ export const ProductVariantsDrawer = ({
                 </div>
 
                 {displayProduct.shortDescription && (
-                  <p className="text-xs text-slate-600 leading-relaxed mt-2 pt-2 border-t border-slate-200/60 line-clamp-2">
+                  <p className="text-xs text-slate-600 leading-relaxed mt-2 pt-2 border-t border-slate-100 line-clamp-2">
                     {displayProduct.shortDescription}
                   </p>
                 )}
@@ -231,11 +235,13 @@ export const ProductVariantsDrawer = ({
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
 
-          <Tabs
-            activeKey={activeTab}
-            onChange={setActiveTab}
+          <div className="mt-6">
+            <Tabs
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              className="admin-variant-tabs"
             items={[
               {
                 key: "variants",
@@ -266,6 +272,34 @@ export const ProductVariantsDrawer = ({
                       onDelete={handleDelete}
                       isDeleting={deleteMutation.isPending}
                     />
+                  </div>
+                ),
+              },
+              {
+                key: "images",
+                label: (
+                  <span className="flex items-center gap-2 font-semibold">
+                    <PictureOutlined />
+                    <span>Hình ảnh theo màu</span>
+                  </span>
+                ),
+                children: (
+                  <div className="pt-1">
+                    <ProductImagesByColorManager productId={productId} />
+                  </div>
+                ),
+              },
+              {
+                key: "options",
+                label: (
+                  <span className="flex items-center gap-2 font-semibold">
+                    <TagsOutlined />
+                    <span>Thuộc tính & Tùy chọn</span>
+                  </span>
+                ),
+                children: (
+                  <div className="pt-1">
+                    <ProductOptionsManager productId={productId} />
                   </div>
                 ),
               },
@@ -352,6 +386,7 @@ export const ProductVariantsDrawer = ({
               },
             ]}
           />
+          </div>
         </div>
       )}
 

@@ -41,19 +41,7 @@ namespace Infrastructure.Persistence.Configurations.Catalog
                 .HasForeignKey(x => x.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasOne(x => x.Color)
-                .WithMany(c => c.Variants)
-                .HasForeignKey(x => x.ColorId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            builder.HasOne(x => x.StorageOption)
-                .WithMany(s => s.Variants)
-                .HasForeignKey(x => x.StorageOptionId)
-                .OnDelete(DeleteBehavior.SetNull);
-
             builder.HasIndex(x => x.ProductId);
-            builder.HasIndex(x => x.ColorId);
-            builder.HasIndex(x => x.StorageOptionId);
         }
     }
 }

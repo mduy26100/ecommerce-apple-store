@@ -6,8 +6,9 @@ namespace Application.Features.Catalog.ProductSpecifications.Specifications
     {
         public SpecsByProductIdSpec(int productId)
         {
-            Query.Where(s => s.ProductId == productId)
-                 .OrderBy(s => s.GroupName)
+            Query.Include(s => s.Group)
+                 .Where(s => s.Group.ProductId == productId)
+                 .OrderBy(s => s.Group.DisplayOrder)
                  .ThenBy(s => s.DisplayOrder)
                  .ThenBy(s => s.Name);
         }

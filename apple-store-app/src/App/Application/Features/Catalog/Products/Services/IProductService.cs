@@ -9,7 +9,9 @@ namespace Application.Features.Catalog.Products.Services
         Task<IReadOnlyList<ProductCardDto>> GetCardsAsync(int? categoryId = null, int limit = 100, CancellationToken cancellationToken = default);
         Task<PagedList<ProductCardDto>> GetCardsPagedAsync(ProductCardPagedRequest request, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<CategoryProductShowcaseDto>> GetHomeShowcaseAsync(int countPerCategory = 4, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<ProductCardDto>> GetRandomCardsAsync(int count = 12, int? excludeId = null, CancellationToken cancellationToken = default);
         Task<ProductDetailDto> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+        Task<ProductDetailDto> GetBySlugAsync(string slug, CancellationToken cancellationToken = default);
         Task<int> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default);
         Task UpdateAsync(int id, UpdateProductRequest request, CancellationToken cancellationToken = default);
         Task DeleteAsync(int id, CancellationToken cancellationToken = default);

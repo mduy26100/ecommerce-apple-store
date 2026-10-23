@@ -213,6 +213,180 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("Products", "catalog");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AltText")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("DeletedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPrimary")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("LastModifiedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("OptionValueId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OptionValueId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductImages", "catalog");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductOption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("DeletedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("LastModifiedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductOptions", "catalog");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductOptionValue", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ColorHexCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("DeletedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("LastModifiedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("OptionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OptionId");
+
+                    b.ToTable("ProductOptionValues", "catalog");
+                });
+
             modelBuilder.Entity("Domain.Entities.Catalog.ProductSpecification", b =>
                 {
                     b.Property<int>("Id")
@@ -367,6 +541,23 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("ProductVariants", "catalog");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductVariantValue", b =>
+                {
+                    b.Property<int>("VariantId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OptionValueId")
+                        .HasColumnType("int");
+
+                    b.HasKey("VariantId", "OptionValueId");
+
+                    b.HasIndex("OptionValueId");
+
+                    b.HasIndex("VariantId");
+
+                    b.ToTable("ProductVariantValues", "catalog");
+                });
+
             modelBuilder.Entity("Domain.Entities.Catalog.StorageOption", b =>
                 {
                     b.Property<int>("Id")
@@ -415,71 +606,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("StorageOptions", "catalog");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Catalog.VariantImage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AltText")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset>("CreatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset?>("DeletedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<int>("DisplayOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsPrimary")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset?>("LastModifiedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<int>("ProductVariantId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductVariantId");
-
-                    b.HasIndex("ProductVariantId", "IsPrimary")
-                        .IsUnique()
-                        .HasFilter("[IsPrimary] = 1");
-
-                    b.ToTable("VariantImages", "catalog");
                 });
 
             modelBuilder.Entity("Domain.Entities.Sales.Cart", b =>
@@ -1074,6 +1200,46 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductImage", b =>
+                {
+                    b.HasOne("Domain.Entities.Catalog.ProductOptionValue", "OptionValue")
+                        .WithMany("Images")
+                        .HasForeignKey("OptionValueId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Catalog.Product", "Product")
+                        .WithMany("Images")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OptionValue");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductOption", b =>
+                {
+                    b.HasOne("Domain.Entities.Catalog.Product", "Product")
+                        .WithMany("Options")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductOptionValue", b =>
+                {
+                    b.HasOne("Domain.Entities.Catalog.ProductOption", "Option")
+                        .WithMany("Values")
+                        .HasForeignKey("OptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Option");
+                });
+
             modelBuilder.Entity("Domain.Entities.Catalog.ProductSpecification", b =>
                 {
                     b.HasOne("Domain.Entities.Catalog.Product", "Product")
@@ -1094,10 +1260,9 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.Catalog.ProductVariant", b =>
                 {
-                    b.HasOne("Domain.Entities.Catalog.Color", "Color")
+                    b.HasOne("Domain.Entities.Catalog.Color", null)
                         .WithMany("Variants")
-                        .HasForeignKey("ColorId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("ColorId");
 
                     b.HasOne("Domain.Entities.Catalog.Product", "Product")
                         .WithMany("Variants")
@@ -1105,27 +1270,30 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.Catalog.StorageOption", "StorageOption")
+                    b.HasOne("Domain.Entities.Catalog.StorageOption", null)
                         .WithMany("Variants")
-                        .HasForeignKey("StorageOptionId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Color");
+                        .HasForeignKey("StorageOptionId");
 
                     b.Navigation("Product");
-
-                    b.Navigation("StorageOption");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Catalog.VariantImage", b =>
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductVariantValue", b =>
                 {
-                    b.HasOne("Domain.Entities.Catalog.ProductVariant", "ProductVariant")
-                        .WithMany("Images")
-                        .HasForeignKey("ProductVariantId")
+                    b.HasOne("Domain.Entities.Catalog.ProductOptionValue", "OptionValue")
+                        .WithMany("VariantValues")
+                        .HasForeignKey("OptionValueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Catalog.ProductVariant", "Variant")
+                        .WithMany("VariantValues")
+                        .HasForeignKey("VariantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ProductVariant");
+                    b.Navigation("OptionValue");
+
+                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("Domain.Entities.Sales.Cart", b =>
@@ -1246,16 +1414,32 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.Catalog.Product", b =>
                 {
+                    b.Navigation("Images");
+
+                    b.Navigation("Options");
+
                     b.Navigation("Specifications");
 
                     b.Navigation("Variants");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Catalog.ProductVariant", b =>
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductOption", b =>
+                {
+                    b.Navigation("Values");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductOptionValue", b =>
                 {
                     b.Navigation("Images");
 
+                    b.Navigation("VariantValues");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductVariant", b =>
+                {
                     b.Navigation("Specifications");
+
+                    b.Navigation("VariantValues");
                 });
 
             modelBuilder.Entity("Domain.Entities.Catalog.StorageOption", b =>

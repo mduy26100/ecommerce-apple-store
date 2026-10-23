@@ -8,12 +8,8 @@ namespace Application.Features.Catalog.Products.Specifications
         {
             var normalizedSlug = slug.Trim().ToLower();
             Query.Include(p => p.Category)
+                 .Include(p => p.Images)
                  .Include(p => p.Variants)
-                    .ThenInclude(v => v.Color)
-                 .Include(p => p.Variants)
-                    .ThenInclude(v => v.StorageOption)
-                 .Include(p => p.Variants)
-                    .ThenInclude(v => v.Images)
                  .Where(p => p.Slug.ToLower() == normalizedSlug);
 
             if (excludeId.HasValue)

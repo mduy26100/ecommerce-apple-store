@@ -1,5 +1,5 @@
 import { Table, Tag, Button, Space, Popconfirm } from "antd";
-import { DeleteOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { ProductVariantItem } from "../types/variant.types";
 
@@ -48,35 +48,56 @@ export const VariantsTable = ({
       ),
     },
     {
-      title: "Màu sắc",
-      key: "color",
+      title: "Thuộc tính / Tùy chọn",
+      key: "variantValues",
       render: (_, record) => {
-        if (!record.colorName) {
-          return <span className="text-slate-400 text-xs">-</span>;
+        if (record.variantValues && record.variantValues.length > 0) {
+          return (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {record.variantValues.map((vv) => (
+                <span
+                  key={vv.optionValueId}
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200"
+                >
+                  {vv.colorHexCode && (
+                    <span
+                      className="w-2.5 h-2.5 rounded-full border border-slate-300 inline-block shrink-0"
+                      style={{ backgroundColor: vv.colorHexCode }}
+                    />
+                  )}
+                  <span>
+                    <strong className="text-slate-500 font-normal">{vv.optionName}:</strong> {vv.value}
+                  </span>
+                </span>
+              ))}
+            </div>
+          );
         }
-        return (
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-xs inline-block"
-              style={{ backgroundColor: record.colorHexCode || "#ccc" }}
-            />
-            <span className="text-xs text-slate-700">{record.colorName}</span>
-          </div>
-        );
-      },
-    },
-    {
-      title: "Dung lượng",
-      dataIndex: "storageCapacity",
-      key: "storageCapacity",
-      align: "center",
-      render: (cap: string | null) => {
-        if (!cap) return <span className="text-slate-400 text-xs">-</span>;
-        return (
-          <Tag color="purple" className="font-semibold text-xs rounded-md">
-            {cap}
-          </Tag>
-        );
+
+        if (record.colorName || record.storageCapacity) {
+          return (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {record.colorName && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                  {record.colorHexCode && (
+                    <span
+                      className="w-2.5 h-2.5 rounded-full border border-slate-300 inline-block shrink-0"
+                      style={{ backgroundColor: record.colorHexCode }}
+                    />
+                  )}
+                  <span>{record.colorName}</span>
+                </span>
+              )}
+              {record.storageCapacity && (
+                <Tag color="purple" className="font-semibold text-xs rounded-md m-0">
+                  {record.storageCapacity}
+                </Tag>
+              )}
+            </div>
+          );
+        }
+
+        return <span className="text-slate-400 text-xs">Mặc định</span>;
       },
     },
     {
@@ -101,7 +122,7 @@ export const VariantsTable = ({
       title: "Tồn kho",
       dataIndex: "quantityInStock",
       key: "quantityInStock",
-      width: 90,
+      width: 100,
       align: "center",
       render: (qty: number) => (
         <Tag color={qty > 0 ? "blue" : "error"}>
@@ -127,6 +148,12 @@ export const VariantsTable = ({
       align: "center",
       render: (_, record) => (
         <Space size="small" onClick={(e) => e.stopPropagation()}>
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => onEdit(record)}
+            title="Chỉnh sửa"
+          />
           <Popconfirm
             title="Xác nhận xóa"
             description="Bạn có chắc chắn muốn xóa phiên bản này?"
@@ -140,7 +167,7 @@ export const VariantsTable = ({
               danger
               icon={<DeleteOutlined />}
               loading={isDeleting}
-              title="Xóa phiên bản"
+              title="Xóa"
             />
           </Popconfirm>
         </Space>

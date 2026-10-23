@@ -68,3 +68,111 @@ export interface CategoryProductShowcase {
   products: ProductCardItem[];
 }
 
+export interface GalleryImageItem {
+  id: string | number;
+  imageUrl: string;
+  altText?: string;
+  colorId?: number;
+  colorName?: string;
+}
+
+export interface VariantImageItem {
+  id: number;
+  imageUrl: string;
+  altText?: string;
+  displayOrder: number;
+  isPrimary: boolean;
+}
+
+export interface ProductSpecificationItem {
+  id: number;
+  groupId?: number;
+  name: string;
+  value: string;
+  groupName: string;
+  displayOrder: number;
+  unit?: string | null;
+}
+
+export interface ProductSpecificationGroupItem {
+  id: number;
+  productId: number;
+  name: string;
+  displayOrder: number;
+  specifications: ProductSpecificationItem[];
+}
+
+export interface ProductOptionValueItem {
+  id: number;
+  optionId: number;
+  value: string;
+  colorHexCode?: string | null;
+  displayOrder: number;
+  hasVariants?: boolean;
+  inStock?: boolean;
+}
+
+export interface ProductOptionItem {
+  id: number;
+  productId: number;
+  name: string;
+  displayOrder: number;
+  values: ProductOptionValueItem[];
+}
+
+export interface ProductVariantValueItem {
+  optionId: number;
+  optionName: string;
+  optionValueId: number;
+  value: string;
+  colorHexCode?: string | null;
+}
+
+export interface ProductVariantDetail {
+  id: number;
+  sku: string;
+  variantName?: string | null;
+  price: number;
+  compareAtPrice?: number | null;
+  quantityInStock?: number;
+  stockQuantity: number;
+  primaryImageUrl?: string;
+  isActive?: boolean;
+  images: VariantImageItem[];
+  variantValues: ProductVariantValueItem[];
+  optionValueIds: number[];
+  colorId?: number;
+  colorName?: string;
+  colorHexCode?: string;
+  storageOptionId?: number;
+  storageOptionCapacity?: string;
+}
+
+export interface ProductImageItem {
+  id: number;
+  productId: number;
+  optionValueId?: number | null;
+  optionValueName?: string | null;
+  colorHexCode?: string | null;
+  imageUrl: string;
+  altText?: string | null;
+  displayOrder: number;
+  isPrimary: boolean;
+}
+
+export interface ProductDetailResponse {
+  id: number;
+  categoryId: number;
+  categoryName: string;
+  categorySlug: string;
+  name: string;
+  slug: string;
+  modelCode?: string;
+  warrantyMonths: number;
+  description?: string;
+  images: ProductImageItem[];
+  options: ProductOptionItem[];
+  variants: ProductVariantDetail[];
+  specifications: ProductSpecificationItem[];
+  specificationGroups?: ProductSpecificationGroupItem[];
+}

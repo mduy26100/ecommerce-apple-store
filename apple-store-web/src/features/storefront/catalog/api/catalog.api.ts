@@ -6,6 +6,7 @@ import type {
   ProductCardPagedParams,
   ProductCardPagedResponse,
   CategoryProductShowcase,
+  ProductDetailResponse,
 } from "../types/catalog.types";
 
 export const catalogApi = {
@@ -130,6 +131,26 @@ export const catalogApi = {
         hasNextPage: false,
         itemCount: 0,
       };
+    }
+  },
+
+  getProductBySlug: async (slug: string): Promise<ProductDetailResponse | null> => {
+    try {
+      const data = await api.get<ProductDetailResponse>(`/api/products/${slug}`);
+      return data ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  getRandomProducts: async (count: number = 12, excludeId?: number): Promise<ProductCardItem[]> => {
+    try {
+      const data = await api.get<ProductCardItem[]>("/api/products/random", {
+        params: { count, excludeId },
+      });
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
     }
   },
 };

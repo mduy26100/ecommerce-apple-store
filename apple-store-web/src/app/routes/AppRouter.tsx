@@ -8,6 +8,7 @@ import { AuthCard } from "@layouts/AuthLayout/components/AuthCard";
 import HomePage from "@pages/storefront/Home/HomePage";
 import StorefrontProfilePage from "@pages/storefront/Profile/StorefrontProfilePage";
 import CatalogProductsPage from "@pages/storefront/Products/CatalogProductsPage";
+import ProductDetailPage from "@pages/storefront/ProductDetail/ProductDetailPage";
 
 import DashboardPage from "@pages/admin/Dashboard/DashboardPage";
 import ColorsPage from "@pages/admin/Colors/ColorsPage";
@@ -43,6 +44,14 @@ const router = createBrowserRouter([
       {
         path: "products",
         element: <CatalogProductsPage />,
+      },
+      {
+        path: "products/:slug",
+        element: <ProductDetailPage />,
+      },
+      {
+        path: "product/:slug",
+        element: <ProductDetailPage />,
       },
       {
         path: "profile",

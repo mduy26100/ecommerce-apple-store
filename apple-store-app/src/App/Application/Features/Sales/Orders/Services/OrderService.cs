@@ -91,15 +91,16 @@ namespace Application.Features.Sales.Orders.Services
                 if (itemReq.ProductVariantId.HasValue)
                 {
                     var variant = await _variantRepository.GetByIdAsync(itemReq.ProductVariantId.Value, cancellationToken);
-                    if (variant != null)
+                    if (variant == null || !variant.IsActive)
                     {
-                        if (variant.QuantityInStock < itemReq.Quantity)
-                        {
-                            throw new BusinessRuleException($"Số lượng tồn kho cho '{itemReq.ProductName}' không đủ (còn {variant.QuantityInStock})");
-                        }
-                        variant.QuantityInStock -= itemReq.Quantity;
-                        await _variantRepository.UpdateAsync(variant, cancellationToken);
+                        throw new BusinessRuleException($"Phiên bản '{itemReq.ProductName}' không tồn tại hoặc đã ngừng kinh doanh");
                     }
+                    if (variant.QuantityInStock < itemReq.Quantity)
+                    {
+                        throw new BusinessRuleException($"Số lượng tồn kho cho '{itemReq.ProductName}' không đủ (còn {variant.QuantityInStock})");
+                    }
+                    variant.QuantityInStock -= itemReq.Quantity;
+                    await _variantRepository.UpdateAsync(variant, cancellationToken);
                 }
 
                 var lineTotal = itemReq.UnitPrice * itemReq.Quantity;

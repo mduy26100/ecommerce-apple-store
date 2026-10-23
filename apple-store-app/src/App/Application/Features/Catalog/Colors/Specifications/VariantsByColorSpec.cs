@@ -6,7 +6,7 @@ namespace Application.Features.Catalog.Colors.Specifications
     {
         public VariantsByColorSpec(int colorId)
         {
-            Query.Where(v => v.ColorId == colorId);
+            Query.Where(v => false);
         }
     }
 }

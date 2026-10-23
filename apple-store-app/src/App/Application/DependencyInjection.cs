@@ -2,11 +2,12 @@ using Application.Common.Interfaces.Storage;
 using Application.Common.Services.Storage;
 using Application.Features.Catalog.Categories.Services;
 using Application.Features.Catalog.Colors.Services;
+using Application.Features.Catalog.ProductImages.Services;
+using Application.Features.Catalog.ProductOptions.Services;
 using Application.Features.Catalog.Products.Services;
 using Application.Features.Catalog.ProductSpecifications.Services;
 using Application.Features.Catalog.ProductVariants.Services;
 using Application.Features.Catalog.StorageOptions.Services;
-using Application.Features.Catalog.VariantImages.Services;
 using Application.Features.Sales.Orders.Services;
 
 namespace Application
@@ -20,8 +21,9 @@ namespace Application
             services.AddScoped<IColorService, ColorService>();
             services.AddScoped<IStorageOptionService, StorageOptionService>();
             services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IProductOptionService, ProductOptionService>();
             services.AddScoped<IProductVariantService, ProductVariantService>();
-            services.AddScoped<IVariantImageService, VariantImageService>();
+            services.AddScoped<IProductImageService, ProductImageService>();
             services.AddScoped<IProductSpecificationService, ProductSpecificationService>();
             services.AddScoped<IOrderService, OrderService>();
 

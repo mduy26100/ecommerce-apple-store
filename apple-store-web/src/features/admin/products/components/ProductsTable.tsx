@@ -2,6 +2,7 @@ import { Table, Tag, Button, Space, Popconfirm } from "antd";
 import {
   DeleteOutlined,
   ShoppingOutlined,
+  SlidersOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { ProductItem } from "../types/product.types";
@@ -33,6 +34,7 @@ export const ProductsTable = ({
   onDelete,
   onSelectProduct,
   onManageVariants,
+  onManageSpecifications,
   isDeleting,
 }: ProductsTableProps) => {
   const columns: ColumnsType<ProductItem> = [
@@ -144,10 +146,19 @@ export const ProductsTable = ({
     {
       title: "Thao tác",
       key: "actions",
-      width: 80,
+      width: 110,
       align: "center",
       render: (_, record) => (
         <Space size="small" onClick={(e) => e.stopPropagation()}>
+          {onManageSpecifications && (
+            <Button
+              type="text"
+              icon={<SlidersOutlined />}
+              onClick={() => onManageSpecifications(record)}
+              title="Thông số kỹ thuật"
+              aria-label="Quản lý thông số"
+            />
+          )}
           <Popconfirm
             title="Xác nhận xóa"
             description="Bạn có chắc chắn muốn xóa sản phẩm này?"

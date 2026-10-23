@@ -28,7 +28,7 @@ export const ProductSpecificationsDrawer: React.FC<ProductSpecificationsDrawerPr
       }
       open={open}
       onClose={onClose}
-      width={800}
+      width={880}
       destroyOnClose
     >
       {product && <SpecificationsManager productId={product.id} />}

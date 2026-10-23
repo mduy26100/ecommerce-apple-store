@@ -1,4 +1,5 @@
 using Application.Common.Interfaces.Persistence;
+using Application.Features.Catalog.ProductOptions.Specifications;
 using Application.Features.Catalog.ProductVariants.DTOs;
 using Application.Features.Catalog.ProductVariants.Specifications;
 using Domain.Entities.Catalog;
@@ -11,21 +12,18 @@ namespace Application.Features.Catalog.ProductVariants.Services
     {
         private readonly IRepository<ProductVariant> _variantRepository;
         private readonly IRepository<Product> _productRepository;
-        private readonly IRepository<Color> _colorRepository;
-        private readonly IRepository<StorageOption> _storageRepository;
+        private readonly IRepository<ProductOptionValue> _optionValueRepository;
         private readonly IRepository<OrderItem> _orderItemRepository;
 
         public ProductVariantService(
             IRepository<ProductVariant> variantRepository,
             IRepository<Product> productRepository,
-            IRepository<Color> colorRepository,
-            IRepository<StorageOption> storageRepository,
+            IRepository<ProductOptionValue> optionValueRepository,
             IRepository<OrderItem> orderItemRepository)
         {
             _variantRepository = variantRepository;
             _productRepository = productRepository;
-            _colorRepository = colorRepository;
-            _storageRepository = storageRepository;
+            _optionValueRepository = optionValueRepository;
             _orderItemRepository = orderItemRepository;
         }
 
@@ -62,7 +60,17 @@ namespace Application.Features.Catalog.ProductVariants.Services
                 throw new NotFoundException(nameof(Product), request.ProductId);
             }
 
+            if (string.IsNullOrWhiteSpace(request.SKU))
+            {
+                throw new BusinessRuleException("Mã SKU không được để trống.");
+            }
+
             var normalizedSku = request.SKU.Trim().ToUpperInvariant();
+            if (!Regex.IsMatch(normalizedSku, @"^[A-Z0-9_-]+$"))
+            {
+                throw new BusinessRuleException("Mã SKU chỉ được chứa ký tự chữ cái, số, dấu gạch ngang (-) hoặc gạch dưới (_).");
+            }
+
             if (await _variantRepository.AnyAsync(new VariantBySkuSpec(normalizedSku), cancellationToken))
             {
                 throw new ConflictException($"Mã SKU '{normalizedSku}' đã tồn tại.");
@@ -83,22 +91,9 @@ namespace Application.Features.Catalog.ProductVariants.Services
                 throw new BusinessRuleException("Số lượng tồn kho không được âm.");
             }
 
-            if (request.ColorId.HasValue && request.ColorId.Value > 0)
+            if (request.OptionValueIds != null && request.OptionValueIds.Count > 0)
             {
-                var color = await _colorRepository.GetByIdAsync(request.ColorId.Value, cancellationToken);
-                if (color == null)
-                {
-                    throw new NotFoundException(nameof(Color), request.ColorId.Value);
-                }
-            }
-
-            if (request.StorageOptionId.HasValue && request.StorageOptionId.Value > 0)
-            {
-                var storage = await _storageRepository.GetByIdAsync(request.StorageOptionId.Value, cancellationToken);
-                if (storage == null)
-                {
-                    throw new NotFoundException(nameof(StorageOption), request.StorageOptionId.Value);
-                }
+                await ValidateOptionValuesAsync(request.ProductId, request.OptionValueIds, null, cancellationToken);
             }
 
             var variant = new ProductVariant
@@ -106,13 +101,22 @@ namespace Application.Features.Catalog.ProductVariants.Services
                 ProductId = request.ProductId,
                 SKU = normalizedSku,
                 VariantName = request.VariantName?.Trim(),
-                ColorId = request.ColorId > 0 ? request.ColorId : null,
-                StorageOptionId = request.StorageOptionId > 0 ? request.StorageOptionId : null,
                 Price = request.Price,
                 CompareAtPrice = request.CompareAtPrice,
                 QuantityInStock = request.QuantityInStock,
                 IsActive = request.IsActive
             };
+
+            if (request.OptionValueIds != null && request.OptionValueIds.Count > 0)
+            {
+                foreach (var valId in request.OptionValueIds.Distinct())
+                {
+                    variant.VariantValues.Add(new ProductVariantValue
+                    {
+                        OptionValueId = valId
+                    });
+                }
+            }
 
             await _variantRepository.AddAsync(variant, cancellationToken);
             return variant.Id;
@@ -120,7 +124,7 @@ namespace Application.Features.Catalog.ProductVariants.Services
 
         public async Task UpdateAsync(int id, UpdateProductVariantRequest request, CancellationToken cancellationToken = default)
         {
-            var variant = await _variantRepository.GetByIdAsync(id, cancellationToken);
+            var variant = await _variantRepository.FirstOrDefaultAsync(new VariantByIdWithDetailsSpec(id), cancellationToken);
             if (variant == null)
             {
                 throw new NotFoundException(nameof(ProductVariant), id);
@@ -135,7 +139,17 @@ namespace Application.Features.Catalog.ProductVariants.Services
                 }
             }
 
+            if (string.IsNullOrWhiteSpace(request.SKU))
+            {
+                throw new BusinessRuleException("Mã SKU không được để trống.");
+            }
+
             var normalizedSku = request.SKU.Trim().ToUpperInvariant();
+            if (!Regex.IsMatch(normalizedSku, @"^[A-Z0-9_-]+$"))
+            {
+                throw new BusinessRuleException("Mã SKU chỉ được chứa ký tự chữ cái, số, dấu gạch ngang (-) hoặc gạch dưới (_).");
+            }
+
             if (await _variantRepository.AnyAsync(new VariantBySkuSpec(normalizedSku, id), cancellationToken))
             {
                 throw new ConflictException($"Mã SKU '{normalizedSku}' đã tồn tại.");
@@ -156,34 +170,71 @@ namespace Application.Features.Catalog.ProductVariants.Services
                 throw new BusinessRuleException("Số lượng tồn kho không được âm.");
             }
 
-            if (request.ColorId.HasValue && request.ColorId.Value > 0)
+            if (request.OptionValueIds != null && request.OptionValueIds.Count > 0)
             {
-                var color = await _colorRepository.GetByIdAsync(request.ColorId.Value, cancellationToken);
-                if (color == null)
-                {
-                    throw new NotFoundException(nameof(Color), request.ColorId.Value);
-                }
-            }
-
-            if (request.StorageOptionId.HasValue && request.StorageOptionId.Value > 0)
-            {
-                var storage = await _storageRepository.GetByIdAsync(request.StorageOptionId.Value, cancellationToken);
-                if (storage == null)
-                {
-                    throw new NotFoundException(nameof(StorageOption), request.StorageOptionId.Value);
-                }
+                await ValidateOptionValuesAsync(variant.ProductId, request.OptionValueIds, id, cancellationToken);
             }
 
             variant.SKU = normalizedSku;
             variant.VariantName = request.VariantName?.Trim();
-            variant.ColorId = request.ColorId > 0 ? request.ColorId : null;
-            variant.StorageOptionId = request.StorageOptionId > 0 ? request.StorageOptionId : null;
             variant.Price = request.Price;
             variant.CompareAtPrice = request.CompareAtPrice;
             variant.QuantityInStock = request.QuantityInStock;
             variant.IsActive = request.IsActive;
 
+            if (request.OptionValueIds != null)
+            {
+                variant.VariantValues.Clear();
+                foreach (var valId in request.OptionValueIds.Distinct())
+                {
+                    variant.VariantValues.Add(new ProductVariantValue
+                    {
+                        VariantId = variant.Id,
+                        OptionValueId = valId
+                    });
+                }
+            }
+
             await _variantRepository.UpdateAsync(variant, cancellationToken);
+        }
+
+        private async Task ValidateOptionValuesAsync(int productId, IReadOnlyList<int> optionValueIds, int? excludeVariantId, CancellationToken cancellationToken)
+        {
+            var distinctIds = optionValueIds.Distinct().ToList();
+            var spec = new OptionValuesByIdsWithOptionSpec(distinctIds);
+            var optionValues = await _optionValueRepository.ListAsync(spec, cancellationToken);
+
+            if (optionValues.Count != distinctIds.Count)
+            {
+                throw new BusinessRuleException("Một hoặc nhiều giá trị thuộc tính không tồn tại trong hệ thống.");
+            }
+
+            if (optionValues.Any(ov => ov.Option.ProductId != productId))
+            {
+                throw new BusinessRuleException("Giá trị thuộc tính được chọn không thuộc về sản phẩm này.");
+            }
+
+            var groupedByOption = optionValues.GroupBy(ov => ov.OptionId).ToList();
+            if (groupedByOption.Any(g => g.Count() > 1))
+            {
+                throw new BusinessRuleException("Mỗi nhóm thuộc tính chỉ được chọn tối đa một giá trị cho một phiên bản.");
+            }
+
+            var existingVariants = await _variantRepository.ListAsync(new VariantsByProductIdSpec(productId), cancellationToken);
+            var newIdSet = new HashSet<int>(distinctIds);
+
+            var duplicateExists = existingVariants
+                .Where(v => !excludeVariantId.HasValue || v.Id != excludeVariantId.Value)
+                .Any(v =>
+                {
+                    var existingSet = new HashSet<int>(v.VariantValues.Select(vv => vv.OptionValueId));
+                    return existingSet.SetEquals(newIdSet);
+                });
+
+            if (duplicateExists)
+            {
+                throw new ConflictException("Đã tồn tại một phiên bản khác với cùng tổ hợp thuộc tính này.");
+            }
         }
 
         public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
@@ -205,6 +256,16 @@ namespace Application.Features.Catalog.ProductVariants.Services
 
         private static ProductVariantDto MapToDto(ProductVariant variant)
         {
+            var variantValues = variant.VariantValues?
+                .Select(vv => new ProductVariantValueDto
+                {
+                    OptionId = vv.OptionValue?.OptionId ?? 0,
+                    OptionName = vv.OptionValue?.Option?.Name ?? string.Empty,
+                    OptionValueId = vv.OptionValueId,
+                    Value = vv.OptionValue?.Value ?? string.Empty,
+                    ColorHexCode = vv.OptionValue?.ColorHexCode
+                }).ToList() ?? new List<ProductVariantValueDto>();
+
             return new ProductVariantDto
             {
                 Id = variant.Id,
@@ -212,17 +273,14 @@ namespace Application.Features.Catalog.ProductVariants.Services
                 ProductName = variant.Product?.Name ?? string.Empty,
                 SKU = variant.SKU,
                 VariantName = variant.VariantName,
-                ColorId = variant.ColorId,
-                ColorName = variant.Color?.Name,
-                ColorHexCode = variant.Color?.HexCode,
-                StorageOptionId = variant.StorageOptionId,
-                StorageCapacity = variant.StorageOption?.Name,
                 Price = variant.Price,
                 CompareAtPrice = variant.CompareAtPrice,
                 QuantityInStock = variant.QuantityInStock,
                 RowVersion = variant.RowVersion != null ? Convert.ToBase64String(variant.RowVersion) : string.Empty,
                 IsActive = variant.IsActive,
-                PrimaryImageUrl = variant.Images?.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? variant.Images?.FirstOrDefault()?.ImageUrl,
+                PrimaryImageUrl = null,
+                VariantValues = variantValues,
+                OptionValueIds = variantValues.Select(vv => vv.OptionValueId).ToList(),
                 CreatedOn = variant.CreatedOn,
                 LastModifiedOn = variant.LastModifiedOn
             };

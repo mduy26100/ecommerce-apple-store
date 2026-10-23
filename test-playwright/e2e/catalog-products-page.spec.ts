@@ -69,7 +69,7 @@ test.describe("Storefront - Trang Sản Phẩm Theo Danh Mục và Lọc / Sắp
     await page.waitForLoadState("networkidle");
 
     const productCardsPage2 = page.locator("[data-testid^='product-card-']");
-    await expect(productCardsPage2).toHaveCount(8);
+    await expect(productCardsPage2).toHaveCount(14);
 
     const page1Button = pagination.locator(".ant-pagination-item-1");
     await expect(page1Button).toBeVisible();

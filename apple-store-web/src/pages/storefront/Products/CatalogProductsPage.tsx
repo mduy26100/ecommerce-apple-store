@@ -206,7 +206,7 @@ export const CatalogProductsPage = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-5 border-t border-slate-100">
+          <div className="flex flex-wrap items-center gap-2 pt-5 border-t border-slate-100">
             <button
               type="button"
               onClick={() => updateFilters({ category: null })}

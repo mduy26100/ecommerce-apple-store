@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "antd";
 import { ShoppingCartOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import type { ProductCardItem } from "../types/catalog.types";
@@ -50,29 +51,35 @@ export const ProductCard = ({
           </span>
         </div>
 
-        <div
-          data-testid="product-image-container"
-          className="w-full h-48 sm:h-52 bg-white rounded-xl flex items-center justify-center p-3 overflow-hidden border border-slate-50"
+        <Link
+          to={`/products/${product.slug}`}
+          data-testid={`product-link-${product.id}`}
+          className="block group/link"
         >
-          {!imgError && product.imageUrl ? (
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              onError={() => setImgError(true)}
-              className="max-h-full max-w-full object-contain group-hover/card:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-1.5 text-slate-300 group-hover/card:text-blue-500 transition-colors duration-300">
-              <AppleLogo size={52} />
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Urban Stitch</span>
-            </div>
-          )}
-        </div>
+          <div
+            data-testid="product-image-container"
+            className="w-full h-48 sm:h-52 bg-white rounded-xl flex items-center justify-center p-3 overflow-hidden border border-slate-50"
+          >
+            {!imgError && product.imageUrl ? (
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                onError={() => setImgError(true)}
+                className="max-h-full max-w-full object-contain group-hover/card:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-1.5 text-slate-300 group-hover/card:text-blue-500 transition-colors duration-300">
+                <AppleLogo size={52} />
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Urban Stitch</span>
+              </div>
+            )}
+          </div>
 
-        <h4 className="h-12 flex items-center font-bold text-slate-900 text-sm sm:text-base group-hover/card:text-blue-600 transition-colors line-clamp-2 mt-3 leading-snug">
-          {product.name}
-        </h4>
+          <h4 className="h-12 flex items-center font-bold text-slate-900 text-sm sm:text-base group-hover/link:text-blue-600 transition-colors line-clamp-2 mt-3 leading-snug">
+            {product.name}
+          </h4>
+        </Link>
 
         <p className="h-9 text-xs text-slate-500 line-clamp-2 leading-relaxed mt-1">
           {product.shortDescription || "Sản phẩm chính hãng Apple, bảo hành 12 tháng chính sách 1 đổi 1 tiêu chuẩn Urban Stitch."}

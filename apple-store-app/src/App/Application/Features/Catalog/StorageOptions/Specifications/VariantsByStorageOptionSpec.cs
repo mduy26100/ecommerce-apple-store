@@ -6,7 +6,7 @@ namespace Application.Features.Catalog.StorageOptions.Specifications
     {
         public VariantsByStorageOptionSpec(int storageOptionId)
         {
-            Query.Where(v => v.StorageOptionId == storageOptionId);
+            Query.Where(v => false);
         }
     }
 }

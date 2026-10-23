@@ -20,8 +20,12 @@ namespace Infrastructure.Persistence
         public DbSet<Product> Products => Set<Product>();
         public DbSet<Color> Colors => Set<Color>();
         public DbSet<StorageOption> StorageOptions => Set<StorageOption>();
+        public DbSet<ProductOption> ProductOptions => Set<ProductOption>();
+        public DbSet<ProductOptionValue> ProductOptionValues => Set<ProductOptionValue>();
         public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
-        public DbSet<VariantImage> VariantImages => Set<VariantImage>();
+        public DbSet<ProductVariantValue> ProductVariantValues => Set<ProductVariantValue>();
+        public DbSet<ProductImage> ProductImages => Set<ProductImage>();
+        public DbSet<ProductSpecificationGroup> ProductSpecificationGroups => Set<ProductSpecificationGroup>();
         public DbSet<ProductSpecification> ProductSpecifications => Set<ProductSpecification>();
 
         // Sales Module

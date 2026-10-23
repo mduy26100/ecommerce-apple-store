@@ -1,8 +1,7 @@
 import { useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Switch, Select, Alert } from "antd";
-import { PictureOutlined, InfoCircleOutlined } from "@ant-design/icons";
-import { useColorsAll, useStorageOptionsAll } from "@features/admin";
-import { VariantImageGallery } from "@features/admin/variant-images";
+import { Modal, Form, Input, InputNumber, Switch, Select, Alert, Spin } from "antd";
+import { AlertOutlined } from "@ant-design/icons";
+import { useProductOptions } from "../hooks/useVariants";
 import type {
   ProductVariantItem,
   CreateVariantPayload,
@@ -28,17 +27,22 @@ export const VariantFormModal = ({
 }: VariantFormModalProps) => {
   const [form] = Form.useForm();
   const isEditing = !!initialData;
-  const { data: colors = [], isLoading: isLoadingColors } = useColorsAll();
-  const { data: storageOptions = [], isLoading: isLoadingStorage } = useStorageOptionsAll();
+  const { data: productOptions = [], isLoading: isLoadingOptions } = useProductOptions(productId);
 
   useEffect(() => {
     if (open) {
       if (initialData) {
+        const optionValuesMap: Record<number, number> = {};
+        if (initialData.variantValues && initialData.variantValues.length > 0) {
+          initialData.variantValues.forEach((item) => {
+            optionValuesMap[item.optionId] = item.optionValueId;
+          });
+        }
+
         form.setFieldsValue({
           sku: initialData.sku,
           variantName: initialData.variantName,
-          colorId: initialData.colorId,
-          storageOptionId: initialData.storageOptionId,
+          optionValues: optionValuesMap,
           price: initialData.price,
           compareAtPrice: initialData.compareAtPrice,
           quantityInStock: initialData.quantityInStock,
@@ -50,18 +54,23 @@ export const VariantFormModal = ({
           price: 0,
           quantityInStock: 10,
           isActive: true,
+          optionValues: {},
         });
       }
     }
   }, [open, initialData, form]);
 
   const handleFinish = (values: any) => {
+    const rawOptionValues = values.optionValues || {};
+    const optionValueIds: number[] = Object.values(rawOptionValues)
+      .map((val) => Number(val))
+      .filter((val) => !isNaN(val) && val > 0);
+
     if (isEditing) {
       onSubmit({
         sku: values.sku.trim().toUpperCase(),
         variantName: values.variantName ? values.variantName.trim() : undefined,
-        colorId: values.colorId,
-        storageOptionId: values.storageOptionId,
+        optionValueIds,
         price: values.price,
         compareAtPrice: values.compareAtPrice,
         quantityInStock: values.quantityInStock,
@@ -73,8 +82,7 @@ export const VariantFormModal = ({
         productId,
         sku: values.sku.trim().toUpperCase(),
         variantName: values.variantName ? values.variantName.trim() : undefined,
-        colorId: values.colorId,
-        storageOptionId: values.storageOptionId,
+        optionValueIds,
         price: values.price,
         compareAtPrice: values.compareAtPrice,
         quantityInStock: values.quantityInStock,
@@ -88,7 +96,7 @@ export const VariantFormModal = ({
       open={open}
       title={
         <div className="flex items-center gap-2">
-          <span>
+          <span className="font-bold text-slate-800 text-base">
             {isEditing
               ? `Chi tiết phiên bản — SKU: ${initialData.sku}`
               : "Thêm phiên bản mới"}
@@ -101,166 +109,159 @@ export const VariantFormModal = ({
       onCancel={onCancel}
       onOk={() => form.submit()}
       destroyOnHidden
-      width={840}
+      centered
+      width={920}
       zIndex={1500}
       styles={{
         mask: { zIndex: 1500 },
         wrapper: { zIndex: 1500 },
         body: {
-          maxHeight: "78vh",
+          maxHeight: "68vh",
           overflowY: "auto",
           overflowX: "hidden",
-          paddingRight: "6px",
+          paddingRight: "8px",
         },
       }}
     >
       <div className="space-y-6 mt-4">
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleFinish}
-          initialValues={{ price: 0, quantityInStock: 10, isActive: true }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-            <Form.Item label="Màu sắc" name="colorId">
-              <Select
-                id="colorId"
-                className="w-full!"
-                allowClear
-                placeholder="Chọn màu sắc"
-                loading={isLoadingColors}
-                options={colors.map((c) => ({
-                  value: c.id,
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-3 h-3 rounded-full border border-slate-300 inline-block"
-                        style={{ backgroundColor: c.hexCode || undefined }}
-                      />
-                      <span>{c.name}</span>
-                    </div>
-                  ),
-                }))}
-              />
-            </Form.Item>
-
-            <Form.Item label="Dung lượng bộ nhớ" name="storageOptionId">
-              <Select
-                id="storageOptionId"
-                className="w-full!"
-                allowClear
-                placeholder="Chọn dung lượng"
-                loading={isLoadingStorage}
-                options={storageOptions.map((s) => ({
-                  value: s.id,
-                  label: s.name,
-                }))}
-              />
-            </Form.Item>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-            <Form.Item
-              label="Mã SKU (duy nhất)"
-              name="sku"
-              rules={[
-                { required: true, whitespace: true, message: "Vui lòng nhập mã SKU!" },
-                { max: 100, message: "Mã SKU tối đa 100 ký tự!" },
-              ]}
-            >
-              <Input
-                id="sku"
-                placeholder="Ví dụ: IP16PM-256GB-DESERT"
-                className="uppercase font-mono"
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Tên hiển thị phiên bản"
-              name="variantName"
-              rules={[{ max: 200, message: "Tên phiên bản tối đa 200 ký tự!" }]}
-            >
-              <Input id="variantName" placeholder="Ví dụ: 256GB - Titan Sa Mạc" />
-            </Form.Item>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-            <Form.Item
-              label="Giá bán (VNĐ)"
-              name="price"
-              rules={[
-                { required: true, message: "Vui lòng nhập giá bán!" },
-                {
-                  validator: async (_, value) => {
-                    if (value < 0) {
-                      throw new Error("Giá bán không được nhỏ hơn 0!");
-                    }
-                  },
-                },
-              ]}
-            >
-              <InputNumber<number>
-                id="price"
-                className="w-full!"
-                min={0}
-                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                parser={(value) => (value ? Number(value.replace(/\$\s?|(,*)/g, "")) : 0)}
-                placeholder="34,990,000"
-              />
-            </Form.Item>
-
-            <Form.Item label="Giá so sánh / Giá gốc (VNĐ)" name="compareAtPrice">
-              <InputNumber<number>
-                id="compareAtPrice"
-                className="w-full!"
-                min={0}
-                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                parser={(value) => (value ? Number(value.replace(/\$\s?|(,*)/g, "")) : 0)}
-                placeholder="36,990,000"
-              />
-            </Form.Item>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-            <Form.Item
-              label="Số lượng tồn kho"
-              name="quantityInStock"
-              rules={[{ required: true, message: "Vui lòng nhập số lượng!" }]}
-            >
-              <InputNumber id="quantityInStock" className="w-full!" min={0} placeholder="10" />
-            </Form.Item>
-
-            <Form.Item label="Trạng thái kích hoạt" name="isActive" valuePropName="checked">
-              <Switch checkedChildren="Hoạt động" unCheckedChildren="Tạm khóa" />
-            </Form.Item>
-          </div>
-        </Form>
-
-        {isEditing && initialData ? (
-          <div className="pt-4 border-t border-slate-200">
-            <div className="flex items-center gap-2 mb-4">
-              <PictureOutlined className="text-blue-600 text-base" />
-              <h4 className="text-sm font-bold text-slate-800 m-0">
-                Bộ sưu tập hình ảnh của phiên bản
-              </h4>
-            </div>
-            <VariantImageGallery
-              variantId={initialData.id}
-              productId={productId}
-            />
+        {isLoadingOptions ? (
+          <div className="py-6 flex justify-center">
+            <Spin tip="Đang tải danh sách thuộc tính..." />
           </div>
         ) : (
-          <Alert
-            message="Bộ sưu tập hình ảnh"
-            description="Sau khi lưu tạo mới phiên bản, bạn có thể nhấn vào dòng phiên bản này để tải lên và quản lý ảnh."
-            type="info"
-            showIcon
-            icon={<InfoCircleOutlined />}
-            className="rounded-lg"
-          />
-        )}
-      </div>
-    </Modal>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleFinish}
+            initialValues={{ price: 0, quantityInStock: 10, isActive: true }}
+          >
+            {productOptions.length === 0 ? (
+              <Alert
+                message="Sản phẩm chưa có nhóm thuộc tính"
+                description="Vui lòng thêm các nhóm thuộc tính (ví dụ: Màu sắc, Dung lượng, RAM) tại tab Thuộc tính trước khi thiết lập phiên bản."
+                type="warning"
+                showIcon
+                icon={<AlertOutlined />}
+                className="mb-4 rounded-xl"
+              />
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                  {productOptions.map((opt) => {
+                    const isColorOption =
+                      opt.name.toLowerCase().includes("màu") ||
+                      opt.values.some((v) => Boolean(v.colorHexCode));
+
+                    return (
+                      <Form.Item
+                        key={opt.id}
+                        label={opt.name}
+                        name={["optionValues", opt.id]}
+                        rules={[{ required: true, message: `Vui lòng chọn ${opt.name}!` }]}
+                      >
+                        <Select
+                          id={`option_${opt.id}`}
+                          className="w-full!"
+                          placeholder={`Chọn ${opt.name}`}
+                          options={opt.values.map((v) => ({
+                            value: v.id,
+                            label: (
+                              <div className="flex items-center gap-2">
+                                {isColorOption && (
+                                  <span
+                                    className="w-3.5 h-3.5 rounded-full border border-black/10 shadow-2xs inline-block shrink-0"
+                                    style={{ backgroundColor: v.colorHexCode || "#94a3b8" }}
+                                  />
+                                )}
+                                <span>{v.value}</span>
+                              </div>
+                            ),
+                          }))}
+                        />
+                      </Form.Item>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                <Form.Item
+                  label="Mã SKU (duy nhất)"
+                  name="sku"
+                  rules={[
+                    { required: true, whitespace: true, message: "Vui lòng nhập mã SKU!" },
+                    { max: 100, message: "Mã SKU tối đa 100 ký tự!" },
+                  ]}
+                >
+                  <Input
+                    id="sku"
+                    placeholder="Ví dụ: IP16PM-256GB-DESERT"
+                    className="uppercase font-mono"
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  label="Tên hiển thị phiên bản"
+                  name="variantName"
+                  rules={[{ max: 200, message: "Tên phiên bản tối đa 200 ký tự!" }]}
+                >
+                  <Input id="variantName" placeholder="Ví dụ: 256GB - Titan Sa Mạc" />
+                </Form.Item>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                <Form.Item
+                  label="Giá bán (VNĐ)"
+                  name="price"
+                  rules={[
+                    { required: true, message: "Vui lòng nhập giá bán!" },
+                    {
+                      validator: async (_, value) => {
+                        if (value < 0) {
+                          throw new Error("Giá bán không được nhỏ hơn 0!");
+                        }
+                      },
+                    },
+                  ]}
+                >
+                  <InputNumber<number>
+                    id="price"
+                    className="w-full!"
+                    min={0}
+                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    parser={(value) => (value ? Number(value.replace(/\$\s?|(,*)/g, "")) : 0)}
+                    placeholder="34,990,000"
+                  />
+                </Form.Item>
+
+                <Form.Item label="Giá so sánh / Giá gốc (VNĐ)" name="compareAtPrice">
+                  <InputNumber<number>
+                    id="compareAtPrice"
+                    className="w-full!"
+                    min={0}
+                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    parser={(value) => (value ? Number(value.replace(/\$\s?|(,*)/g, "")) : 0)}
+                    placeholder="36,990,000"
+                  />
+                </Form.Item>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                <Form.Item
+                  label="Số lượng tồn kho"
+                  name="quantityInStock"
+                  rules={[{ required: true, message: "Vui lòng nhập số lượng!" }]}
+                >
+                  <InputNumber id="quantityInStock" className="w-full!" min={0} placeholder="10" />
+                </Form.Item>
+
+                <Form.Item label="Trạng thái kích hoạt" name="isActive" valuePropName="checked">
+                  <Switch checkedChildren="Hoạt động" unCheckedChildren="Tạm khóa" />
+                </Form.Item>
+              </div>
+            </Form>
+          )}
+        </div>
+      </Modal>
   );
 };
 

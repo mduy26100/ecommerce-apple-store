@@ -13,7 +13,9 @@ namespace Domain.Entities.Catalog
         public short? WarrantyMonths { get; set; }
 
         public Category Category { get; set; } = default!;
+        public ICollection<ProductOption> Options { get; set; } = new List<ProductOption>();
+        public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
         public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
-        public ICollection<ProductSpecification> Specifications { get; set; } = new List<ProductSpecification>();
+        public ICollection<ProductSpecificationGroup> SpecificationGroups { get; set; } = new List<ProductSpecificationGroup>();
     }
 }

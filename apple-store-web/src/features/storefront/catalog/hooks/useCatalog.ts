@@ -38,3 +38,20 @@ export const useHomeShowcase = (countPerCategory: number = 4) => {
   });
 };
 
+export const useProductDetail = (slug?: string) => {
+  return useQuery({
+    queryKey: ["catalog", "product-detail", slug],
+    queryFn: () => (slug ? catalogApi.getProductBySlug(slug) : Promise.resolve(null)),
+    enabled: Boolean(slug),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useRandomProducts = (count: number = 12, excludeId?: number) => {
+  return useQuery({
+    queryKey: ["catalog", "random-products", count, excludeId],
+    queryFn: () => catalogApi.getRandomProducts(count, excludeId),
+    staleTime: 60 * 1000,
+  });
+};
+

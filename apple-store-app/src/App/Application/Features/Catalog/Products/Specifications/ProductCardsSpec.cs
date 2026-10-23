@@ -8,9 +8,10 @@ namespace Application.Features.Catalog.Products.Specifications
         {
             Query.AsNoTracking()
                  .Include(p => p.Category)
+                 .Include(p => p.Images)
                  .Include(p => p.Variants)
-                    .ThenInclude(v => v.Images)
-                 .Include(p => p.Specifications)
+                 .Include(p => p.SpecificationGroups)
+                    .ThenInclude(g => g.Specifications)
                  .Where(p => p.IsActive && !p.IsDeleted);
 
             if (categoryId.HasValue && categoryId.Value > 0)

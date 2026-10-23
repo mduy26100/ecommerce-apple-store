@@ -75,3 +75,111 @@ export const useDeleteVariant = (productId: number) => {
     },
   });
 };
+
+export const useProductOptions = (productId: number) => {
+  return useQuery({
+    queryKey: ["admin", "product-options", productId],
+    queryFn: () => variantsApi.getProductOptions(productId),
+    enabled: productId > 0,
+  });
+};
+
+export const useCreateProductOption = (productId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { productId: number; name: string; displayOrder?: number }) =>
+      variantsApi.createProductOption(payload),
+    onSuccess: () => {
+      message.success("Thêm nhóm thuộc tính thành công!");
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "product-options", productId],
+      });
+    },
+  });
+};
+
+export const useUpdateProductOption = (productId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: { name: string; displayOrder?: number } }) =>
+      variantsApi.updateProductOption(id, payload),
+    onSuccess: () => {
+      message.success("Cập nhật nhóm thuộc tính thành công!");
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "product-options", productId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: VARIANTS_QUERY_KEYS.BY_PRODUCT(productId),
+      });
+    },
+  });
+};
+
+export const useCreateProductOptionValue = (productId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      optionId: number;
+      value: string;
+      colorHexCode?: string;
+      displayOrder?: number;
+    }) => variantsApi.createProductOptionValue(payload),
+    onSuccess: () => {
+      message.success("Thêm giá trị thuộc tính thành công!");
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "product-options", productId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: VARIANTS_QUERY_KEYS.BY_PRODUCT(productId),
+      });
+    },
+  });
+};
+
+export const useUpdateProductOptionValue = (productId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: { value: string; colorHexCode?: string; displayOrder?: number };
+    }) => variantsApi.updateProductOptionValue(id, payload),
+    onSuccess: () => {
+      message.success("Cập nhật giá trị thuộc tính thành công!");
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "product-options", productId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: VARIANTS_QUERY_KEYS.BY_PRODUCT(productId),
+      });
+    },
+  });
+};
+
+export const useDeleteProductOption = (productId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => variantsApi.deleteProductOption(id),
+    onSuccess: () => {
+      message.success("Xóa nhóm thuộc tính thành công!");
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "product-options", productId],
+      });
+    },
+  });
+};
+
+export const useDeleteProductOptionValue = (productId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => variantsApi.deleteProductOptionValue(id),
+    onSuccess: () => {
+      message.success("Xóa giá trị thuộc tính thành công!");
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "product-options", productId],
+      });
+    },
+  });
+};

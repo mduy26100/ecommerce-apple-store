@@ -15,6 +15,17 @@ test.describe("Admin - Toàn diện chu trình Quản trị (Full Regression Flo
   const testSku = `IP16U-2TB-${uniqueId}`;
   const testCustomerName = `Khách hàng VIP ${uniqueId}`;
 
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/admin/auth/login");
+    await page.waitForLoadState("networkidle");
+    if (page.url().includes("/admin/auth/login")) {
+      await page.fill("input#identifier, input[name='identifier']", "admin@apple-store.com");
+      await page.fill("input#password, input[name='password']", "Admin@123456");
+      await page.click("form button[type='submit'], form button:has-text('Đăng nhập')");
+      await page.waitForURL((url) => url.pathname.includes("/admin/dashboard"));
+    }
+  });
+
   test("1. Tạo Danh mục mới thành công", async ({ page }) => {
     await page.goto("/admin/categories");
     await page.waitForLoadState("networkidle");
@@ -131,7 +142,7 @@ test.describe("Admin - Toàn diện chu trình Quản trị (Full Regression Flo
     await page.fill("input[placeholder*='Tìm theo tên']", testProductName);
     await page.waitForLoadState("networkidle");
     const row = page.locator(`.ant-table-row:has-text('${testProductName}')`);
-    await row.locator("button[aria-label='Quản lý phiên bản'], button:has(.anticon-appstore)").click();
+    await row.click();
 
     const drawer = page.locator(".ant-drawer");
     await expect(drawer).toBeVisible();
@@ -163,10 +174,11 @@ test.describe("Admin - Toàn diện chu trình Quản trị (Full Regression Flo
     await page.fill("input[placeholder*='Tìm theo tên']", testProductName);
     await page.waitForLoadState("networkidle");
     const row = page.locator(`.ant-table-row:has-text('${testProductName}')`);
-    await row.locator("button[aria-label='Quản lý thông số'], button:has(.anticon-sliders)").click();
+    await row.click();
 
     const drawer = page.locator(".ant-drawer");
     await expect(drawer).toBeVisible();
+    await drawer.locator(".ant-tabs-tab:has-text('Thông số')").click();
 
     await drawer.locator("button:has-text('Thêm thông số')").click();
     const modal = page.locator(".ant-modal");
@@ -185,11 +197,11 @@ test.describe("Admin - Toàn diện chu trình Quản trị (Full Regression Flo
     ]);
 
     await expect(modal).not.toBeVisible();
-    await expect(drawer.locator(".ant-table")).toContainText("OLED Tandem 120Hz ProMotion");
+    await expect(drawer).toContainText("OLED Tandem 120Hz ProMotion");
   });
 
   test("7. Tạo Đơn hàng và kiểm tra hiển thị trong Quản lý đơn hàng", async ({ page, request }) => {
-    const createRes = await request.post("http://localhost:5044/api/manager/orders", {
+    const createRes = await request.post("http://localhost:5288/api/manager/orders", {
       data: {
         userId: 1,
         recipientName: testCustomerName,

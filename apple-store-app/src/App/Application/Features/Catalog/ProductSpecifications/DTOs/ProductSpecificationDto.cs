@@ -3,8 +3,7 @@ namespace Application.Features.Catalog.ProductSpecifications.DTOs
     public class ProductSpecificationDto
     {
         public int Id { get; set; }
-        public int ProductId { get; set; }
-        public int? ProductVariantId { get; set; }
+        public int GroupId { get; set; }
         public string? GroupName { get; set; }
         public string Name { get; set; } = default!;
         public string Value { get; set; } = default!;

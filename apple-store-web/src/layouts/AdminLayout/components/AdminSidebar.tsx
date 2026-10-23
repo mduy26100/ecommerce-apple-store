@@ -131,17 +131,18 @@ export const AdminSidebar = ({
 
   const renderMenuContent = () => (
     <div className="flex flex-col h-full bg-white border-r border-slate-200/50">
-      <div className="flex items-center gap-3 px-6 h-16 border-b border-slate-100/80 transition-all duration-300">
-        <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-900 text-white shadow-sm">
-          <AppleLogo size={18} className="text-white" />
+      <div
+        className={`flex items-center ${
+          collapsed ? "justify-center px-2" : "gap-3 px-6"
+        } h-16 border-b border-slate-100/80 transition-all duration-300`}
+      >
+        <div className="flex items-center justify-center shrink-0 transition-transform duration-200 hover:scale-105">
+          <AppleLogo size={28} />
         </div>
         {!collapsed && (
-          <div className="flex flex-col opacity-100 transition-opacity duration-300">
-            <span className="text-sm font-bold text-slate-800 tracking-wide">
+          <div className="flex flex-col opacity-100 transition-opacity duration-300 min-w-0">
+            <span className="text-sm font-extrabold tracking-tight leading-tight bg-linear-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent truncate">
               Urban Stitch Admin
-            </span>
-            <span className="text-xxs text-slate-400 font-medium">
-              Cổng Quản Trị Hệ Thống
             </span>
           </div>
         )}

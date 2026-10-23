@@ -2,6 +2,8 @@ using Application.Common.Interfaces.Persistence;
 using Application.Features.Catalog.Categories.Specifications;
 using Application.Features.Catalog.Products.DTOs;
 using Application.Features.Catalog.Products.Specifications;
+using Application.Features.Catalog.ProductImages.DTOs;
+using Application.Features.Catalog.ProductSpecifications.DTOs;
 using Application.Features.Catalog.ProductVariants.DTOs;
 using Application.Wrappers;
 using Domain.Entities.Catalog;
@@ -95,12 +97,45 @@ namespace Application.Features.Catalog.Products.Services
             return showcase;
         }
 
+        public async Task<IReadOnlyList<ProductCardDto>> GetRandomCardsAsync(int count = 12, int? excludeId = null, CancellationToken cancellationToken = default)
+        {
+            var safeCount = count <= 0 ? 12 : Math.Min(count, 50);
+            var spec = new ProductCardsSpec(null, 500);
+            var products = await _productRepository.ListAsync(spec, cancellationToken);
+
+            var query = products.AsEnumerable();
+            if (excludeId.HasValue && excludeId.Value > 0)
+            {
+                query = query.Where(p => p.Id != excludeId.Value);
+            }
+
+            var list = query.ToList();
+            if (list.Count == 0)
+            {
+                return Array.Empty<ProductCardDto>();
+            }
+
+            var randomized = list.OrderBy(_ => Guid.NewGuid()).Take(safeCount);
+            return randomized.Select(MapToCardDto).ToList();
+        }
+
         public async Task<ProductDetailDto> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
             var product = await _productRepository.FirstOrDefaultAsync(new ProductByIdWithDetailsSpec(id), cancellationToken);
             if (product == null)
             {
                 throw new NotFoundException(nameof(Product), id);
+            }
+
+            return MapToDetailDto(product);
+        }
+
+        public async Task<ProductDetailDto> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
+        {
+            var product = await _productRepository.FirstOrDefaultAsync(new ProductBySlugWithDetailsSpec(slug), cancellationToken);
+            if (product == null)
+            {
+                throw new NotFoundException(nameof(Product), slug);
             }
 
             return MapToDetailDto(product);
@@ -114,13 +149,34 @@ namespace Application.Features.Catalog.Products.Services
                 throw new NotFoundException(nameof(Category), request.CategoryId);
             }
 
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                throw new BusinessRuleException("Tên sản phẩm không được để trống.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Slug))
+            {
+                throw new BusinessRuleException("Đường dẫn (slug) sản phẩm không được để trống.");
+            }
+
             var trimmedName = request.Name.Trim();
+            var trimmedSlug = request.Slug.Trim().ToLowerInvariant();
+
+            if (!Regex.IsMatch(trimmedSlug, @"^[a-z0-9]+(-[a-z0-9]+)*$"))
+            {
+                throw new BusinessRuleException("Đường dẫn (slug) chỉ được chứa chữ cái thường, chữ số và dấu gạch nối (-).");
+            }
+
+            if (request.WarrantyMonths.HasValue && request.WarrantyMonths.Value < 0)
+            {
+                throw new BusinessRuleException("Thời gian bảo hành không được là số âm.");
+            }
+
             if (await _productRepository.AnyAsync(new ProductByNameSpec(trimmedName), cancellationToken))
             {
                 throw new ConflictException($"Sản phẩm với tên '{trimmedName}' đã tồn tại.");
             }
 
-            var trimmedSlug = request.Slug.Trim().ToLower();
             if (await _productRepository.AnyAsync(new ProductBySlugSpec(trimmedSlug), cancellationToken))
             {
                 throw new ConflictException($"Sản phẩm với slug '{trimmedSlug}' đã tồn tại.");
@@ -156,13 +212,34 @@ namespace Application.Features.Catalog.Products.Services
                 throw new NotFoundException(nameof(Category), request.CategoryId);
             }
 
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                throw new BusinessRuleException("Tên sản phẩm không được để trống.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Slug))
+            {
+                throw new BusinessRuleException("Đường dẫn (slug) sản phẩm không được để trống.");
+            }
+
             var trimmedName = request.Name.Trim();
+            var trimmedSlug = request.Slug.Trim().ToLowerInvariant();
+
+            if (!Regex.IsMatch(trimmedSlug, @"^[a-z0-9]+(-[a-z0-9]+)*$"))
+            {
+                throw new BusinessRuleException("Đường dẫn (slug) chỉ được chứa chữ cái thường, chữ số và dấu gạch nối (-).");
+            }
+
+            if (request.WarrantyMonths.HasValue && request.WarrantyMonths.Value < 0)
+            {
+                throw new BusinessRuleException("Thời gian bảo hành không được là số âm.");
+            }
+
             if (await _productRepository.AnyAsync(new ProductByNameSpec(trimmedName, id), cancellationToken))
             {
                 throw new ConflictException($"Sản phẩm với tên '{trimmedName}' đã tồn tại.");
             }
 
-            var trimmedSlug = request.Slug.Trim().ToLower();
             if (await _productRepository.AnyAsync(new ProductBySlugSpec(trimmedSlug, id), cancellationToken))
             {
                 throw new ConflictException($"Sản phẩm với slug '{trimmedSlug}' đã tồn tại.");
@@ -207,19 +284,21 @@ namespace Application.Features.Catalog.Products.Services
                 ? activeVariants.Min(v => v.Price)
                 : 0;
 
-            var primaryImage = activeVariants?
-                .SelectMany(v => v.Images ?? Enumerable.Empty<VariantImage>())
+            var primaryImage = product.Images?
                 .Where(img => img.IsActive && !img.IsDeleted && !string.IsNullOrWhiteSpace(img.ImageUrl))
-                .OrderByDescending(img => img.IsPrimary)
+                .OrderBy(img => img.OptionValue?.DisplayOrder ?? 999)
+                .ThenByDescending(img => img.IsPrimary)
                 .ThenBy(img => img.DisplayOrder)
                 .Select(img => img.ImageUrl)
                 .FirstOrDefault();
 
-            var chipSpec = product.Specifications?
+            var chipSpec = product.SpecificationGroups?
+                .SelectMany(g => g.Specifications)
                 .FirstOrDefault(s => s.IsActive && !s.IsDeleted && (s.Name == "Chip xử lý" || s.Name.ToLower().Contains("chip")))?
                 .Value;
 
-            var badgeSpec = product.Specifications?
+            var badgeSpec = product.SpecificationGroups?
+                .SelectMany(g => g.Specifications)
                 .FirstOrDefault(s => s.IsActive && !s.IsDeleted && (s.Name == "Huy hiệu" || s.Name == "Trạng thái"))?
                 .Value;
 
@@ -240,22 +319,26 @@ namespace Application.Features.Catalog.Products.Services
 
         private static ProductSummaryDto MapToSummaryDto(Product product)
         {
-            var variantImages = product.Variants?
-                .Where(v => v.Images != null && v.IsActive && !v.IsDeleted)
-                .SelectMany(v => v.Images!)
+            var productImages = product.Images?
                 .Where(img => img.IsActive && !img.IsDeleted && !string.IsNullOrWhiteSpace(img.ImageUrl))
-                .OrderBy(img => img.DisplayOrder)
+                .OrderBy(img => img.OptionValue?.DisplayOrder ?? 999)
+                .ThenByDescending(img => img.IsPrimary)
+                .ThenBy(img => img.DisplayOrder)
                 .Select(img => img.ImageUrl)
                 .Distinct()
                 .ToList() ?? new List<string>();
 
-            var chipSpec = product.Specifications?
+            var chipSpec = product.SpecificationGroups?
+                .SelectMany(g => g.Specifications)
                 .FirstOrDefault(s => s.IsActive && !s.IsDeleted && (s.Name == "Chip xử lý" || s.Name.ToLower().Contains("chip")))?
                 .Value;
 
-            var badgeSpec = product.Specifications?
+            var badgeSpec = product.SpecificationGroups?
+                .SelectMany(g => g.Specifications)
                 .FirstOrDefault(s => s.IsActive && !s.IsDeleted && (s.Name == "Huy hiệu" || s.Name == "Trạng thái"))?
                 .Value;
+
+            var activeVariants = product.Variants?.Where(v => v.IsActive).ToList() ?? new List<ProductVariant>();
 
             return new ProductSummaryDto
             {
@@ -268,11 +351,11 @@ namespace Application.Features.Catalog.Products.Services
                 ShortDescription = product.ShortDescription,
                 WarrantyMonths = product.WarrantyMonths,
                 IsActive = product.IsActive,
-                VariantsCount = product.Variants?.Count ?? 0,
-                MinPrice = product.Variants != null && product.Variants.Any() ? product.Variants.Min(v => v.Price) : null,
-                MaxPrice = product.Variants != null && product.Variants.Any() ? product.Variants.Max(v => v.Price) : null,
-                PrimaryImageUrl = variantImages.FirstOrDefault(),
-                VariantImages = variantImages,
+                VariantsCount = activeVariants.Count,
+                MinPrice = activeVariants.Any() ? activeVariants.Min(v => v.Price) : null,
+                MaxPrice = activeVariants.Any() ? activeVariants.Max(v => v.Price) : null,
+                PrimaryImageUrl = productImages.FirstOrDefault(),
+                VariantImages = productImages,
                 ChipName = chipSpec ?? "Apple Silicon",
                 BadgeText = badgeSpec ?? "SẴN HÀNG",
                 CreatedOn = product.CreatedOn,
@@ -282,11 +365,14 @@ namespace Application.Features.Catalog.Products.Services
 
         private static ProductDetailDto MapToDetailDto(Product product)
         {
+            var activeVariants = product.Variants?.Where(v => v.IsActive).ToList() ?? new List<ProductVariant>();
+
             return new ProductDetailDto
             {
                 Id = product.Id,
                 CategoryId = product.CategoryId,
                 CategoryName = product.Category?.Name ?? string.Empty,
+                CategorySlug = product.Category?.Slug ?? string.Empty,
                 Name = product.Name,
                 Slug = product.Slug,
                 ModelCode = product.ModelCode,
@@ -294,7 +380,97 @@ namespace Application.Features.Catalog.Products.Services
                 Description = product.Description,
                 WarrantyMonths = product.WarrantyMonths,
                 IsActive = product.IsActive,
-                Variants = product.Variants?.Select(MapToVariantDto).ToList() ?? new List<ProductVariantDto>(),
+                Images = product.Images?
+                    .OrderBy(i => i.OptionValue?.DisplayOrder ?? 999)
+                    .ThenByDescending(i => i.IsPrimary)
+                    .ThenBy(i => i.DisplayOrder)
+                    .Select(i => new ProductImageDto
+                    {
+                        Id = i.Id,
+                        ProductId = i.ProductId,
+                        OptionValueId = i.OptionValueId,
+                        OptionValueName = i.OptionValue?.Value,
+                        ColorHexCode = i.OptionValue?.ColorHexCode,
+                        ImageUrl = i.ImageUrl,
+                        AltText = i.AltText,
+                        DisplayOrder = i.DisplayOrder,
+                        IsPrimary = i.IsPrimary,
+                        CreatedOn = i.CreatedOn,
+                        LastModifiedOn = i.LastModifiedOn
+                    }).ToList() ?? new List<ProductImageDto>(),
+                Options = product.Options?
+                    .OrderBy(o => o.DisplayOrder)
+                    .Select(o => new ProductOptionDto
+                    {
+                        Id = o.Id,
+                        ProductId = o.ProductId,
+                        Name = o.Name,
+                        DisplayOrder = o.DisplayOrder,
+                        Values = o.Values?
+                            .OrderBy(v => v.DisplayOrder)
+                            .Select(v =>
+                            {
+                                var matchingVariants = activeVariants
+                                    .Where(var => var.VariantValues?.Any(vv => vv.OptionValueId == v.Id) ?? false)
+                                    .ToList();
+                                var hasVariants = matchingVariants.Count > 0;
+                                var inStock = hasVariants && matchingVariants.Any(var => var.QuantityInStock > 0);
+
+                                return new ProductOptionValueDto
+                                {
+                                    Id = v.Id,
+                                    OptionId = v.OptionId,
+                                    Value = v.Value,
+                                    ColorHexCode = v.ColorHexCode,
+                                    DisplayOrder = v.DisplayOrder,
+                                    HasVariants = hasVariants,
+                                    InStock = inStock
+                                };
+                            }).ToList() ?? new List<ProductOptionValueDto>()
+                    }).ToList() ?? new List<ProductOptionDto>(),
+                Variants = activeVariants.Select(MapToVariantDto).ToList(),
+                SpecificationGroups = product.SpecificationGroups?
+                    .OrderBy(g => g.DisplayOrder)
+                    .Select(g => new ProductSpecificationGroupDto
+                    {
+                        Id = g.Id,
+                        ProductId = g.ProductId,
+                        Name = g.Name,
+                        DisplayOrder = g.DisplayOrder,
+                        Specifications = g.Specifications?
+                            .OrderBy(s => s.DisplayOrder)
+                            .Select(s => new ProductSpecificationDto
+                            {
+                                Id = s.Id,
+                                GroupId = s.GroupId,
+                                GroupName = g.Name,
+                                Name = s.Name,
+                                Value = s.Value,
+                                Unit = s.Unit,
+                                DisplayOrder = s.DisplayOrder,
+                                CreatedOn = s.CreatedOn,
+                                LastModifiedOn = s.LastModifiedOn
+                            }).ToList() ?? new List<ProductSpecificationDto>(),
+                        CreatedOn = g.CreatedOn,
+                        LastModifiedOn = g.LastModifiedOn
+                    }).ToList() ?? new List<ProductSpecificationGroupDto>(),
+                Specifications = product.SpecificationGroups?
+                    .OrderBy(g => g.DisplayOrder)
+                    .SelectMany(g => (g.Specifications ?? new List<ProductSpecification>())
+                        .OrderBy(s => s.DisplayOrder)
+                        .Select(s => new ProductSpecificationDto
+                        {
+                            Id = s.Id,
+                            GroupId = s.GroupId,
+                            GroupName = g.Name,
+                            Name = s.Name,
+                            Value = s.Value,
+                            Unit = s.Unit,
+                            DisplayOrder = s.DisplayOrder,
+                            CreatedOn = s.CreatedOn,
+                            LastModifiedOn = s.LastModifiedOn
+                        }))
+                    .ToList() ?? new List<ProductSpecificationDto>(),
                 CreatedOn = product.CreatedOn,
                 LastModifiedOn = product.LastModifiedOn
             };
@@ -302,6 +478,16 @@ namespace Application.Features.Catalog.Products.Services
 
         private static ProductVariantDto MapToVariantDto(ProductVariant variant)
         {
+            var variantValues = variant.VariantValues?
+                .Select(vv => new ProductVariantValueDto
+                {
+                    OptionId = vv.OptionValue?.OptionId ?? 0,
+                    OptionName = vv.OptionValue?.Option?.Name ?? string.Empty,
+                    OptionValueId = vv.OptionValueId,
+                    Value = vv.OptionValue?.Value ?? string.Empty,
+                    ColorHexCode = vv.OptionValue?.ColorHexCode
+                }).ToList() ?? new List<ProductVariantValueDto>();
+
             return new ProductVariantDto
             {
                 Id = variant.Id,
@@ -309,17 +495,14 @@ namespace Application.Features.Catalog.Products.Services
                 ProductName = variant.Product?.Name ?? string.Empty,
                 SKU = variant.SKU,
                 VariantName = variant.VariantName,
-                ColorId = variant.ColorId,
-                ColorName = variant.Color?.Name,
-                ColorHexCode = variant.Color?.HexCode,
-                StorageOptionId = variant.StorageOptionId,
-                StorageCapacity = variant.StorageOption?.Name,
                 Price = variant.Price,
                 CompareAtPrice = variant.CompareAtPrice,
                 QuantityInStock = variant.QuantityInStock,
                 RowVersion = variant.RowVersion != null ? Convert.ToBase64String(variant.RowVersion) : string.Empty,
                 IsActive = variant.IsActive,
-                PrimaryImageUrl = variant.Images?.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? variant.Images?.FirstOrDefault()?.ImageUrl,
+                PrimaryImageUrl = null,
+                VariantValues = variantValues,
+                OptionValueIds = variantValues.Select(vv => vv.OptionValueId).ToList(),
                 CreatedOn = variant.CreatedOn,
                 LastModifiedOn = variant.LastModifiedOn
             };

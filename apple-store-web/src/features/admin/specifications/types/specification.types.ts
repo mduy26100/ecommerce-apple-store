@@ -1,7 +1,6 @@
 export interface ProductSpecificationDto {
   id: number;
-  productId: number;
-  productVariantId?: number | null;
+  groupId: number;
   groupName?: string | null;
   name: string;
   value: string;
@@ -11,10 +10,29 @@ export interface ProductSpecificationDto {
   lastModifiedOn?: string | null;
 }
 
-export interface CreateProductSpecificationRequest {
+export interface ProductSpecificationGroupDto {
+  id: number;
   productId: number;
-  productVariantId?: number | null;
-  groupName?: string | null;
+  name: string;
+  displayOrder: number;
+  specifications: ProductSpecificationDto[];
+  createdOn?: string;
+  lastModifiedOn?: string | null;
+}
+
+export interface CreateProductSpecificationGroupRequest {
+  productId: number;
+  name: string;
+  displayOrder?: number;
+}
+
+export interface UpdateProductSpecificationGroupRequest {
+  name: string;
+  displayOrder?: number;
+}
+
+export interface CreateProductSpecificationRequest {
+  groupId: number;
   name: string;
   value: string;
   unit?: string | null;
@@ -22,10 +40,16 @@ export interface CreateProductSpecificationRequest {
 }
 
 export interface UpdateProductSpecificationRequest {
-  productVariantId?: number | null;
-  groupName?: string | null;
   name: string;
   value: string;
   unit?: string | null;
-  displayOrder: number;
+  displayOrder?: number;
+}
+
+export interface ReorderGroupRequest {
+  orderedGroupIds: number[];
+}
+
+export interface ReorderSpecRequest {
+  orderedSpecIds: number[];
 }
