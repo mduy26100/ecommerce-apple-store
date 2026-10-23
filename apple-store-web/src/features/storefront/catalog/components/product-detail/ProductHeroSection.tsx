@@ -114,7 +114,14 @@ export const ProductHeroSection = ({
     handleSelectImageIndex(nextIdx);
   };
 
-  const currentImage = images[activeImageIndex];
+  const validPreviewUrls = (images || [])
+    .map((img) => img.imageUrl)
+    .filter((url): url is string => Boolean(url && typeof url === "string" && url.trim().length > 0));
+
+  const currentImage =
+    images && images.length > 0 && activeImageIndex >= 0 && activeImageIndex < images.length
+      ? images[activeImageIndex]
+      : images?.[0];
 
   const getOptionValueStatus = (optionId: number, valueId: number) => {
     const activeVariants = (variants || []).filter((v) => v.isActive !== false);
@@ -213,7 +220,11 @@ export const ProductHeroSection = ({
               {!mainImgError && currentImage?.imageUrl ? (
                 <>
                   <div
-                    onClick={() => setPreviewVisible(true)}
+                    onClick={() => {
+                      if (validPreviewUrls.length > 0) {
+                        setPreviewVisible(true);
+                      }
+                    }}
                     className="relative w-full h-full flex items-center justify-center cursor-zoom-in group/zoom select-none"
                     title="Nhấn để xem ảnh phóng to"
                   >
@@ -233,21 +244,19 @@ export const ProductHeroSection = ({
                     </div>
                   </div>
 
-                  <div className="hidden">
-                    <Image.PreviewGroup
-                      preview={{
-                        visible: previewVisible,
-                        onVisibleChange: (vis) => setPreviewVisible(vis),
-                        current: activeImageIndex,
-                        onChange: (current) => onSelectImage(current),
-                      }}
-                      items={images.map((img) => img.imageUrl)}
-                    >
-                      {images.map((img, idx) => (
-                        <Image key={img.id || idx} src={img.imageUrl} />
-                      ))}
-                    </Image.PreviewGroup>
-                  </div>
+                  {validPreviewUrls.length > 0 && (
+                    <div className="hidden">
+                      <Image.PreviewGroup
+                        preview={{
+                          visible: previewVisible,
+                          onVisibleChange: (vis) => setPreviewVisible(vis),
+                          current: Math.max(0, validPreviewUrls.indexOf(currentImage.imageUrl)),
+                          onChange: (current) => onSelectImage(current),
+                        }}
+                        items={validPreviewUrls}
+                      />
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3 text-slate-300">
@@ -298,6 +307,7 @@ export const ProductHeroSection = ({
                 className="flex items-center gap-2.5 overflow-x-auto p-1 no-scrollbar scroll-smooth"
               >
                 {images.map((img, idx) => {
+                  if (!img.imageUrl) return null;
                   const isActive = idx === activeImageIndex;
                   return (
                     <button

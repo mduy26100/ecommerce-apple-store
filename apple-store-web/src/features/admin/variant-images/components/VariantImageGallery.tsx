@@ -323,7 +323,9 @@ export const VariantImageGallery = ({
                       #{img.displayOrder}
                     </Tag>
                     <Image
-                      src={img.imageUrl}
+                      src={img.imageUrl || undefined}
+                      fallback="/placeholder-product.png"
+                      preview={Boolean(img.imageUrl)}
                       alt={img.altText || "Ảnh biến thể sản phẩm"}
                       className="max-h-full max-w-full object-contain"
                       rootClassName="w-full h-full flex items-center justify-center"

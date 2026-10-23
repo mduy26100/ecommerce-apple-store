@@ -466,7 +466,9 @@ export const ProductImagesByColorManager = ({
                 >
                   <div className="relative aspect-square w-full rounded-xl bg-slate-50/60 overflow-hidden flex items-center justify-center p-2">
                     <Image
-                      src={img.imageUrl}
+                      src={img.imageUrl || undefined}
+                      fallback="/placeholder-product.png"
+                      preview={Boolean(img.imageUrl)}
                       alt={img.altText || `Ảnh sản phẩm #${img.displayOrder}`}
                       className="max-h-full max-w-full object-contain"
                     />
@@ -557,14 +559,16 @@ export const ProductImagesByColorManager = ({
         onCropComplete={handleCropComplete}
       />
 
-      <Image
-        style={{ display: "none" }}
-        preview={{
-          visible: previewOpen,
-          src: previewImage,
-          onVisibleChange: (val) => setPreviewOpen(val),
-        }}
-      />
+      {previewImage && (
+        <Image
+          style={{ display: "none" }}
+          preview={{
+            visible: previewOpen,
+            src: previewImage,
+            onVisibleChange: (val) => setPreviewOpen(val),
+          }}
+        />
+      )}
     </div>
   );
 };

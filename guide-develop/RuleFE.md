@@ -18,6 +18,7 @@
 7. [Mẫu triển khai tính năng chuẩn (Scaffold Blueprint)](#7-mẫu-triển-khai-tính-năng-chuẩn-scaffold-blueprint)
 8. [Nguyên tắc thiết kế UI & Styling](#8-nguyên-tắc-thiết-kế-ui--styling)
 9. [Sai lầm cốt lõi cần tránh (Anti-patterns)](#9-sai-lầm-cốt-lõi-cần-tránh-anti-patterns)
+   - 9.8. [Truyền dữ liệu null/undefined vào thuộc tính items của Ant Design (Image.PreviewGroup)](#98-truyền-dữ-liệu-null-hoặc-undefined-vào-thuộc-tính-items-của-ant-design-đặc-biệt-imagepreviewgroup)
 10. [Chiến lược Caching & Tối ưu UX (TanStack Query)](#10-chiến-lược-caching--tối-ưu-ux-tanstack-query)
 11. [Chiến lược Xử lý lỗi toàn cục & Silent Refresh](#11-chiến-lược-xử-lý-lỗi-toàn-cục--silent-refresh)
 
@@ -500,6 +501,22 @@ export default ProductCard;
 ### 9.7. Chỉnh sửa file `mock.api.ts`
 - **Sai lầm:** Sửa đổi cấu trúc hoặc logic bên trong `src/core/api/mock.api.ts`.
 - **Khắc phục:** File này là template chạy thử dự án khi chưa có backend, tuyệt đối không được chỉnh sửa bất kỳ thứ gì trong file này.
+
+### 9.8. Truyền dữ liệu null hoặc undefined vào thuộc tính items của Ant Design (đặc biệt Image.PreviewGroup)
+- **Nguyên nhân lỗi chí mạng (`TypeError: Cannot convert undefined or null to object` tại `Object.keys`):**
+  - Ant Design `Image.PreviewGroup` nhận prop `items`. Khi truyền vào mảng chứa phần tử `null` hoặc `undefined` (ví dụ: `images.map(img => img.imageUrl)` khi cơ sở dữ liệu có ảnh `imageUrl = null`), Ant Design kiểm tra `typeof item !== 'string'`. Do trong JavaScript `typeof null === 'object'`, Ant Design lầm tưởng đây là object cấu hình và thực thi `Object.keys(null)`. Thao tác này ngay lập tức ném ra lỗi `TypeError: Cannot convert undefined or null to object`, làm sập toàn bộ cây component trong chu kỳ render của React Router.
+- **Quy chuẩn phòng ngừa bắt buộc toàn diện:**
+  1. **Lọc sạch dữ liệu chuỗi (Sanitization):** Trước khi truyền vào thuộc tính `items` của `Image.PreviewGroup`, `Breadcrumb`, `Menu`, `Tabs`, bắt buộc phải lọc loại bỏ hoàn toàn các giá trị null, undefined hoặc chuỗi rỗng:
+     ```typescript
+     const validPreviewUrls = (images || [])
+       .map((img) => img.imageUrl)
+       .filter((url): url is string => Boolean(url && typeof url === "string" && url.trim().length > 0));
+     ```
+  2. **Render có điều kiện (Conditional Render):** Chỉ render `<Image.PreviewGroup>` khi danh sách URL hợp lệ có ít nhất 1 phần tử (`validPreviewUrls.length > 0`). Nếu rỗng hoặc không có ảnh, tuyệt đối không gắn component `Image.PreviewGroup`.
+  3. **Thiết lập ảnh dự phòng (Fallback & Safe Preview):** Đối với component `<Image>` hoặc thẻ `<img>`:
+     - Luôn khai báo ảnh dự phòng: `fallback="/placeholder-product.png"`.
+     - Chuyển giá trị null thành undefined: `src={img.imageUrl || undefined}`.
+     - Vô hiệu hóa tính năng phóng to khi không có ảnh thật: `preview={Boolean(img.imageUrl)}`.
 
 ---
 

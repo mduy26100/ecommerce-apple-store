@@ -117,47 +117,58 @@ export const ProductDetailPage = () => {
     if (!product) return [];
 
     if (product.images && product.images.length > 0) {
-      if (selectedColorId) {
-        const colorImages = product.images.filter(
-          (img) => img.optionValueId === selectedColorId
-        );
-        if (colorImages.length > 0) {
-          const sortedColorImages = [...colorImages].sort((a, b) => {
-            if (a.isPrimary && !b.isPrimary) return -1;
-            if (!a.isPrimary && b.isPrimary) return 1;
-            return a.displayOrder - b.displayOrder;
-          });
-          const generalImages = product.images.filter((img) => !img.optionValueId);
-          return [...sortedColorImages, ...generalImages].map((img) => ({
-            id: img.id,
-            imageUrl: img.imageUrl,
-            altText: img.altText || `${product.name} - ${img.optionValueName || ""}`,
-            colorId: img.optionValueId ?? undefined,
-            colorName: img.optionValueName ?? undefined,
-          }));
+      const validDbImages = product.images.filter(
+        (img) => Boolean(img.imageUrl && typeof img.imageUrl === "string" && img.imageUrl.trim().length > 0)
+      );
+
+      if (validDbImages.length > 0) {
+        if (selectedColorId) {
+          const colorImages = validDbImages.filter(
+            (img) => img.optionValueId === selectedColorId
+          );
+          if (colorImages.length > 0) {
+            const sortedColorImages = [...colorImages].sort((a, b) => {
+              if (a.isPrimary && !b.isPrimary) return -1;
+              if (!a.isPrimary && b.isPrimary) return 1;
+              return a.displayOrder - b.displayOrder;
+            });
+            const generalImages = validDbImages.filter((img) => !img.optionValueId);
+            return [...sortedColorImages, ...generalImages].map((img) => ({
+              id: img.id,
+              imageUrl: img.imageUrl!,
+              altText: img.altText || `${product.name} - ${img.optionValueName || ""}`,
+              colorId: img.optionValueId ?? undefined,
+              colorName: img.optionValueName ?? undefined,
+            }));
+          }
         }
+
+        const sortedImages = [...validDbImages].sort((a, b) => {
+          if (a.isPrimary && !b.isPrimary) return -1;
+          if (!a.isPrimary && b.isPrimary) return 1;
+          return a.displayOrder - b.displayOrder;
+        });
+
+        return sortedImages.map((img) => ({
+          id: img.id,
+          imageUrl: img.imageUrl!,
+          altText: img.altText || `${product.name} - ${img.optionValueName || ""}`,
+          colorId: img.optionValueId ?? undefined,
+          colorName: img.optionValueName ?? undefined,
+        }));
       }
-
-      const sortedImages = [...product.images].sort((a, b) => {
-        if (a.isPrimary && !b.isPrimary) return -1;
-        if (!a.isPrimary && b.isPrimary) return 1;
-        return a.displayOrder - b.displayOrder;
-      });
-
-      return sortedImages.map((img) => ({
-        id: img.id,
-        imageUrl: img.imageUrl,
-        altText: img.altText || `${product.name} - ${img.optionValueName || ""}`,
-        colorId: img.optionValueId ?? undefined,
-        colorName: img.optionValueName ?? undefined,
-      }));
     }
 
     if (product.variants && product.variants.length > 0) {
       const items: GalleryImageItem[] = [];
       const seenUrls = new Set<string>();
       product.variants.forEach((v) => {
-        if (v.primaryImageUrl && !seenUrls.has(v.primaryImageUrl)) {
+        if (
+          v.primaryImageUrl &&
+          typeof v.primaryImageUrl === "string" &&
+          v.primaryImageUrl.trim().length > 0 &&
+          !seenUrls.has(v.primaryImageUrl)
+        ) {
           seenUrls.add(v.primaryImageUrl);
           items.push({
             id: `variant-${v.id}`,
@@ -166,7 +177,7 @@ export const ProductDetailPage = () => {
           });
         }
       });
-      return items;
+      if (items.length > 0) return items;
     }
 
     return [];
