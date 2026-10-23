@@ -12,7 +12,6 @@ namespace Infrastructure.Persistence.Configurations.Catalog
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.ImageUrl)
-                .IsRequired()
                 .HasMaxLength(1000);
 
             builder.Property(x => x.AltText)

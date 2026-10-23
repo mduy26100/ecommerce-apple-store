@@ -60,7 +60,7 @@ test.describe("Identity & Authentication - Tách biệt Phân hệ Quản trị 
 
     // Sau khi đăng ký thành công tài khoản khách hàng, chuyển về Storefront "/"
     await page.waitForURL((url) => url.pathname === "/" || url.pathname === "");
-    await expect(page).toHaveURL(/^(http:\/\/localhost:5173\/?)?$/);
+    await expect(page).toHaveURL(/^(http:\/\/localhost:(5173|3088)\/?)?$/);
   });
 
   test("4. Khách hàng đăng nhập bằng Username (hoặc Email), xem hồ sơ /profile và bị đá văng về '/' nếu đăng nhập tại cổng admin", async ({ page }) => {
@@ -80,7 +80,7 @@ test.describe("Identity & Authentication - Tách biệt Phân hệ Quản trị 
 
     // Chuyển về Storefront "/"
     await page.waitForURL((url) => url.pathname === "/" || url.pathname === "");
-    await expect(page).toHaveURL(/^(http:\/\/localhost:5173\/?)?$/);
+    await expect(page).toHaveURL(/^(http:\/\/localhost:(5173|3088)\/?)?$/);
 
     // Click vào Avatar tài khoản khách hàng trên Storefront Header để mở Dropdown
     const userAvatar = page.locator("header .cursor-pointer:has(.bg-blue-100)");
@@ -122,7 +122,7 @@ test.describe("Identity & Authentication - Tách biệt Phân hệ Quản trị 
 
     // Role User không có quyền SuperAdmin -> Phải bị đá văng ngay về "/"
     await page.waitForURL((url) => url.pathname === "/" || url.pathname === "");
-    await expect(page).toHaveURL(/^(http:\/\/localhost:5173\/?)?$/);
+    await expect(page).toHaveURL(/^(http:\/\/localhost:(5173|3088)\/?)?$/);
   });
 
   test("5. Quản trị viên (SuperAdmin) đăng nhập tại /admin/auth/login, vào Dashboard và Đăng xuất về /admin/auth/login", async ({ page }) => {
@@ -238,7 +238,7 @@ test.describe("Identity & Authentication - Tách biệt Phân hệ Quản trị 
     // 6. Quay lại trang chủ Storefront "/", đăng xuất qua Dropdown Header và xác nhận vẫn ở lại "/"
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await expect(page).toHaveURL(/^(http:\/\/localhost:5173\/?)?$/);
+    await expect(page).toHaveURL(/^(http:\/\/localhost:(5173|3088)\/?)?$/);
 
     const userDropdownAvatar = page.locator("header .cursor-pointer:has(.bg-blue-100)");
     await userDropdownAvatar.click();
@@ -252,7 +252,7 @@ test.describe("Identity & Authentication - Tách biệt Phân hệ Quản trị 
     ]);
 
     // Luồng chuẩn: Người dùng ở trang nào vẫn sẽ ở trang đó ("/") sau khi đăng xuất, không bị văng ra /login
-    await expect(page).toHaveURL(/^(http:\/\/localhost:5173\/?)?$/);
+    await expect(page).toHaveURL(/^(http:\/\/localhost:(5173|3088)\/?)?$/);
     await expect(page.locator("header button:has-text('Đăng nhập')")).toBeVisible();
   });
 });

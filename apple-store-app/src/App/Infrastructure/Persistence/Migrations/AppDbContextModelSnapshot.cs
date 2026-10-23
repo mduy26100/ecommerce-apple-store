@@ -412,9 +412,66 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
-                    b.Property<string>("GroupName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("LastModifiedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("ProductSpecifications", "catalog");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductSpecificationGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("DeletedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -436,25 +493,11 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ProductVariantId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Unit")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("ProductVariantId");
-
-                    b.ToTable("ProductSpecifications", "catalog");
+                    b.ToTable("ProductSpecificationGroups", "catalog");
                 });
 
             modelBuilder.Entity("Domain.Entities.Catalog.ProductVariant", b =>
@@ -1242,20 +1285,24 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.Catalog.ProductSpecification", b =>
                 {
-                    b.HasOne("Domain.Entities.Catalog.Product", "Product")
+                    b.HasOne("Domain.Entities.Catalog.ProductSpecificationGroup", "Group")
                         .WithMany("Specifications")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductSpecificationGroup", b =>
+                {
+                    b.HasOne("Domain.Entities.Catalog.Product", "Product")
+                        .WithMany("SpecificationGroups")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.Catalog.ProductVariant", "ProductVariant")
-                        .WithMany("Specifications")
-                        .HasForeignKey("ProductVariantId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("Product");
-
-                    b.Navigation("ProductVariant");
                 });
 
             modelBuilder.Entity("Domain.Entities.Catalog.ProductVariant", b =>
@@ -1418,7 +1465,7 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Navigation("Options");
 
-                    b.Navigation("Specifications");
+                    b.Navigation("SpecificationGroups");
 
                     b.Navigation("Variants");
                 });
@@ -1435,10 +1482,13 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("VariantValues");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Catalog.ProductVariant", b =>
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductSpecificationGroup", b =>
                 {
                     b.Navigation("Specifications");
+                });
 
+            modelBuilder.Entity("Domain.Entities.Catalog.ProductVariant", b =>
+                {
                     b.Navigation("VariantValues");
                 });
 

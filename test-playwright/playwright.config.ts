@@ -26,7 +26,7 @@ export default defineConfig({
   workers: 1,
   reporter: [["list"], ["json", { outputFile: "test-results.json" }]],
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: process.env.BASE_URL || "http://localhost:3088",
     headless: true,
     trace: "off",
     screenshot: "off",
