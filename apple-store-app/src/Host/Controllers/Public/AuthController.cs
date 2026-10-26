@@ -1,5 +1,6 @@
 using Application.Features.Identity.DTOs;
 using Application.Features.Identity.Services;
+using Application.Features.Sales.Orders.Services;
 using Domain.Exceptions;
 
 namespace Host.Controllers.Public
@@ -11,15 +12,18 @@ namespace Host.Controllers.Public
         private readonly IAuthService _authService;
         private readonly IAuthCookieService _authCookieService;
         private readonly IUserService _userService;
+        private readonly IPublicOrderService _publicOrderService;
 
         public AuthController(
             IAuthService authService,
             IAuthCookieService authCookieService,
-            IUserService userService)
+            IUserService userService,
+            IPublicOrderService publicOrderService)
         {
             _authService = authService;
             _authCookieService = authCookieService;
             _userService = userService;
+            _publicOrderService = publicOrderService;
         }
 
         [HttpPost("register")]
@@ -28,6 +32,10 @@ namespace Host.Controllers.Public
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
             var result = await _authService.RegisterAsync(request, clientIp, cancellationToken);
             _authCookieService.AppendRefreshTokenCookie(result.RefreshToken);
+            if (result.User != null && int.TryParse(result.User.Id, out var parsedUserId) && !string.IsNullOrEmpty(result.User.Email))
+            {
+                await _publicOrderService.AutoMergeOrdersByEmailAsync(parsedUserId, result.User.Email, cancellationToken);
+            }
             return Ok(result);
         }
 
@@ -37,6 +45,10 @@ namespace Host.Controllers.Public
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
             var result = await _authService.LoginAsync(request, clientIp, cancellationToken);
             _authCookieService.AppendRefreshTokenCookie(result.RefreshToken);
+            if (result.User != null && int.TryParse(result.User.Id, out var parsedUserId) && !string.IsNullOrEmpty(result.User.Email))
+            {
+                await _publicOrderService.AutoMergeOrdersByEmailAsync(parsedUserId, result.User.Email, cancellationToken);
+            }
             return Ok(result);
         }
 

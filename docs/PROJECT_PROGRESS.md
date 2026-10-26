@@ -89,13 +89,46 @@ Nhóm phân loại các đầu việc theo 3 trạng thái cụ thể:
 
 ### [-] Đang xử lý
 
-- [-] **Quy trình Đặt hàng & Tạo hóa đơn (Checkout Flow):**
-  - Xây dựng màn hình nhập thông tin người nhận (Họ tên, Số điện thoại, Tỉnh/Thành, Địa chỉ nhận hàng chi tiết).
-  - Hoàn thiện API ghi nhận đơn hàng vào bảng `sales.Orders` và snapshot sản phẩm vào `sales.OrderItems`.
-  - Trừ số lượng tồn kho tự động trong `catalog.ProductVariants` với cơ chế kiểm soát khóa lạc quan `RowVersion`.
-- [-] **Quản lý Đơn hàng cho Admin (`/admin/orders`):**
-  - Hoàn thiện giao diện hiển thị danh sách đơn hàng đã đặt, bộ lọc theo trạng thái (`Chờ xử lý`, `Đang vận chuyển`, `Đã giao`, `Đã hủy`).
-  - Màn hình chi tiết đơn hàng: Xem danh sách mặt hàng, thông tin khách hàng và nút cập nhật trạng thái đơn hàng.
+- [x] **Quy trình Đặt hàng & Quản lý Vòng đời Đơn hàng Toàn diện (Checkout Flow & Order Lifecycle):**
+  - [x] **Cơ sở dữ liệu & Entity Đơn hàng & Voucher:** Nâng cấp toàn diện `sales.Orders` và `sales.OrderItems` (chuyển sang Enums `OrderStatus`, `PaymentMethod`, `PaymentStatus`; hỗ trợ Guest Checkout `UserId?` + `GuestId`; snapshot Dynamic Options `SelectedAttributesJson`, `VariantName`, `ThumbnailUrl`; bổ sung giá vốn `CostPrice` trên cả `ProductVariant` và `OrderItem` để tính lợi nhuận gộp; bổ sung `RowVersion` khóa lạc quan và Check Constraints toàn vẹn).
+  - [x] **Hệ thống Khuyến mãi Đa đối tượng & Ví Voucher (`sales.Vouchers`, `sales.UserVouchers`, `sales.VoucherUsages`):** Xây dựng hệ thống voucher hỗ trợ 3 nhóm đối tượng (`Public`, `RegisteredOnly`, `AssignedOnly`); tạo bảng trung gian `UserVouchers` (Ví voucher) cho phép Admin/Hệ thống cấp riêng voucher cá nhân hóa cho từng User kèm giới hạn lượt dùng riêng `AssignedUsageLimit`, số lượt đã dùng `UsedCount` và hạn dùng riêng `ExpiresAt`; liên kết lịch sử sử dụng vào `VoucherUsages`.
+  - [x] **Bảo mật Backend Zero-Trust (Không tin cậy dữ liệu Frontend gửi lên):**
+    - Đơn giá sản phẩm và giá vốn được truy xuất và kiểm tra trực tiếp từ `ProductVariant` trong cơ sở dữ liệu, không tin tưởng đơn giá từ client gửi lên.
+    - Kiểm tra tồn kho thời gian thực tại thời điểm đặt hàng để chống overselling.
+    - Xác thực tính hợp lệ của mã Voucher tại Backend: Kiểm tra điều kiện đơn hàng tối thiểu `MinOrderAmount`, hạn sử dụng `StartDate`/`EndDate`, tổng lượt dùng còn lại của hệ thống và giới hạn lượt dùng riêng của từng tài khoản.
+    - Ép buộc phương thức thanh toán hợp lệ (mặc định COD khi thanh toán trực tuyến đang phát triển).
+  - [x] **Chu trình Trạng thái Đơn hàng Hoàn chỉnh (Order Lifecycle & Activity Tracking):**
+    - Trạng thái đơn hàng: `Chờ xử lý` (Pending) $\rightarrow$ `Đã xác nhận` (Confirmed) $\rightarrow$ `Đang giao` (Shipping) $\rightarrow$ `Đã giao` (Delivered) $\rightarrow$ `Đã nhận hàng` (Completed) & `Đã hủy` (Cancelled).
+    - **Hủy đơn hàng an toàn (`CancelOrderAsync` dành riêng cho Thành viên sở hữu đơn):** Chỉ người dùng đăng nhập sở hữu đơn hàng (`order.UserId == currentUserId`) mới có quyền hủy đơn khi đơn ở trạng thái `Chờ xử lý` (Pending) trực tiếp từ trang "Đơn hàng của tôi" (`/orders`); chặn 100% mọi hành vi hủy đơn chéo tài khoản hoặc không xác thực (trả về 401/403); chọn lý do hủy có sẵn hoặc nhập lý do tùy chỉnh; hệ thống tự động hoàn lại số lượng tồn kho `QuantityInStock` cho các biến thể và phục hồi lượt sử dụng voucher.
+    - **Chỉnh sửa thông tin giao nhận / địa chỉ 1 lần duy nhất (`UpdateShippingAddressAsync`):** Khi đơn hàng vẫn đang ở trạng thái `Chờ xử lý` (Pending), thành viên sở hữu đơn được phép nhấn vào nút "Đổi địa chỉ nhận hàng" ngay trong Modal Chi tiết đơn hàng để cập nhật lại Họ tên, Số điện thoại, Email nhận hóa đơn và Địa chỉ nhận hàng chi tiết. Hệ thống lưu vết `ShippingAddressUpdateCount`, chỉ cho phép đổi **tối đa 1 lần duy nhất** cho mỗi đơn hàng để chống tình trạng thay đổi liên tục làm sai lệch giao vận; ghi nhận lịch sử vào `StatusHistoryJson`; tự động ẩn nút đổi và hiển thị badge "Đã cập nhật địa chỉ (1/1 lần)"; nếu cố tình gọi API lần 2 sẽ bị Backend từ chối với mã lỗi 400. Khách vãng lai trên trang tra cứu hoàn toàn không có quyền chỉnh sửa, chỉ là chế độ chỉ đọc (Read-only).
+    - **Xác nhận đã nhận hàng an toàn (`ConfirmReceivedAsync` cho Thành viên):** Khi cửa hàng chuyển trạng thái `Đã giao` (Delivered), thành viên sở hữu đơn có nút xác nhận "Đã nhận hàng", đơn chuyển sang `Completed` (Đã nhận hàng) và trạng thái thanh toán COD tự động chuyển sang `Paid`.
+    - **Nhật ký tiến trình chi tiết (`StatusHistoryJson`):** Cột JSON trên `sales.Orders` ghi lại từng mốc lịch sử gồm trạng thái, tên hiển thị, thời điểm thay đổi, đối tượng thực hiện (`Customer` / `Manager`) và ghi chú/lý do.
+    - **Chính sách đổi trả 15 ngày:** Hiển thị lưu ý nổi bật cho khách hàng cần quay video rõ nét khi mở kiện hàng và liên hệ CSKH qua Hotline 1900 8888 / Email cskh@applestore.vn nếu có nhu cầu đổi trả trong vòng 15 ngày kể từ khi nhận hàng.
+  - [x] **Phân trang Đơn hàng của tôi (`GetMyOrders`):**
+    - Tận dụng phương thức phân trang cơ sở `GetPagedAsync` có sẵn trong `IRepository<Order>`, trả về `PagedList<OrderSummaryDto>` kèm metadata phân trang (`totalCount`, `pageNumber`, `pageSize`, `totalPages`).
+    - DTO `UserOrderPagedRequest` kế thừa `PagedRequest`, kèm Specification `UserOrdersFilterSpec`.
+    - Bộ lọc trạng thái đa dạng: `Tất cả`, `Chờ xử lý`, `Đã xác nhận`, `Đang giao`, `Đã giao`, `Đã nhận hàng`, `Đã hủy`.
+    - Hộp tìm kiếm nhanh theo mã đơn hàng, tên người nhận, số điện thoại hoặc email.
+    - **Thiết kế giao diện Apple hiện đại, tinh giản:** Khắc phục triệt để lỗi thiết kế "card in card", các thẻ đơn hàng đứng độc lập dạng danh sách trên nền phẳng với viền mỏng và hiệu ứng hover tinh tế; thanh phân trang `<Pagination>` của Ant Design căn giữa trang nhã.
+    - Modal Chi tiết đơn hàng kích thước cố định có cuộn nội bộ (`maxHeight: calc(85vh - 110px)`) chống tràn vỡ layout, tích hợp API an toàn `GET /api/orders/my-orders/{id}` có xác thực JWT kiểm tra quyền sở hữu đơn.
+  - [x] **Trang Xác nhận & Thanh toán (`/checkout`):** Giao diện chuẩn Apple Store thẩm mỹ cao; gộp thẻ thông tin giao nhận - phương thức thanh toán - ưu đãi khoa học, loại bỏ hoàn toàn card-in-card; hiển thị danh sách voucher công khai kèm số lượt còn lại; tự động điền hồ sơ thành viên; form bắt buộc email cho khách vãng lai.
+  - [x] **Trang Đặt hàng thành công (`/checkout/success`):** Hiển thị mã đơn hàng dạng `ORD-...`, hướng dẫn kiểm tra email nhận hóa đơn, thông tin người nhận và nút chuyển tiếp tra cứu / tiếp tục mua sắm.
+  - [x] **Bảo mật Toàn diện Trang Tra cứu Đơn hàng (`/order-lookup`):**
+    - **Chỉ hiển thị cho khách chưa đăng nhập:** Ẩn hoàn toàn nút tra cứu trên Header khi người dùng đã đăng nhập; tự động điều hướng về `/orders` nếu người dùng đăng nhập truy cập URL `/order-lookup`.
+    - **Chỉ cho phép tra cứu đơn khách vãng lai (`order.UserId == null`):** Ngăn chặn triệt để lỗ hổng rò rỉ dữ liệu thành viên; nếu mã đơn thuộc về thành viên (`order.UserId != null`), hệ thống Backend tự động ném ngoại lệ 404 `NotFoundException` báo không tìm thấy đơn.
+    - **Chế độ Chỉ đọc (Read-only) & Xóa bỏ API Hủy công khai:** Xóa bỏ hoàn toàn endpoint `/api/orders/lookup/cancel` và `/api/orders/lookup/confirm-received` để chống dò đơn hủy bậy; bổ sung khối thông tin hướng dẫn liên hệ CSKH (Hotline 1900 8888 | cskh@applestore.vn) khi khách vãng lai cần can thiệp đơn.
+    - **Xử lý ảnh sản phẩm & Fallback:** Tải hình ảnh sản phẩm `thumbnailUrl` từ đơn hàng; nếu ảnh null hoặc tải bị lỗi (`onError`), tự động fallback về biểu tượng logo Apple `AppleLogo` thanh lịch.
+    - Hiển thị danh sách "Đơn hàng gần đây" trên thiết bị theo `GuestId` lưu tại LocalStorage để khách vãng lai tra cứu nhanh.
+  - [x] **Cơ chế Tự động Quy nạp Đơn hàng qua Email (Email Auto-Merge):** Khi khách vãng lai dùng email đã đặt hàng để Đăng ký tài khoản mới hoặc Đăng nhập, hệ thống Backend tự động liên kết toàn bộ "đơn hàng mồ côi" dưới email đó vào tài khoản chính thức.
+  - [x] **Cơ chế Nhận diện & Gộp đơn hàng trên Thiết bị (Device Merge Banner):** Hiển thị banner/thông báo tinh tế (`GuestOrderMergeBanner`) khi phát hiện đơn hàng vãng lai trên cùng trình duyệt, cho phép người dùng chủ động gộp vào tài khoản bằng 1 click (`POST /api/orders/merge-guest`).
+  - [x] **Trừ tồn kho an toàn & Dọn dẹp giỏ hàng:** Xử lý trừ tồn kho tự động trong `catalog.ProductVariants` kèm kiểm tra số lượng và dọn dẹp các mặt hàng đã đặt khỏi giỏ hàng.
+  - [x] **Kiểm thử tự động E2E Headless Playwright:** Đạt **18/18 tests xanh 100%** bao phủ toàn diện:
+    - 5 kịch bản Ma trận Đa tài khoản & Vòng đời Đơn hàng chuyên sâu (`test-playwright/e2e/order-full-matrix-lifecycle.spec.ts`): Đăng nhập 2 tài khoản `admin@apple-store.com` (SuperAdmin), `user@apple-store.com` (User) từ DB seeder và phiên Khách vãng lai; duyệt toàn vẹn full chu trình trạng thái (`Pending` $\rightarrow$ `Confirmed` $\rightarrow$ `Shipping` $\rightarrow$ `Delivered` $\rightarrow$ `Completed` & `Cancelled`); xác minh giới hạn sửa địa chỉ 1 lần duy nhất; ma trận an ninh Zero-Trust phòng chống kẻ xấu sửa giá client, voucher giả mạo/hết hạn, hủy chéo tài khoản trái phép, tra cứu lộ đơn thành viên; và kiểm thử giao diện Quản trị Admin Drawer.
+    - 8 kịch bản Đặt hàng & Tra cứu cơ bản (`test-playwright/e2e/checkout-and-orders-flow.spec.ts`).
+    - 5 kịch bản Nghiệp vụ Giỏ hàng & Tự phục hồi tồn kho (`test-playwright/e2e/cart-flow.spec.ts`).
+- [x] **Quản lý Đơn hàng cho Admin (`/admin/orders`):**
+  - Giao diện danh sách đơn hàng đã đặt phân trang, bộ lọc nhanh theo trạng thái (`Chờ xử lý`, `Đã xác nhận`, `Đang giao`, `Đã giao`, `Đã nhận hàng`, `Đã hủy`) và tìm kiếm từ khóa.
+  - Ngăn kéo (Drawer) Chi tiết đơn hàng chuyên sâu: Xem snapshot danh sách mặt hàng tại thời điểm đặt, thông tin người nhận, timeline nhật ký trạng thái (`StatusHistoryJson`) và nút chuyển trạng thái tuần tự cho Quản trị viên (`Xác nhận`, `Giao hàng`, `Đã giao hàng`, `Hủy đơn`).
 
 ---
 

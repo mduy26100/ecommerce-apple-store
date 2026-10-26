@@ -10,6 +10,7 @@ using Application.Features.Catalog.ProductVariants.Services;
 using Application.Features.Catalog.StorageOptions.Services;
 using Application.Features.Sales.Carts.Services;
 using Application.Features.Sales.Orders.Services;
+using Application.Features.Sales.Vouchers.Services;
 
 namespace Application
 {
@@ -28,6 +29,8 @@ namespace Application
             services.AddScoped<IProductSpecificationService, ProductSpecificationService>();
             services.AddScoped<ICartService, CartService>();
             services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<IPublicOrderService, PublicOrderService>();
+            services.AddScoped<IPublicVoucherService, PublicVoucherService>();
 
             return services;
         }

@@ -28,6 +28,15 @@ export interface OrderSummaryDto {
   placedAt: string;
 }
 
+export interface OrderStatusHistoryItem {
+  status: string;
+  statusName: string;
+  changedAt: string;
+  actor: string;
+  actorName?: string | null;
+  note?: string | null;
+}
+
 export interface OrderDetailDto {
   id: number;
   orderNumber: string;
@@ -46,6 +55,8 @@ export interface OrderDetailDto {
   shippingFee: number;
   totalAmount: number;
   placedAt: string;
+  statusHistoryJson?: string | null;
+  statusHistory?: OrderStatusHistoryItem[];
   items: OrderItemDto[];
 }
 
@@ -62,6 +73,7 @@ export interface OrderPagedParams {
 export interface UpdateOrderStatusPayload {
   status: string;
   paymentStatus?: string;
+  note?: string;
 }
 
 export interface CancelOrderPayload {

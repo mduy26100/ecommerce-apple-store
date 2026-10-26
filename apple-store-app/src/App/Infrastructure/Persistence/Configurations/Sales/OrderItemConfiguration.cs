@@ -7,7 +7,13 @@ namespace Infrastructure.Persistence.Configurations.Sales
     {
         public void Configure(EntityTypeBuilder<OrderItem> builder)
         {
-            builder.ToTable("OrderItems", SchemaNames.Sales);
+            builder.ToTable("OrderItems", SchemaNames.Sales, t =>
+            {
+                t.HasCheckConstraint("CK_OrderItems_Quantity", "[Quantity] > 0");
+                t.HasCheckConstraint("CK_OrderItems_UnitPrice", "[UnitPrice] >= 0");
+                t.HasCheckConstraint("CK_OrderItems_CostPrice", "[CostPrice] >= 0");
+                t.HasCheckConstraint("CK_OrderItems_LineTotal", "[LineTotal] >= 0");
+            });
 
             builder.HasKey(x => x.Id);
 
@@ -20,11 +26,25 @@ namespace Infrastructure.Persistence.Configurations.Sales
                 .HasMaxLength(100)
                 .IsUnicode(false);
 
+            builder.Property(x => x.VariantName)
+                .HasMaxLength(250);
+
+            builder.Property(x => x.ThumbnailUrl)
+                .HasMaxLength(500);
+
+            builder.Property(x => x.SelectedAttributesJson)
+                .HasMaxLength(1000);
+
             builder.Property(x => x.ColorName)
                 .HasMaxLength(100);
 
             builder.Property(x => x.StorageName)
                 .HasMaxLength(50);
+
+            builder.Property(x => x.CostPrice)
+                .HasPrecision(18, 2)
+                .IsRequired()
+                .HasDefaultValue(0);
 
             builder.Property(x => x.UnitPrice)
                 .HasPrecision(18, 2)

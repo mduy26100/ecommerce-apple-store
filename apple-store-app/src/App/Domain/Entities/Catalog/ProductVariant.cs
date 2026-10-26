@@ -9,6 +9,7 @@ namespace Domain.Entities.Catalog
         public string? VariantName { get; set; }
         public decimal Price { get; set; }
         public decimal? CompareAtPrice { get; set; }
+        public decimal CostPrice { get; set; } = 0;
         public int QuantityInStock { get; set; }
         public byte[] RowVersion { get; set; } = default!;
 

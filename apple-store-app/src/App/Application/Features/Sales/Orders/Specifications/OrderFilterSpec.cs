@@ -1,5 +1,6 @@
 using Application.Features.Sales.Orders.DTOs;
 using Domain.Entities.Sales;
+using Domain.Enums.Sales;
 
 namespace Application.Features.Sales.Orders.Specifications
 {
@@ -10,14 +11,14 @@ namespace Application.Features.Sales.Orders.Specifications
             Query.AsNoTracking()
                  .Include(o => o.Items);
 
-            if (!string.IsNullOrWhiteSpace(request.Status))
+            if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<OrderStatus>(request.Status, true, out var status))
             {
-                Query.Where(o => o.Status.ToLower() == request.Status.Trim().ToLower());
+                Query.Where(o => o.Status == status);
             }
 
-            if (!string.IsNullOrWhiteSpace(request.PaymentStatus))
+            if (!string.IsNullOrWhiteSpace(request.PaymentStatus) && Enum.TryParse<PaymentStatus>(request.PaymentStatus, true, out var paymentStatus))
             {
-                Query.Where(o => o.PaymentStatus.ToLower() == request.PaymentStatus.Trim().ToLower());
+                Query.Where(o => o.PaymentStatus == paymentStatus);
             }
 
             if (request.FromDate.HasValue)

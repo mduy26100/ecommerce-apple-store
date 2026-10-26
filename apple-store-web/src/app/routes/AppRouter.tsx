@@ -10,6 +10,10 @@ import StorefrontProfilePage from "@pages/storefront/Profile/StorefrontProfilePa
 import CatalogProductsPage from "@pages/storefront/Products/CatalogProductsPage";
 import ProductDetailPage from "@pages/storefront/ProductDetail/ProductDetailPage";
 import CartPage from "@pages/storefront/Cart/CartPage";
+import CheckoutPage from "@pages/storefront/Checkout/CheckoutPage";
+import CheckoutSuccessPage from "@pages/storefront/Checkout/CheckoutSuccessPage";
+import MyOrdersPage from "@pages/storefront/Orders/MyOrdersPage";
+import OrderLookupPage from "@pages/storefront/OrderLookup/OrderLookupPage";
 
 import DashboardPage from "@pages/admin/Dashboard/DashboardPage";
 import ColorsPage from "@pages/admin/Colors/ColorsPage";
@@ -61,6 +65,22 @@ const router = createBrowserRouter([
       {
         path: "cart",
         element: <CartPage />,
+      },
+      {
+        path: "checkout",
+        element: <CheckoutPage />,
+      },
+      {
+        path: "checkout/success",
+        element: <CheckoutSuccessPage />,
+      },
+      {
+        path: "orders",
+        element: <MyOrdersPage />,
+      },
+      {
+        path: "order-lookup",
+        element: <OrderLookupPage />,
       },
       {
         path: "login",

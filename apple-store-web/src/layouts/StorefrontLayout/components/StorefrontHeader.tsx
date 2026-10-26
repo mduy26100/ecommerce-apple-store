@@ -11,6 +11,8 @@ import {
   EllipsisOutlined,
   DownOutlined,
   UpOutlined,
+  ShoppingOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import { useAuthStore, useLogout, AUTH_STATUS } from "@features/auth";
 import { USER_ROLES } from "@core/constants/role.constants";
@@ -98,6 +100,8 @@ export const StorefrontHeader = () => {
   const handleUserMenuClick = ({ key }: { key: string }) => {
     if (key === "profile") {
       navigate("/profile");
+    } else if (key === "orders") {
+      navigate("/orders");
     } else if (key === "logout") {
       logout();
     }
@@ -109,6 +113,11 @@ export const StorefrontHeader = () => {
         key: "profile",
         icon: <UserOutlined />,
         label: "Thông tin tài khoản",
+      },
+      {
+        key: "orders",
+        icon: <ShoppingOutlined />,
+        label: "Đơn hàng của tôi",
       },
       {
         type: "divider" as const,
@@ -232,6 +241,17 @@ export const StorefrontHeader = () => {
             className="flex items-center justify-center w-9 h-9 text-slate-600 hover:bg-slate-100 rounded-lg text-base shrink-0"
             aria-label="Tìm kiếm"
           />
+
+          {!user && (
+            <Link to="/order-lookup" aria-label="Tra cứu đơn hàng" title="Tra cứu đơn hàng">
+              <Button
+                type="text"
+                icon={<FileTextOutlined />}
+                className="flex items-center justify-center w-9 h-9 text-slate-600 hover:bg-slate-100 rounded-lg text-lg shrink-0 cursor-pointer"
+                aria-label="Tra cứu đơn hàng"
+              />
+            </Link>
+          )}
 
           <Link to="/cart" aria-label="Giỏ hàng" data-testid="header-cart-link">
             <Badge count={availableCartCount} showZero={false} size="small" offset={[-2, 2]}>

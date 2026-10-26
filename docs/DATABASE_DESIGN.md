@@ -208,13 +208,81 @@ Thay vì biểu đồ đồ họa khó hiển thị trên một số trình đ�
 
 ---
 
-#### 2. Bảng `sales.Orders` & `sales.OrderItems` (Đơn đặt hàng)
-- **Mục đích:** Lưu trữ đơn hàng hoàn tất sau khi checkout và snapshot bất biến của sản phẩm tại thời điểm mua.
+#### 2. Bảng `sales.Orders` & `sales.OrderItems` (Đơn đặt hàng & Chi tiết mặt hàng)
+- **Mục đích:** Lưu trữ đơn hàng hoàn tất sau khi checkout và snapshot bất biến toàn diện của sản phẩm tại thời điểm mua (hỗ trợ Dynamic Options, khách vãng lai, voucher và lợi nhuận gộp).
 
 | Bảng | Cột nghiệp vụ | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | :--- | :--- | :--- | :--- | :--- |
-| `Orders` | `UserId`, `OrderNumber`, `TotalAmount`, `OrderStatus`, `PaymentStatus`, `ShippingAddress`, `PhoneNumber`, `CustomerName` | `int`, `nvarchar(50)`, `decimal(18,2)`, `nvarchar(50)`... | Unique `OrderNumber`, Check `TotalAmount >= 0` | Thông tin tổng đơn đặt hàng, giao vận và thanh toán |
-| `OrderItems` | `OrderId`, `ProductVariantId`, `SKU`, `ProductName`, `UnitPrice`, `Quantity` | `int`, `int`, `nvarchar(100)`, `nvarchar(250)`, `decimal(18,2)`, `int` | FK `OrderId`, FK `ProductVariantId`, Check `Quantity > 0` | Snapshot bất biến lịch sử sản phẩm lúc mua hàng |
+| `Orders` | `OrderNumber` | `varchar(40)` | Unique Index, Not Null | Mã đơn hàng định danh (Ví dụ: `ORD-20261026-A1B2C3`) |
+| `Orders` | `UserId` | `int` (Nullable) | FK $\rightarrow$ `identity.Users(Id)` (Restrict) | ID người dùng nếu là thành viên đăng nhập |
+| `Orders` | `GuestId` | `varchar(100)` (Nullable) | Index | Mã phiên định danh khách vãng lai (Guest Checkout) |
+| `Orders` | `Status` | `varchar(30)` | HasConversion Enum `OrderStatus` | Trạng thái: `Pending` (Chờ xử lý), `Confirmed` (Đã xác nhận), `Processing` (Đang đóng gói), `Shipping` (Đang giao hàng), `Delivered` (Đã giao hàng), `Completed` (Đã nhận hàng), `Cancelled` (Đã hủy), `Returned` (Trả hàng) |
+| `Orders` | `StatusHistoryJson` | `nvarchar(max)` (Nullable) | | Chuỗi JSON lưu trữ mốc thời gian, trạng thái, người thực hiện (`Customer`/`Manager`) và lý do/ghi chú tiến trình |
+| `Orders` | `PaymentMethod` | `varchar(30)` | HasConversion Enum `PaymentMethod` | Phương thức: `COD`, `VNPAY`, `MOMO`, `BankTransfer` |
+| `Orders` | `PaymentStatus` | `varchar(30)` | HasConversion Enum `PaymentStatus` | Trạng thái TT: `Pending`, `Paid`, `Failed`, `Refunded` |
+| `Orders` | `RecipientName` | `nvarchar(150)` | Not Null | Họ tên người nhận hàng |
+| `Orders` | `RecipientPhone` | `varchar(20)` | Not Null | Số điện thoại liên hệ giao hàng |
+| `Orders` | `RecipientEmail` | `varchar(150)` (Nullable) | | Email nhận thông báo và link tra cứu đơn hàng |
+| `Orders` | `ShippingAddressLine` | `nvarchar(250)` | Not Null | Địa chỉ số nhà / tên đường |
+| `Orders` | `ShippingWard` / `District` / `Province` | `nvarchar(100)` | Ward/District Nullable, Province Not Null | Thông tin hành chính giao vận |
+| `Orders` | `Subtotal` | `decimal(18,2)` | Check `>= 0` | Tổng tiền hàng trước chiết khấu và phí vận chuyển |
+| `Orders` | `ShippingFee` | `decimal(18,2)` | Check `>= 0`, Default `0` | Phí giao hàng |
+| `Orders` | `VoucherId` | `int` (Nullable) | FK $\rightarrow$ `sales.Vouchers(Id)` (SetNull) | Mã ID voucher khuyến mãi đã áp dụng |
+| `Orders` | `VoucherCode` | `varchar(50)` (Nullable) | | Snapshot mã voucher tại thời điểm đặt |
+| `Orders` | `DiscountAmount` | `decimal(18,2)` | Check `>= 0`, Default `0` | Số tiền thực tế được giảm giá |
+| `Orders` | `TotalAmount` | `decimal(18,2)` | Check `>= 0` | Tổng thanh toán cuối cùng (`Subtotal + ShippingFee - DiscountAmount`) |
+| `Orders` | `ShippingAddressUpdateCount` | `int` | Default `0`, Not Null | Số lần khách hàng đã chỉnh sửa thông tin giao nhận (giới hạn tối đa 1 lần duy nhất khi đơn đang Chờ xử lý) |
+| `Orders` | `RowVersion` | `rowversion` | Concurrency Token | Khóa lạc quan chống race condition khi cập nhật đơn |
+| `OrderItems` | `OrderId` | `int` | FK $\rightarrow$ `Orders(Id)` (Cascade Delete) | Đơn hàng trực thuộc |
+| `OrderItems` | `ProductVariantId` | `int` (Nullable) | FK $\rightarrow$ `ProductVariants(Id)` (SetNull) | Biến thể gốc (giữ nguyên đơn nếu xóa biến thể) |
+| `OrderItems` | `ProductName` | `nvarchar(250)` | Not Null | Snapshot tên sản phẩm lúc mua |
+| `OrderItems` | `SKU` | `varchar(100)` | Not Null | Snapshot SKU lúc mua |
+| `OrderItems` | `VariantName` | `nvarchar(250)` (Nullable) | | Snapshot tên phân loại (Ví dụ: "Titan Tự Nhiên - 512GB") |
+| `OrderItems` | `ThumbnailUrl` | `nvarchar(500)` (Nullable) | | Snapshot ảnh đại diện biến thể lúc mua |
+| `OrderItems` | `SelectedAttributesJson` | `nvarchar(1000)` (Nullable) | | Snapshot Dynamic Options: `[{"OptionName":"Màu sắc","Value":"Titan Tự Nhiên"},{"OptionName":"Dung lượng","Value":"512GB"}]` |
+| `OrderItems` | `CostPrice` | `decimal(18,2)` | Check `>= 0`, Default `0` | Snapshot giá vốn tại thời điểm bán (tính lợi nhuận gộp) |
+| `OrderItems` | `UnitPrice` | `decimal(18,2)` | Check `>= 0` | Đơn giá bán thực tế |
+| `OrderItems` | `Quantity` | `int` | Check `> 0` | Số lượng mua |
+| `OrderItems` | `LineTotal` | `decimal(18,2)` | Check `>= 0` | Thành tiền từng dòng (`UnitPrice * Quantity`) |
+
+---
+
+#### 3. Bảng `sales.Vouchers`, `sales.UserVouchers` & `sales.VoucherUsages` (Khuyến mãi, Ví voucher cá nhân & Lịch sử sử dụng)
+- **Mục đích:** Quản lý toàn diện chiến dịch khuyến mãi đa đối tượng (Public, Bắt buộc đăng nhập, Cấp riêng cho User cụ thể), quản lý ví voucher cá nhân của khách hàng và ghi nhận nhật ký sử dụng mã chống gian lận.
+
+| Bảng | Cột nghiệp vụ | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| :--- | :--- | :--- | :--- | :--- |
+| `Vouchers` | `Code` | `varchar(50)` | Unique Index, Not Null | Mã voucher (Ví dụ: `TET2026`, `APPLE100K`, `VIPMEMBER`) |
+| `Vouchers` | `Name` | `nvarchar(150)` | Not Null | Tên chương trình ưu đãi |
+| `Vouchers` | `Description` | `nvarchar(500)` (Nullable) | | Điều khoản và mô tả áp dụng |
+| `Vouchers` | `TargetType` | `varchar(30)` | HasConversion Enum `VoucherTargetType` | Đối tượng: `Public` (Công khai ai cũng dùng được), `RegisteredOnly` (Bắt buộc tài khoản đăng nhập), `AssignedOnly` (Chỉ cấp riêng cho User cụ thể) |
+| `Vouchers` | `DiscountType` | `varchar(30)` | HasConversion Enum `VoucherDiscountType` | `Percentage` (% giảm) hoặc `FixedAmount` (Số tiền cố định) |
+| `Vouchers` | `DiscountValue` | `decimal(18,2)` | Check `> 0` | Giá trị giảm (% từ 1-100 hoặc số tiền VNĐ) |
+| `Vouchers` | `MinOrderAmount` | `decimal(18,2)` (Nullable) | | Giá trị đơn hàng tối thiểu để được áp dụng mã |
+| `Vouchers` | `MaxDiscountAmount` | `decimal(18,2)` (Nullable) | | Mức giảm tối đa cho voucher loại `%` |
+| `Vouchers` | `StartDate` / `EndDate` | `datetimeoffset` | Not Null, Index | Khoảng thời gian chiến dịch có hiệu lực |
+| `Vouchers` | `UsageLimit` | `int` (Nullable) | | Tổng lượt sử dụng tối đa toàn hệ thống |
+| `Vouchers` | `UsageCount` | `int` | Check `>= 0`, Default `0` | Số lượt thực tế đã được áp dụng |
+| `Vouchers` | `PerUserLimit` | `int` | Check `> 0`, Default `1` | Số lần tối đa một người được phép sử dụng (cho Public/Registered) |
+| `Vouchers` | `RowVersion` | `rowversion` | Concurrency Token | Khóa lạc quan chống race condition khi nhận voucher |
+| `UserVouchers` | `UserId` | `int` | FK $\rightarrow$ `identity.Users(Id)` (Cascade) | Tài khoản người dùng được cấp riêng voucher |
+| `UserVouchers` | `VoucherId` | `int` | FK $\rightarrow$ `sales.Vouchers(Id)` (Cascade) | Mã voucher được cấp |
+| `UserVouchers` | `AssignedUsageLimit` | `int` | Check `> 0`, Default `1` | Số lượt sử dụng cấp riêng cho User này (Ví dụ: VIP được 3 lần) |
+| `UserVouchers` | `UsedCount` | `int` | Check `>= 0`, Default `0` | Số lượt User này đã sử dụng thực tế |
+| `UserVouchers` | `AssignedAt` | `datetimeoffset` | Not Null | Thời điểm cấp voucher vào ví |
+| `UserVouchers` | `ExpiresAt` | `datetimeoffset` (Nullable) | Index | Hạn dùng riêng của User (nếu null lấy theo `Vouchers.EndDate`) |
+| `UserVouchers` | `AssignedBy` | `nvarchar(150)` (Nullable) | | Username Admin cấp tay hoặc sự kiện tự động (`SYSTEM_BIRTHDAY`) |
+| `UserVouchers` | `Note` | `nvarchar(250)` (Nullable) | | Lý do cấp ("Tặng voucher sinh nhật tháng 10", "Bồi thường đơn hàng") |
+| `VoucherUsages` | `VoucherId` | `int` | FK $\rightarrow$ `Vouchers(Id)` (Cascade Delete) | Voucher được sử dụng |
+| `VoucherUsages` | `OrderId` | `int` | FK $\rightarrow$ `Orders(Id)` (Cascade Delete) | Đơn hàng áp dụng mã |
+| `VoucherUsages` | `UserId` | `int` (Nullable) | FK $\rightarrow$ `identity.Users(Id)` (Restrict) | Tài khoản sử dụng nếu đã đăng nhập |
+| `VoucherUsages` | `GuestId` | `varchar(100)` (Nullable) | Index | Mã phiên nếu là khách vãng lai |
+| `VoucherUsages` | `CustomerPhone` / `Email` | `varchar` (Nullable) | | Thông tin người dùng chống gian lận lặp lại mã |
+| `VoucherUsages` | `DiscountAmount` | `decimal(18,2)` | Check `>= 0` | Số tiền thực tế được giảm cho đơn đó |
+| `VoucherUsages` | `UsedAt` | `datetimeoffset` | Not Null | Thời điểm áp dụng mã |
+
+> **Ràng buộc duy nhất trên `UserVouchers`:**
+> Áp dụng Filtered Unique Index trên cặp `(UserId, VoucherId) WHERE [IsDeleted] = 0`. Điều này ngăn chặn việc cấp trùng lặp cùng một voucher cho một người dùng; khi cần tăng số lượt sử dụng thì cập nhật trực tiếp `AssignedUsageLimit`.
 
 ---
 

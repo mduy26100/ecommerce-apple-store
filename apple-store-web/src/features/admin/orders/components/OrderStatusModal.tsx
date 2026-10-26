@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Modal, Form, Select } from "antd";
+import { Modal, Form, Select, Input } from "antd";
 import type { OrderSummaryDto, OrderDetailDto, UpdateOrderStatusPayload } from "../types/order.types";
 
 interface OrderStatusModalProps {
@@ -11,11 +11,12 @@ interface OrderStatusModalProps {
 }
 
 export const ORDER_STATUS_OPTIONS = [
-  { value: "Pending", label: "Chờ xác nhận", color: "gold" },
+  { value: "Pending", label: "Chờ xử lý", color: "gold" },
   { value: "Confirmed", label: "Đã xác nhận", color: "blue" },
   { value: "Processing", label: "Đang đóng gói", color: "cyan" },
-  { value: "Shipped", label: "Đang giao hàng", color: "purple" },
-  { value: "Delivered", label: "Giao thành công", color: "green" },
+  { value: "Shipping", label: "Đang giao hàng", color: "purple" },
+  { value: "Delivered", label: "Đã giao hàng", color: "geekblue" },
+  { value: "Completed", label: "Đã nhận hàng", color: "green" },
   { value: "Cancelled", label: "Đã hủy đơn", color: "red" },
 ];
 
@@ -40,6 +41,7 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
       form.setFieldsValue({
         status: order.status,
         paymentStatus: order.paymentStatus,
+        note: undefined,
       });
     }
   }, [open, order, form]);
@@ -83,6 +85,13 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
               value: opt.value,
               label: opt.label,
             }))}
+          />
+        </Form.Item>
+
+        <Form.Item name="note" label="Ghi chú tiến trình (Tùy chọn)">
+          <Input.TextArea
+            placeholder="Nhập ghi chú cho lần thay đổi trạng thái này (VD: Đã đóng gói, Bàn giao bưu tá)..."
+            rows={2}
           />
         </Form.Item>
       </Form>

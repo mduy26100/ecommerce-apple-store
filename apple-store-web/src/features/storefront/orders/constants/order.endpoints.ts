@@ -1,0 +1,15 @@
+export const ORDER_ENDPOINTS = {
+  CREATE_ORDER: "/api/orders",
+  MY_ORDERS: "/api/orders/my-orders",
+  MY_ORDER_DETAIL: (id: number) => `/api/orders/my-orders/${id}`,
+  GUEST_RECENT: "/api/orders/guest-recent",
+  LOOKUP: "/api/orders/lookup",
+  UNMERGED_GUEST_COUNT: "/api/orders/unmerged-guest-count",
+  MERGE_GUEST: "/api/orders/merge-guest",
+  VALIDATE_VOUCHER: "/api/vouchers/validate",
+  MY_WALLET: "/api/vouchers/my-wallet",
+  PUBLIC_VOUCHERS: "/api/vouchers/public",
+  CANCEL: (id: number) => `/api/orders/${id}/cancel`,
+  CONFIRM_RECEIVED: (id: number) => `/api/orders/${id}/confirm-received`,
+  UPDATE_SHIPPING_ADDRESS: (id: number) => `/api/orders/my-orders/${id}/shipping-address`,
+};

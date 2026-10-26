@@ -1,9 +1,11 @@
 using Application.Common.Interfaces.Persistence;
 using Application.Features.Sales.Orders.DTOs;
+using Application.Features.Sales.Orders.Helpers;
 using Application.Features.Sales.Orders.Specifications;
 using Application.Wrappers;
 using Domain.Entities.Catalog;
 using Domain.Entities.Sales;
+using Domain.Enums.Sales;
 using Domain.Exceptions;
 
 namespace Application.Features.Sales.Orders.Services
@@ -68,26 +70,34 @@ namespace Application.Features.Sales.Orders.Services
             var orderNumber = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
             decimal subtotal = 0;
 
+            var paymentMethod = Enum.TryParse<PaymentMethod>(request.PaymentMethod, true, out var pm)
+                ? pm
+                : PaymentMethod.COD;
+
             var order = new Order
             {
                 OrderNumber = orderNumber,
-                UserId = request.UserId <= 0 ? 1 : request.UserId,
-                Status = "Pending",
-                PaymentMethod = request.PaymentMethod,
-                PaymentStatus = "Pending",
+                UserId = request.UserId.HasValue && request.UserId.Value > 0 ? request.UserId.Value : null,
+                GuestId = request.GuestId,
+                Status = OrderStatus.Pending,
+                PaymentMethod = paymentMethod,
+                PaymentStatus = PaymentStatus.Pending,
                 RecipientName = request.RecipientName,
                 RecipientPhone = request.RecipientPhone,
+                RecipientEmail = request.RecipientEmail,
                 ShippingAddressLine = request.ShippingAddressLine,
                 ShippingWard = request.ShippingWard,
                 ShippingDistrict = request.ShippingDistrict,
                 ShippingProvince = request.ShippingProvince,
                 CustomerNote = request.CustomerNote,
                 ShippingFee = request.ShippingFee,
-                PlacedAt = DateTime.UtcNow,
+                VoucherCode = request.VoucherCode,
+                PlacedAt = DateTimeOffset.UtcNow,
             };
 
             foreach (var itemReq in request.Items)
             {
+                decimal costPrice = 0;
                 if (itemReq.ProductVariantId.HasValue)
                 {
                     var variant = await _variantRepository.GetByIdAsync(itemReq.ProductVariantId.Value, cancellationToken);
@@ -99,6 +109,7 @@ namespace Application.Features.Sales.Orders.Services
                     {
                         throw new BusinessRuleException($"Số lượng tồn kho cho '{itemReq.ProductName}' không đủ (còn {variant.QuantityInStock})");
                     }
+                    costPrice = variant.CostPrice;
                     variant.QuantityInStock -= itemReq.Quantity;
                     await _variantRepository.UpdateAsync(variant, cancellationToken);
                 }
@@ -111,8 +122,12 @@ namespace Application.Features.Sales.Orders.Services
                     ProductVariantId = itemReq.ProductVariantId,
                     ProductName = itemReq.ProductName,
                     SKU = itemReq.SKU,
+                    VariantName = itemReq.VariantName,
+                    ThumbnailUrl = itemReq.ThumbnailUrl,
+                    SelectedAttributesJson = itemReq.SelectedAttributesJson,
                     ColorName = itemReq.ColorName,
                     StorageName = itemReq.StorageName,
+                    CostPrice = costPrice,
                     UnitPrice = itemReq.UnitPrice,
                     Quantity = itemReq.Quantity,
                     LineTotal = lineTotal,
@@ -120,7 +135,7 @@ namespace Application.Features.Sales.Orders.Services
             }
 
             order.Subtotal = subtotal;
-            order.TotalAmount = subtotal + request.ShippingFee;
+            order.TotalAmount = subtotal + request.ShippingFee - order.DiscountAmount;
 
             await _orderRepository.AddAsync(order, cancellationToken);
             return order.Id;
@@ -134,10 +149,20 @@ namespace Application.Features.Sales.Orders.Services
                 throw new NotFoundException(nameof(Order), id);
             }
 
-            order.Status = request.Status;
-            if (!string.IsNullOrWhiteSpace(request.PaymentStatus))
+            if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<OrderStatus>(request.Status, true, out var status))
             {
-                order.PaymentStatus = request.PaymentStatus;
+                order.Status = status;
+                order.StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
+                    order.StatusHistoryJson,
+                    status,
+                    "Manager",
+                    "Quản trị viên",
+                    request.Note ?? $"Cập nhật trạng thái sang {OrderStatusHistoryHelper.GetStatusDisplayName(status)}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.PaymentStatus) && Enum.TryParse<PaymentStatus>(request.PaymentStatus, true, out var paymentStatus))
+            {
+                order.PaymentStatus = paymentStatus;
             }
 
             await _orderRepository.UpdateAsync(order, cancellationToken);
@@ -151,7 +176,7 @@ namespace Application.Features.Sales.Orders.Services
                 throw new NotFoundException(nameof(Order), id);
             }
 
-            if (order.Status == "Cancelled")
+            if (order.Status == OrderStatus.Cancelled)
             {
                 return;
             }
@@ -169,13 +194,23 @@ namespace Application.Features.Sales.Orders.Services
                 }
             }
 
-            order.Status = "Cancelled";
+            order.Status = OrderStatus.Cancelled;
+            var reasonNote = string.IsNullOrWhiteSpace(request?.Reason)
+                ? "Đơn hàng bị hủy bởi ban quản trị"
+                : $"Lý do hủy: {request.Reason}";
             if (!string.IsNullOrWhiteSpace(request?.Reason))
             {
                 order.CustomerNote = string.IsNullOrWhiteSpace(order.CustomerNote)
-                    ? $"[Lý do hủy: {request.Reason}]"
-                    : $"{order.CustomerNote} [Lý do hủy: {request.Reason}]";
+                    ? $"[{reasonNote}]"
+                    : $"{order.CustomerNote} [{reasonNote}]";
             }
+
+            order.StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
+                order.StatusHistoryJson,
+                OrderStatus.Cancelled,
+                "Manager",
+                "Quản trị viên",
+                reasonNote);
 
             await _orderRepository.UpdateAsync(order, cancellationToken);
         }
@@ -187,14 +222,18 @@ namespace Application.Features.Sales.Orders.Services
                 Id = order.Id,
                 OrderNumber = order.OrderNumber,
                 UserId = order.UserId,
-                Status = order.Status,
-                PaymentMethod = order.PaymentMethod,
-                PaymentStatus = order.PaymentStatus,
+                GuestId = order.GuestId,
+                Status = order.Status.ToString(),
+                PaymentMethod = order.PaymentMethod.ToString(),
+                PaymentStatus = order.PaymentStatus.ToString(),
                 RecipientName = order.RecipientName,
                 RecipientPhone = order.RecipientPhone,
+                RecipientEmail = order.RecipientEmail,
                 ShippingProvince = order.ShippingProvince,
                 Subtotal = order.Subtotal,
                 ShippingFee = order.ShippingFee,
+                VoucherCode = order.VoucherCode,
+                DiscountAmount = order.DiscountAmount,
                 TotalAmount = order.TotalAmount,
                 TotalItems = order.Items?.Count ?? 0,
                 PlacedAt = order.PlacedAt,
@@ -208,11 +247,13 @@ namespace Application.Features.Sales.Orders.Services
                 Id = order.Id,
                 OrderNumber = order.OrderNumber,
                 UserId = order.UserId,
-                Status = order.Status,
-                PaymentMethod = order.PaymentMethod,
-                PaymentStatus = order.PaymentStatus,
+                GuestId = order.GuestId,
+                Status = order.Status.ToString(),
+                PaymentMethod = order.PaymentMethod.ToString(),
+                PaymentStatus = order.PaymentStatus.ToString(),
                 RecipientName = order.RecipientName,
                 RecipientPhone = order.RecipientPhone,
+                RecipientEmail = order.RecipientEmail,
                 ShippingAddressLine = order.ShippingAddressLine,
                 ShippingWard = order.ShippingWard,
                 ShippingDistrict = order.ShippingDistrict,
@@ -220,8 +261,12 @@ namespace Application.Features.Sales.Orders.Services
                 CustomerNote = order.CustomerNote,
                 Subtotal = order.Subtotal,
                 ShippingFee = order.ShippingFee,
+                VoucherCode = order.VoucherCode,
+                DiscountAmount = order.DiscountAmount,
                 TotalAmount = order.TotalAmount,
                 PlacedAt = order.PlacedAt,
+                StatusHistoryJson = order.StatusHistoryJson,
+                StatusHistory = OrderStatusHistoryHelper.ParseHistory(order.StatusHistoryJson),
                 Items = order.Items.Select(i => new OrderItemDto
                 {
                     Id = i.Id,
@@ -229,8 +274,12 @@ namespace Application.Features.Sales.Orders.Services
                     ProductVariantId = i.ProductVariantId,
                     ProductName = i.ProductName,
                     SKU = i.SKU,
+                    VariantName = i.VariantName,
+                    ThumbnailUrl = i.ThumbnailUrl,
+                    SelectedAttributesJson = i.SelectedAttributesJson,
                     ColorName = i.ColorName,
                     StorageName = i.StorageName,
+                    CostPrice = i.CostPrice,
                     UnitPrice = i.UnitPrice,
                     Quantity = i.Quantity,
                     LineTotal = i.LineTotal,

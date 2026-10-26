@@ -29,6 +29,11 @@ namespace Infrastructure.Persistence.Configurations.Catalog
             builder.Property(x => x.CompareAtPrice)
                 .HasPrecision(18, 2);
 
+            builder.Property(x => x.CostPrice)
+                .HasPrecision(18, 2)
+                .IsRequired()
+                .HasDefaultValue(0);
+
             builder.Property(x => x.QuantityInStock)
                 .IsRequired()
                 .HasDefaultValue(0);

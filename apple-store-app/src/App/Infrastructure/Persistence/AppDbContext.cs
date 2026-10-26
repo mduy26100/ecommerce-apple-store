@@ -33,6 +33,9 @@ namespace Infrastructure.Persistence
         public DbSet<CartItem> CartItems => Set<CartItem>();
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+        public DbSet<Voucher> Vouchers => Set<Voucher>();
+        public DbSet<VoucherUsage> VoucherUsages => Set<VoucherUsage>();
+        public DbSet<UserVoucher> UserVouchers => Set<UserVoucher>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

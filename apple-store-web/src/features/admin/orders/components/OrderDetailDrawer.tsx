@@ -9,6 +9,7 @@ import {
   Popconfirm,
   Spin,
   Divider,
+  Timeline,
 } from "antd";
 import {
   EditOutlined,
@@ -223,6 +224,38 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                 </Descriptions.Item>
               )}
             </Descriptions>
+
+            {order.statusHistory && order.statusHistory.length > 0 && (
+              <div>
+                <h4 className="text-base font-semibold text-slate-800 mb-3">
+                  Lịch sử thay đổi trạng thái
+                </h4>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <Timeline
+                    items={order.statusHistory.map((h) => ({
+                      children: (
+                        <div className="text-xs">
+                          <div className="font-semibold text-slate-800 flex items-center gap-2">
+                            <span>{h.statusName || h.status}</span>
+                            <span className="text-slate-400 font-normal">
+                              ({h.actor === "Customer" ? "Khách hàng" : h.actor === "Manager" ? "Quản trị viên" : h.actor})
+                            </span>
+                          </div>
+                          <div className="text-slate-400 text-[11px] mt-0.5">
+                            {formatDate(h.changedAt)}
+                          </div>
+                          {h.note && (
+                            <div className="text-slate-600 mt-1 italic">
+                              "{h.note}"
+                            </div>
+                          )}
+                        </div>
+                      ),
+                    }))}
+                  />
+                </div>
+              </div>
+            )}
 
             <div>
               <h4 className="text-base font-semibold text-slate-800 mb-3">

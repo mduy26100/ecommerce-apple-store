@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Checkbox, Button, Popconfirm, Spin, message, Alert } from "antd";
+import { Link, useNavigate } from "react-router-dom";
+import { Checkbox, Button, Popconfirm, Spin, Alert } from "antd";
 import {
   DeleteOutlined,
   WarningOutlined,
@@ -20,12 +20,12 @@ import {
 } from "@features/storefront/cart";
 
 export const CartPage = () => {
+  const navigate = useNavigate();
   const { data: cart, isLoading } = useCart();
   const { mutate: updateQuantity, isPending: isUpdatingQty } = useUpdateCartQuantity();
   const { mutate: updateSelection, isPending: isUpdatingSelection } = useUpdateCartSelection();
   const { mutate: removeItem, isPending: isRemoving } = useRemoveCartItem();
   const { mutate: clearCart, isPending: isClearing } = useClearCart();
-
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
 
   const isBusy = isUpdatingQty || isUpdatingSelection || isRemoving || isClearing;
@@ -57,7 +57,7 @@ export const CartPage = () => {
   };
 
   const handleCheckout = () => {
-    message.info("Chức năng tạo đơn hàng & Thanh toán sẽ được kết nối ở bước hoàn thiện tiếp theo!");
+    navigate("/checkout");
   };
 
   if (isLoading) {
