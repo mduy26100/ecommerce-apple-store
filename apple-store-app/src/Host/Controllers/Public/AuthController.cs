@@ -96,18 +96,5 @@ namespace Host.Controllers.Public
             var profile = await _userService.GetProfileAsync(userId, cancellationToken);
             return Ok(profile);
         }
-
-        private int GetCurrentUserId()
-        {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? User.FindFirstValue("sub");
-
-            if (!int.TryParse(userIdClaim, out var userId))
-            {
-                throw new UnauthorizedException("Phiên xác thực người dùng không hợp lệ.");
-            }
-
-            return userId;
-        }
     }
 }

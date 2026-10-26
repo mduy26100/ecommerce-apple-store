@@ -76,12 +76,19 @@ Nhóm phân loại các đầu việc theo 3 trạng thái cụ thể:
 
 ---
 
+- [x] **Nghiệp vụ Giỏ hàng Trực tuyến Toàn diện (Shopping Cart Feature):**
+  - [x] **Cơ sở dữ liệu & Entity tối ưu:** Thiết kế lại `sales.Carts` & `sales.CartItems`, hỗ trợ song song Khách vãng lai (`GuestId` lưu tại LocalStorage) và Thành viên đăng nhập (`UserId`), loại bỏ cột `Status` dư thừa, Filtered Unique Index chống trùng lặp dòng sản phẩm và chống xung đột Soft Delete, lưu `UnitPrice` snapshot, cờ chọn mua `IsSelected`, hạn giỏ hàng `ExpiresOn` và Check Constraint `Quantity > 0`.
+  - [x] **Bộ API Giỏ hàng:** `GET /api/cart`, `POST /api/cart/items`, `PUT /api/cart/items/quantity`, `PUT /api/cart/items/selection`, `PUT /api/cart/items/variant`, `DELETE /api/cart/items/{id}`, `DELETE /api/cart`, `POST /api/cart/merge`, `GET /api/products/{id}/options-matrix`.
+  - [x] **Cơ chế Tự phục hồi Số lượng Tồn kho (Self-Healing Cart):** Xử lý tận gốc tại Backend (`CartService.cs`). Khi tồn kho biến động nhỏ hơn số lượng trong giỏ (ví dụ giỏ lưu 14 máy nhưng cửa hàng chỉ còn 5 máy, hoặc hết hàng rồi nhập lại 5 máy), hệ thống tự động ép số lượng về `1`, tính lại đơn giá dòng, tổng tiền, cập nhật vĩnh viễn xuống Database; phía Frontend hiển thị cảnh báo tồn kho và khóa nút tăng vượt quá tồn kho thực tế.
+  - [x] **Đổi phân loại sản phẩm trong giỏ hàng (`ChangeVariantModal`):** Cho phép người dùng chuyển đổi màu sắc, dung lượng ngay tại trang giỏ hàng bằng ma trận phân loại nhẹ; tự động cộng dồn số lượng nếu phiên bản mới đã có trong giỏ hàng.
+  - [x] **Tự động gộp giỏ hàng (Guest Cart Auto-Merge):** Tự động phát hiện và gộp toàn bộ sản phẩm từ giỏ khách vãng lai sang tài khoản thành viên ngay khi đăng nhập thành công.
+  - [x] **Giao diện Storefront Giỏ hàng (`/cart`):** Thiết kế Responsive chuẩn chỉ cho Mobile/Tablet/Desktop; Header Badge và số lượng tiêu đề chỉ đếm sản phẩm khả dụng; phân tách khu vực sản phẩm tạm hết hàng/ngừng kinh doanh với cảnh báo trực quan; hỗ trợ chọn mua toàn bộ hoặc từng phần (Selective Checkout).
+  - [x] **Kiểm thử tự động E2E Headless Playwright:** 5 kịch bản kiểm thử toàn diện tại `test-playwright/e2e/cart-flow.spec.ts` đều vượt qua 100%.
+
+---
+
 ### [-] Đang xử lý
 
-- [-] **Nghiệp vụ Giỏ hàng trực tuyến (Shopping Cart):**
-  - Hoàn thiện tích hợp API giỏ hàng (`sales.Carts` & `sales.CartItems`) với giao diện Storefront.
-  - Cập nhật số lượng sản phẩm, lưu giỏ hàng trong RAM/Local state cho khách vãng lai và đồng bộ vào database khi khách đăng nhập.
-  - Tính toán tổng tiền hàng, thuế và tạm tính theo thời gian thực.
 - [-] **Quy trình Đặt hàng & Tạo hóa đơn (Checkout Flow):**
   - Xây dựng màn hình nhập thông tin người nhận (Họ tên, Số điện thoại, Tỉnh/Thành, Địa chỉ nhận hàng chi tiết).
   - Hoàn thiện API ghi nhận đơn hàng vào bảng `sales.Orders` và snapshot sản phẩm vào `sales.OrderItems`.

@@ -186,12 +186,25 @@ Thay vì biểu đồ đồ họa khó hiển thị trên một số trình đ�
 ### 4.2. Phân hệ Bán hàng & Giỏ hàng (`sales`)
 
 #### 1. Bảng `sales.Carts` & `sales.CartItems` (Giỏ hàng trực tuyến)
-- **Mục đích:** Lưu trữ giỏ hàng và danh sách sản phẩm tạm tính của người dùng.
+- **Mục đích:** Lưu trữ giỏ hàng và danh sách sản phẩm tạm tính, hỗ trợ liền mạch cho cả khách thành viên đã đăng nhập và khách vãng lai (Guest Cart).
 
 | Bảng | Cột nghiệp vụ | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | :--- | :--- | :--- | :--- | :--- |
-| `Carts` | `UserId` | `int` | FK $\rightarrow$ `identity.Users(Id)` | Tài khoản sở hữu giỏ hàng |
-| `CartItems` | `CartId`, `ProductVariantId`, `Quantity`, `UnitPrice` | `int`, `int`, `int`, `decimal(18,2)` | FK `CartId`, FK `ProductVariantId`, Check `Quantity > 0` | Chi tiết số lượng và đơn giá từng biến thể trong giỏ |
+| `Carts` | `UserId` | `int` (Nullable) | FK $\rightarrow$ `identity.Users(Id)`, Filtered Unique Index `[UserId] IS NOT NULL AND [IsDeleted] = 0` | ID tài khoản nếu đã đăng nhập |
+| `Carts` | `GuestId` | `varchar(100)` (Nullable) | Filtered Unique Index `[GuestId] IS NOT NULL AND [IsDeleted] = 0` | UUID định danh phiên khách vãng lai (lưu tại Cookie/LocalStorage) |
+| `Carts` | `ExpiresOn` | `datetimeoffset` (Nullable) | | Thời điểm hết hạn của giỏ hàng phục vụ dọn dẹp giỏ rác định kỳ |
+| `CartItems` | `CartId` | `int` | FK $\rightarrow$ `Carts(Id)` (Cascade Delete) | Mã giỏ hàng trực thuộc |
+| `CartItems` | `ProductVariantId` | `int` | FK $\rightarrow$ `ProductVariants(Id)` (Cascade Delete) | Biến thể sản phẩm được chọn mua |
+| `CartItems` | `Quantity` | `int` | Check `[Quantity] > 0` | Số lượng chọn mua (bắt buộc > 0) |
+| `CartItems` | `UnitPrice` | `decimal(18,2)` | Precision 18, Scale 2 | Đơn giá sản phẩm tại thời điểm bỏ giỏ (hỗ trợ phát hiện đổi giá) |
+| `CartItems` | `IsSelected` | `bit` | Default `1` | Đánh dấu chọn sản phẩm để thanh toán (Selective Checkout) |
+
+> **Ràng buộc duy nhất (Unique Constraint chống trùng lặp):**
+> Bảng `CartItems` áp dụng Filtered Unique Index trên cặp `(CartId, ProductVariantId)` kèm điều kiện `WHERE [IsDeleted] = 0`. Điều này triệt tiêu hoàn toàn lỗi vỡ index khi phục hồi sản phẩm đã xóa mềm hoặc cộng dồn số lượng.
+>
+> **Cơ chế Tự phục hồi Số lượng Tồn kho (Self-Healing Cart Inventory Safeguard):**
+> Trong trường hợp người dùng thêm số lượng lớn nhưng chưa thanh toán, sau đó tồn kho thực tế bị giảm hoặc hết hàng rồi nhập lại với số lượng nhỏ hơn số lượng trong giỏ (ví dụ: giỏ lưu 14 máy nhưng cửa hàng chỉ còn 5 máy):
+> Khi người dùng truy cập giỏ hàng, hệ thống Backend (`CartService.cs`) tự động phát hiện `Quantity > QuantityInStock`, ép số lượng về `1` và gọi `SaveChangesAsync()` để cập nhật vĩnh viễn xuống database. Đồng thời, các chỉ số `LineTotal`, `TotalItems`, `SelectedItemsCount` và `Subtotal` chỉ tính toán dựa trên các mặt hàng sẵn có (`IsAvailable && QuantityInStock > 0`).
 
 ---
 

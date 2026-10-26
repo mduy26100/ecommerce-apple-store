@@ -41,5 +41,12 @@ namespace Host.Controllers.Public
             var result = await _productService.GetBySlugAsync(slug, cancellationToken);
             return Ok(result);
         }
+
+        [HttpGet("{id:int}/options-matrix")]
+        public async Task<IActionResult> GetOptionsMatrix([FromRoute] int id, CancellationToken cancellationToken = default)
+        {
+            var result = await _productService.GetOptionsMatrixAsync(id, cancellationToken);
+            return Ok(result);
+        }
     }
 }

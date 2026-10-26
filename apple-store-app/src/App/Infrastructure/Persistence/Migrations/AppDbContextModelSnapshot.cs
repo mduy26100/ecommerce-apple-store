@@ -243,7 +243,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDefaultValue(0);
 
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
@@ -671,6 +670,14 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("DeletedOn")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<DateTimeOffset?>("ExpiresOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("GuestId")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -683,20 +690,18 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("LastModifiedOn")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "Status")
+                    b.HasIndex("GuestId")
                         .IsUnique()
-                        .HasFilter("[Status] = 'Active'");
+                        .HasFilter("[GuestId] IS NOT NULL AND [IsDeleted] = 0");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL AND [IsDeleted] = 0");
 
                     b.ToTable("Carts", "sales");
                 });
@@ -730,6 +735,11 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsSelected")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -742,14 +752,22 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProductVariantId");
 
                     b.HasIndex("CartId", "ProductVariantId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
-                    b.ToTable("CartItems", "sales");
+                    b.ToTable("CartItems", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_CartItems_Quantity", "[Quantity] > 0");
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Sales.Order", b =>
@@ -1348,8 +1366,7 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasOne("Infrastructure.Identity.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("Domain.Entities.Sales.CartItem", b =>

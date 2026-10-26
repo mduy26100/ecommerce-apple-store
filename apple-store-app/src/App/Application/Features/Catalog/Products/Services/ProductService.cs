@@ -141,6 +141,83 @@ namespace Application.Features.Catalog.Products.Services
             return MapToDetailDto(product);
         }
 
+        public async Task<ProductVariantOptionsDto> GetOptionsMatrixAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var product = await _productRepository.FirstOrDefaultAsync(new ProductByIdWithDetailsSpec(id), cancellationToken);
+            if (product == null)
+            {
+                throw new NotFoundException(nameof(Product), id);
+            }
+
+            var primaryImage = product.Images?
+                .Where(img => img.IsActive && !img.IsDeleted && !string.IsNullOrWhiteSpace(img.ImageUrl))
+                .OrderBy(img => img.OptionValue?.DisplayOrder ?? 999)
+                .ThenByDescending(img => img.IsPrimary)
+                .ThenBy(img => img.DisplayOrder)
+                .Select(img => img.ImageUrl)
+                .FirstOrDefault();
+
+            var options = product.Options?
+                .Where(o => !o.IsDeleted)
+                .OrderBy(o => o.DisplayOrder)
+                .Select(o => new ProductOptionSelectorDto
+                {
+                    Id = o.Id,
+                    Name = o.Name,
+                    DisplayOrder = o.DisplayOrder,
+                    Values = o.Values?
+                        .Where(v => !v.IsDeleted)
+                        .OrderBy(v => v.DisplayOrder)
+                        .Select(v => new ProductOptionValueSelectorDto
+                        {
+                            Id = v.Id,
+                            Value = v.Value,
+                            ColorHexCode = v.ColorHexCode,
+                            DisplayOrder = v.DisplayOrder
+                        }).ToList() ?? new List<ProductOptionValueSelectorDto>()
+                }).ToList() ?? new List<ProductOptionSelectorDto>();
+
+            var variants = product.Variants?
+                .Where(v => !v.IsDeleted)
+                .OrderBy(v => v.Price)
+                .Select(v =>
+                {
+                    var colorValueId = v.VariantValues
+                        .FirstOrDefault(vv => !string.IsNullOrEmpty(vv.OptionValue?.ColorHexCode))?
+                        .OptionValueId;
+
+                    var variantImage = product.Images?
+                        .Where(img => img.IsActive && !img.IsDeleted && colorValueId.HasValue && img.OptionValueId == colorValueId.Value && !string.IsNullOrWhiteSpace(img.ImageUrl))
+                        .OrderByDescending(img => img.IsPrimary)
+                        .ThenBy(img => img.DisplayOrder)
+                        .Select(img => img.ImageUrl)
+                        .FirstOrDefault() ?? primaryImage;
+
+                    return new ProductVariantSelectorDto
+                    {
+                        Id = v.Id,
+                        SKU = v.SKU,
+                        VariantName = v.VariantName,
+                        Price = v.Price,
+                        CompareAtPrice = v.CompareAtPrice,
+                        QuantityInStock = v.QuantityInStock,
+                        IsActive = v.IsActive,
+                        ImageUrl = variantImage,
+                        OptionValueIds = v.VariantValues?.Select(vv => vv.OptionValueId).ToList() ?? new List<int>()
+                    };
+                }).ToList() ?? new List<ProductVariantSelectorDto>();
+
+            return new ProductVariantOptionsDto
+            {
+                ProductId = product.Id,
+                ProductName = product.Name,
+                ProductSlug = product.Slug,
+                PrimaryImageUrl = primaryImage,
+                Options = options,
+                Variants = variants
+            };
+        }
+
         public async Task<int> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
         {
             var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
@@ -324,7 +401,7 @@ namespace Application.Features.Catalog.Products.Services
                 .OrderBy(img => img.OptionValue?.DisplayOrder ?? 999)
                 .ThenByDescending(img => img.IsPrimary)
                 .ThenBy(img => img.DisplayOrder)
-                .Select(img => img.ImageUrl)
+                .Select(img => img.ImageUrl!)
                 .Distinct()
                 .ToList() ?? new List<string>();
 
@@ -391,7 +468,7 @@ namespace Application.Features.Catalog.Products.Services
                         OptionValueId = i.OptionValueId,
                         OptionValueName = i.OptionValue?.Value,
                         ColorHexCode = i.OptionValue?.ColorHexCode,
-                        ImageUrl = i.ImageUrl,
+                        ImageUrl = i.ImageUrl ?? string.Empty,
                         AltText = i.AltText,
                         DisplayOrder = i.DisplayOrder,
                         IsPrimary = i.IsPrimary,

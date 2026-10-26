@@ -399,7 +399,7 @@ namespace Application.Features.Catalog.ProductImages.Services
                 OptionValueId = image.OptionValueId,
                 OptionValueName = image.OptionValue?.Value,
                 ColorHexCode = image.OptionValue?.ColorHexCode,
-                ImageUrl = image.ImageUrl,
+                ImageUrl = image.ImageUrl ?? string.Empty,
                 AltText = image.AltText,
                 DisplayOrder = image.DisplayOrder,
                 IsPrimary = image.IsPrimary,

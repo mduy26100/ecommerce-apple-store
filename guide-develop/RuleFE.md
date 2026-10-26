@@ -69,7 +69,8 @@ Dự án phục vụ đồng thời 2 đối tượng người dùng với luồ
   Features: features/storefront Features: features/admin/       Features: features/auth/
 ```
 
-### Nguyên tắc điều hướng (Routing Flow):
+### Nguyên tắc điều hướng (Routing Flow)
+
 - **Truy cập `/`:** Vào thẳng cửa hàng Apple Store dành cho khách hàng với `StorefrontLayout` (Header mua sắm, danh mục sản phẩm, banner iPhone 16 Pro, MacBook M4, iPad Pro, giỏ hàng, footer chính sách). Tuyệt đối không tự động redirect sang admin.
 - **Truy cập `/admin`:** Vào cổng quản trị hệ thống với `AdminLayout` (Sidebar quản trị, bảng thống kê doanh số, quản lý người dùng, phân quyền, cấu hình chi nhánh).
 - **Truy cập `/auth`:** Vào cổng xác thực tài khoản với `AuthLayout` (`/auth/login`, `/auth/register`).
@@ -475,43 +476,53 @@ export default ProductCard;
 ## 9. Sai lầm cốt lõi cần tránh (Anti-patterns)
 
 ### 9.1. Chứa logic nghiệp vụ hoặc gọi API trực tiếp trong Component
+
 - **Sai lầm:** Gọi trực tiếp `axios.get` hoặc viết logic xử lý dữ liệu thô ngay trong component hiển thị.
 - **Khắc phục:** Đóng gói toàn bộ logic gọi API và xử lý dữ liệu nghiệp vụ vào custom hook với React Query.
 
 ### 9.2. Tự động chuyển hướng trang chủ "/" vào "/admin"
+
 - **Sai lầm:** Khi người dùng vào trang chủ `"/"` lại chuyển hướng sang trang quản trị.
 - **Khắc phục:** Trang chủ `"/"` luôn phục vụ khách hàng mua sắm Apple Store (Storefront). Chỉ khi vào `"/admin"` mới truy cập cổng quản trị.
 
 ### 9.3. Phụ thuộc chéo chằng chịt giữa các Features
+
 - **Sai lầm:** Feature này import trực tiếp một file con nghiệp vụ nội bộ của feature khác.
 - **Khắc phục:** Mọi phụ thuộc giữa các features phải diễn ra một chiều và bắt buộc đi qua tệp Barrel export `index.ts`.
 
 ### 9.4. Đưa dữ liệu cache của Server vào Global Store (Zustand)
+
 - **Sai lầm:** Tạo action `fetchUsers` trong Zustand store để tải danh sách và lưu vào state của store.
 - **Khắc phục:** Hãy để React Query quản lý trạng thái tải, lưu bộ nhớ đệm (caching), tự động làm mới (refetching). Zustand chỉ quản lý các trạng thái thực sự của client app.
 
 ### 9.5. Viết comment trong mã nguồn
+
 - **Sai lầm:** Viết các comment giải thích `// xử lý login`, `/* TODO: sửa lại */`, `/// <summary>`.
 - **Khắc phục:** Viết code tự tường minh, đặt tên hàm và biến rõ nghĩa, xóa bỏ hoàn toàn code thừa.
 
 ### 9.6. Giao diện người dùng bằng tiếng Anh hoặc trộn lẫn ngôn ngữ
+
 - **Sai lầm:** Để text "Sign in", "Submit", "Delete user", "Overview", "Save changes" trên giao diện người dùng.
 - **Khắc phục:** Chuyển 100% sang Tiếng Việt chuẩn ("Đăng nhập", "Xác nhận", "Xóa người dùng", "Tổng quan", "Lưu thay đổi").
 
 ### 9.7. Chỉnh sửa file `mock.api.ts`
+
 - **Sai lầm:** Sửa đổi cấu trúc hoặc logic bên trong `src/core/api/mock.api.ts`.
 - **Khắc phục:** File này là template chạy thử dự án khi chưa có backend, tuyệt đối không được chỉnh sửa bất kỳ thứ gì trong file này.
 
 ### 9.8. Truyền dữ liệu null hoặc undefined vào thuộc tính items của Ant Design (đặc biệt Image.PreviewGroup)
+
 - **Nguyên nhân lỗi chí mạng (`TypeError: Cannot convert undefined or null to object` tại `Object.keys`):**
-  - Ant Design `Image.PreviewGroup` nhận prop `items`. Khi truyền vào mảng chứa phần tử `null` hoặc `undefined` (ví dụ: `images.map(img => img.imageUrl)` khi cơ sở dữ liệu có ảnh `imageUrl = null`), Ant Design kiểm tra `typeof item !== 'string'`. Do trong JavaScript `typeof null === 'object'`, Ant Design lầm tưởng đây là object cấu hình và thực thi `Object.keys(null)`. Thao tác này ngay lập tức ném ra lỗi `TypeError: Cannot convert undefined or null to object`, làm sập toàn bộ cây component trong chu kỳ render của React Router.
+  - Ant Design `Image.PreviewGroup` nhận prop `items`. Khi truyền vào mảng chứa phần tử `null` hoặc `undefined` (ví dụ: `images.map(img => img.imageUrl)` khi cơ sở dữ liệu có ảnh `imageUrl = null`), Ant Design kiểm tra `typeof item !== 'string'`. Do trong JavaScript `typeof null === 'object'`, Ant Design lầm tưởng đây là object cấu hình và thực thi `Object.keys(null)`. Thao tác này ngay lập tức ném ra lỗi `TypeError: Cannot convert undefined or null to object`, làm sập toàn bộ cây component trong chu kỳ render của React Router. Không chỉ ảnh mà toàn bộ phải xử lý null thật tốt để tránh lỗii "TypeError: Cannot convert undefined or null to object".
 - **Quy chuẩn phòng ngừa bắt buộc toàn diện:**
   1. **Lọc sạch dữ liệu chuỗi (Sanitization):** Trước khi truyền vào thuộc tính `items` của `Image.PreviewGroup`, `Breadcrumb`, `Menu`, `Tabs`, bắt buộc phải lọc loại bỏ hoàn toàn các giá trị null, undefined hoặc chuỗi rỗng:
+
      ```typescript
      const validPreviewUrls = (images || [])
        .map((img) => img.imageUrl)
        .filter((url): url is string => Boolean(url && typeof url === "string" && url.trim().length > 0));
      ```
+
   2. **Render có điều kiện (Conditional Render):** Chỉ render `<Image.PreviewGroup>` khi danh sách URL hợp lệ có ít nhất 1 phần tử (`validPreviewUrls.length > 0`). Nếu rỗng hoặc không có ảnh, tuyệt đối không gắn component `Image.PreviewGroup`.
   3. **Thiết lập ảnh dự phòng (Fallback & Safe Preview):** Đối với component `<Image>` hoặc thẻ `<img>`:
      - Luôn khai báo ảnh dự phòng: `fallback="/placeholder-product.png"`.
@@ -558,6 +569,7 @@ Hệ thống phân tách rõ ràng trách nhiệm bắt và hiển thị thông 
 ### 11.2. Lỗi Hệ thống diện rộng (System-level Errors)
 
 Được xử lý tập trung tại Response Interceptor trong [axios.config.ts](file:///c:/Users/Admin/Documents/ecommerce-apple-store/apple-store-web/src/core/api/axios.config.ts) bằng Tiếng Việt chuẩn:
+
 - **HTTP 403:** `message.error("Bạn không có quyền truy cập vào tính năng này.")`
 - **HTTP 500 / 503:** `message.error("Hệ thống đang bận hoặc gặp sự cố. Vui lòng thử lại sau.")`
 - **HTTP 400:** Hiển thị nội dung lỗi chi tiết trả về từ backend (`error.response.data.message`).

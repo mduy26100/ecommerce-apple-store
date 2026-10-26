@@ -7,11 +7,22 @@ namespace Infrastructure.Persistence.Configurations.Sales
     {
         public void Configure(EntityTypeBuilder<CartItem> builder)
         {
-            builder.ToTable("CartItems", SchemaNames.Sales);
+            builder.ToTable("CartItems", SchemaNames.Sales, table =>
+            {
+                table.HasCheckConstraint("CK_CartItems_Quantity", "[Quantity] > 0");
+            });
 
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.Quantity)
+                .IsRequired();
+
+            builder.Property(x => x.UnitPrice)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            builder.Property(x => x.IsSelected)
+                .HasDefaultValue(true)
                 .IsRequired();
 
             builder.HasOne(x => x.Cart)
@@ -24,8 +35,10 @@ namespace Infrastructure.Persistence.Configurations.Sales
                 .HasForeignKey(x => x.ProductVariantId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Unique cart item per variant with Soft Delete filter
             builder.HasIndex(x => new { x.CartId, x.ProductVariantId })
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0");
         }
     }
 }

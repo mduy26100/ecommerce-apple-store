@@ -12,11 +12,13 @@ import type {
   ProductVariantDetail,
   GalleryImageItem,
 } from "@features/storefront/catalog";
+import { useAddToCart } from "@features/storefront/cart";
 
 export const ProductDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { data: product, isLoading, isError } = useProductDetail(slug);
+  const { mutate: addToCart } = useAddToCart();
 
   const [selectedOptions, setSelectedOptions] = useState<Record<number, number>>({});
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -242,9 +244,10 @@ export const ProductDetailPage = () => {
       message.error("Phiên bản này hiện đã tạm hết hàng");
       return;
     }
-    message.success(
-      `Đã thêm ${quantity} x "${product.name} - ${selectedVariant.variantName || ""}" vào giỏ hàng thành công!`
-    );
+    addToCart({
+      productVariantId: selectedVariant.id,
+      quantity,
+    });
   };
 
   const handleBuyNow = () => {
@@ -253,8 +256,17 @@ export const ProductDetailPage = () => {
       message.error("Phiên bản này hiện đã tạm hết hàng");
       return;
     }
-    message.success(`Chuyển đến trang thanh toán cho "${product.name}"`);
-    navigate("/checkout");
+    addToCart(
+      {
+        productVariantId: selectedVariant.id,
+        quantity,
+      },
+      {
+        onSuccess: () => {
+          navigate("/cart");
+        },
+      }
+    );
   };
 
   const breadcrumbItems = product

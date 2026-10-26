@@ -16,6 +16,7 @@ import { useAuthStore, useLogout, AUTH_STATUS } from "@features/auth";
 import { USER_ROLES } from "@core/constants/role.constants";
 import { AppleLogo } from "@shared/components/icons";
 import { useCategories } from "@features/storefront/catalog";
+import { useCart } from "@features/storefront/cart";
 
 export const StorefrontHeader = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -28,8 +29,16 @@ export const StorefrontHeader = () => {
   const { mutate: logout } = useLogout();
   const isSuperAdmin = user?.role === USER_ROLES.SUPER_ADMIN;
   const { data: categories } = useCategories();
+  const { data: cart } = useCart();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+
+  const availableCartCount = useMemo(() => {
+    if (!cart?.items || cart.items.length === 0) return 0;
+    return cart.items
+      .filter((item) => item.isAvailable && item.quantityInStock > 0)
+      .reduce((sum, item) => sum + item.quantity, 0);
+  }, [cart?.items]);
 
   const activeCategorySlug = useMemo(() => {
     if (location.pathname === "/products") {
@@ -224,14 +233,16 @@ export const StorefrontHeader = () => {
             aria-label="Tìm kiếm"
           />
 
-          <Badge count={0} showZero={false} size="small" offset={[-2, 2]}>
-            <Button
-              type="text"
-              icon={<ShoppingCartOutlined />}
-              className="flex items-center justify-center w-9 h-9 text-slate-600 hover:bg-slate-100 rounded-lg text-lg shrink-0"
-              aria-label="Giỏ hàng"
-            />
-          </Badge>
+          <Link to="/cart" aria-label="Giỏ hàng" data-testid="header-cart-link">
+            <Badge count={availableCartCount} showZero={false} size="small" offset={[-2, 2]}>
+              <Button
+                type="text"
+                icon={<ShoppingCartOutlined />}
+                className="flex items-center justify-center w-9 h-9 text-slate-600 hover:bg-slate-100 rounded-lg text-lg shrink-0 cursor-pointer"
+                aria-label="Giỏ hàng"
+              />
+            </Badge>
+          </Link>
 
           <div className="hidden md:flex items-center shrink-0">
             {status === AUTH_STATUS.CHECKING_AUTH ? (
@@ -392,6 +403,18 @@ export const StorefrontHeader = () => {
           </div>
 
           <div className="border-t border-slate-100 my-3 pt-3">
+            <Link
+              to="/cart"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-bold text-xs mb-3 border border-blue-200/60"
+            >
+              <div className="flex items-center gap-2">
+                <ShoppingCartOutlined className="text-base" />
+                <span>Giỏ hàng của bạn</span>
+              </div>
+              <Badge count={availableCartCount} showZero={false} size="small" />
+            </Link>
+
             {user ? (
               <div className="flex flex-col gap-2">
                 <Button

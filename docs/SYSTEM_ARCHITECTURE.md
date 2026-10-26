@@ -83,12 +83,12 @@ Giao diện người dùng sử dụng **ReactJS** được tổ chức theo ki�
 
 ### 3.1. Phân tách Phân hệ Độc lập
 Hệ thống chia tách độc lập 2 phân hệ lớn:
-1. **Storefront (`src/features/storefront`, `src/pages/storefront`):** Giao diện bán hàng cao cấp cho người tiêu dùng (`StorefrontLayout`), phục vụ xem sản phẩm, đổi biến thể màu/dung lượng tức thì, giỏ hàng và mua sắm.
+1. **Storefront (`src/features/storefront`, `src/pages/storefront`):** Giao diện bán hàng cao cấp cho người tiêu dùng (`StorefrontLayout`), phục vụ xem sản phẩm, đổi biến thể màu/dung lượng tức thì, giỏ hàng trực tuyến (`src/features/storefront/cart`) hỗ trợ khách vãng lai, tự động gộp giỏ hàng khi đăng nhập, đổi phân loại trong giỏ và tự phục hồi số lượng tồn kho.
 2. **Admin Portal (`src/features/admin`, `src/pages/admin`):** Cổng quản trị tập trung (`AdminLayout`), sidebar điều hướng đa cấp, dashboard số liệu, quản lý danh mục, sản phẩm, biến thể, màu sắc, cấu hình hệ thống.
 3. **Module Xác thực dùng chung (`src/features/auth`):** Cung cấp các biểu mẫu đăng nhập, đăng ký và cơ chế lưu trữ phiên làm việc an toàn cho cả hai phân hệ.
 
 ### 3.2. Cấu trúc Phân tầng Nội bộ Feature
-Mỗi module nghiệp vụ (ví dụ: `catalog`, `auth`) được đóng gói khép kín thành các tầng:
+Mỗi module nghiệp vụ (ví dụ: `catalog`, `cart`, `auth`) được đóng gói khép kín thành các tầng:
 - `types/`: Định nghĩa kiểu tĩnh TypeScript cho DTOs, payload và models.
 - `constants/`: Hằng số nội bộ và query keys phục vụ việc định danh bộ nhớ đệm cache.
 - `api/`: Các hàm gọi HTTP thô tới backend, sử dụng cấu hình Axios instance dùng chung.
