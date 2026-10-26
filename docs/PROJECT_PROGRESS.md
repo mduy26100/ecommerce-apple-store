@@ -130,15 +130,22 @@ Nhóm phân loại các đầu việc theo 3 trạng thái cụ thể:
   - Giao diện danh sách đơn hàng đã đặt phân trang, bộ lọc nhanh theo trạng thái (`Chờ xử lý`, `Đã xác nhận`, `Đang giao`, `Đã giao`, `Đã nhận hàng`, `Đã hủy`) và tìm kiếm từ khóa.
   - Ngăn kéo (Drawer) Chi tiết đơn hàng chuyên sâu: Xem snapshot danh sách mặt hàng tại thời điểm đặt, thông tin người nhận, timeline nhật ký trạng thái (`StatusHistoryJson`) và nút chuyển trạng thái tuần tự cho Quản trị viên (`Xác nhận`, `Giao hàng`, `Đã giao hàng`, `Hủy đơn`).
 
+- [x] **Tích hợp Cổng Thanh toán Trực tuyến VNPay Sandbox (Online Payment Integration):**
+  - [x] **Kiến trúc Clean Architecture:** Phân tách rõ ràng giữa `Application` (giao diện `IVnPayService`, DTOs, Settings) và `Infrastructure` (triển khai thuật toán băm HMAC-SHA512 `VnPayService`).
+  - [x] **Xử lý phản hồi kép Return URL & Webhook IPN:** Kiểm tra chữ ký bí mật, cập nhật trạng thái đơn hàng tức thời, hỗ trợ xử lý Idempotent khi có nhiều callback gửi về đồng thời.
+  - [x] **Chuẩn hóa múi giờ Việt Nam (UTC+7):** Đồng bộ `vnp_CreateDate` và `vnp_ExpireDate` khi chạy backend trong Docker Linux container để khắc phục triệt để lỗi hết hạn giao dịch.
+  - [x] **Tính năng Thanh toán lại qua VNPay:** Hỗ trợ khách hàng tiếp tục thanh toán đơn VNPAY chưa hoàn thành trực tiếp từ trang "Đơn hàng của tôi".
+  - [x] **Tự động hóa toàn diện qua Docker & Ngrok:** Tích hợp đường hầm Ngrok tự động nạp `NGROK_AUTHTOKEN` và config từ `.env` để chỉ 1 lệnh `docker compose up -d` là toàn bộ hệ thống sẵn sàng.
+  - [x] **Kiểm thử tự động E2E Headless Playwright:** 5 kịch bản bao phủ toàn diện luồng thanh toán tại `test-playwright/e2e/vnpay-payment-flow.spec.ts` đạt tỷ lệ **PASS 100%**.
+
 ---
 
 ### [ ] Kế hoạch dự kiến
 
 > **Ghi chú:** Dự kiến điều chỉnh theo phản hồi thực tế khi ghép nối hệ thống.
 
-- [ ] **Tích hợp Cổng thanh toán trực tuyến:**
-  - Tích hợp cổng thanh toán trực tuyến qua VNPay, MoMo, ZaloPay.
-  - Xử lý xác thực chữ ký số an toàn và tiếp nhận phản hồi tức thời qua Webhook IPN.
+- [ ] **Mở rộng các Cổng thanh toán khác:**
+  - Bổ sung MoMo, ZaloPay, Apple Pay.
 - [ ] **Tích hợp Đơn vị Vận chuyển tự động:**
   - Kết nối API đơn vị giao vận (Giao Hàng Nhanh - GHN / Viettel Post).
   - Tự động tính cước vận chuyển theo vị trí địa lý và tạo mã vận đơn tự động ngay khi duyệt đơn.

@@ -33,6 +33,7 @@ import {
   CloseCircleOutlined,
   SearchOutlined,
   EditOutlined,
+  CreditCardOutlined,
 } from "@ant-design/icons";
 import { AppleLogo } from "@shared/components/icons/AppleLogo";
 import { useAuthStore, AUTH_STATUS } from "@features/auth";
@@ -255,6 +256,25 @@ const MyOrdersPage: React.FC = () => {
     }
   };
 
+  const [repayingOrderId, setRepayingOrderId] = useState<number | null>(null);
+
+  const handleRepay = async (orderId: number) => {
+    try {
+      setRepayingOrderId(orderId);
+      const res = await orderApi.repayVnPay(orderId);
+      if (res?.paymentUrl) {
+        window.location.href = res.paymentUrl;
+      } else {
+        message.error("Không thể khởi tạo đường dẫn thanh toán VNPAY.");
+      }
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.error?.message || err?.response?.data?.message || err?.message || "Không thể thực hiện thanh toán lại.";
+      message.error(errMsg);
+    } finally {
+      setRepayingOrderId(null);
+    }
+  };
+
   const getStepCurrent = (orderStatus: string) => {
     switch (orderStatus.toLowerCase()) {
       case "pending":
@@ -451,6 +471,19 @@ const MyOrdersPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {order.canRepay && (
+                      <Button
+                        type="primary"
+                        size="middle"
+                        icon={<CreditCardOutlined />}
+                        loading={repayingOrderId === order.id}
+                        onClick={() => handleRepay(order.id)}
+                        className="bg-blue-600 hover:bg-blue-500! rounded-xl font-medium text-xs h-9 text-white shadow-sm shadow-blue-500/20"
+                      >
+                        Thanh toán lại VNPAY
+                      </Button>
+                    )}
+
                     {order.status.toUpperCase() === "PENDING" && (
                       <Button
                         danger
@@ -737,7 +770,19 @@ const MyOrdersPage: React.FC = () => {
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-              <div>
+              <div className="flex items-center gap-2">
+                {selectedOrder.canRepay && (
+                  <Button
+                    type="primary"
+                    icon={<CreditCardOutlined />}
+                    loading={repayingOrderId === selectedOrder.id}
+                    onClick={() => handleRepay(selectedOrder.id)}
+                    className="bg-blue-600 hover:bg-blue-500! rounded-xl font-medium text-xs text-white"
+                  >
+                    Thanh toán lại qua VNPAY
+                  </Button>
+                )}
+
                 {selectedOrder.status.toLowerCase() === "pending" && (
                   <Button
                     danger

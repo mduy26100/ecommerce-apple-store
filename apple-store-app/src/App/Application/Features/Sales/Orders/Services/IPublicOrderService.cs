@@ -16,5 +16,6 @@ namespace Application.Features.Sales.Orders.Services
         Task UpdateShippingAddressAsync(int id, UpdateOrderShippingAddressRequest request, int currentUserId, CancellationToken cancellationToken = default);
         Task CancelOrderAsync(int id, CancelOrderRequest request, int currentUserId, CancellationToken cancellationToken = default);
         Task ConfirmReceivedAsync(int id, int currentUserId, CancellationToken cancellationToken = default);
+        Task<string> CreateRepayUrlAsync(int orderId, int currentUserId, string? clientIpAddress, CancellationToken cancellationToken = default);
     }
 }

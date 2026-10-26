@@ -56,9 +56,8 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var dbContext = services.GetRequiredService<AppDbContext>();
 
-    Console.WriteLine("[INFO] [DATABASE] Đang kiểm tra kết nối tới SQL Server...");
+    Console.WriteLine("[INFO] [DATABASE] Đang kiểm tra kết nối tới SQL Server và đồng bộ Migrations...");
     var retryCount = 10;
-    var isNewDatabase = false;
     for (var i = 1; i <= retryCount; i++)
     {
         try
@@ -66,105 +65,88 @@ using (var scope = app.Services.CreateScope())
             var canConnect = await dbContext.Database.CanConnectAsync();
             if (!canConnect)
             {
-                isNewDatabase = true;
                 Console.WriteLine("[INFO] [DATABASE] Cơ sở dữ liệu chưa tồn tại. Đang tiến hành tạo mới và chạy migrations...");
-                await dbContext.Database.MigrateAsync();
-                Console.WriteLine("[SUCCESS] [DATABASE] Khởi tạo cơ sở dữ liệu và migrations hoàn tất!");
             }
             else
             {
-                var pendingMigrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
-                if (pendingMigrations.Any())
-                {
-                    Console.WriteLine($"[INFO] [DATABASE] Phát hiện {pendingMigrations.Count} migration đang chờ. Đang tự động cập nhật...");
-                    await dbContext.Database.MigrateAsync();
-                    Console.WriteLine("[SUCCESS] [DATABASE] Cập nhật migrations hoàn tất!");
-                }
-                else
-                {
-                    Console.WriteLine("[SUCCESS] [DATABASE] Cơ sở dữ liệu đã sẵn sàng và đồng bộ hoàn toàn.");
-                }
+                Console.WriteLine("[INFO] [DATABASE] Đã kết nối cơ sở dữ liệu. Đang kiểm tra và áp dụng các migrations mới nhất...");
             }
+
+            await dbContext.Database.MigrateAsync();
+            Console.WriteLine("[SUCCESS] [DATABASE] Khởi tạo / cập nhật migrations lên phiên bản mới nhất hoàn tất!");
             break;
         }
         catch (Exception ex)
         {
             if (i == retryCount)
             {
-                Console.WriteLine($"[ERROR] [DATABASE] Không thể kết nối tới SQL Server sau {retryCount} lần thử: {ex.Message}");
+                Console.WriteLine($"[ERROR] [DATABASE] Không thể kết nối hoặc cập nhật migrations tới SQL Server sau {retryCount} lần thử: {ex.Message}");
                 throw;
             }
-            Console.WriteLine($"[WARN] [DATABASE] Chưa thể kết nối tới SQL Server (lần thử {i}/{retryCount}). Đang thử lại sau 3 giây...");
+            Console.WriteLine($"[WARN] [DATABASE] Chưa thể kết nối tới SQL Server (lần thử {i}/{retryCount}): {ex.Message}. Đang thử lại sau 3 giây...");
             await Task.Delay(3000);
         }
     }
 
-    if (isNewDatabase)
+    var testDataFile = Path.Combine(AppContext.BaseDirectory, "data-test.sql");
+    if (!File.Exists(testDataFile))
     {
-        var testDataFile = Path.Combine(AppContext.BaseDirectory, "data-test.sql");
-        if (!File.Exists(testDataFile))
+        testDataFile = "/app/data-test.sql";
+    }
+    if (!File.Exists(testDataFile))
+    {
+        testDataFile = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../data-test.sql"));
+    }
+
+    if (File.Exists(testDataFile))
+    {
+        var hasExistingData = false;
+        try
         {
-            testDataFile = "/app/data-test.sql";
+            var connection = dbContext.Database.GetDbConnection();
+            if (connection.State != System.Data.ConnectionState.Open)
+            {
+                await connection.OpenAsync();
+            }
+            using var checkCmd = connection.CreateCommand();
+            checkCmd.CommandText = "SELECT COUNT(1) FROM [catalog].[Products];";
+            var countObj = await checkCmd.ExecuteScalarAsync();
+            if (countObj != null && Convert.ToInt32(countObj) > 0)
+            {
+                hasExistingData = true;
+            }
         }
-        if (!File.Exists(testDataFile))
+        catch
         {
-            testDataFile = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../data-test.sql"));
         }
 
-        if (File.Exists(testDataFile))
+        if (hasExistingData)
         {
-            var hasExistingData = false;
+            Console.WriteLine("[INFO] [DATABASE] Dữ liệu sản phẩm đã tồn tại trong cơ sở dữ liệu, bỏ qua nạp data-test.sql để bảo toàn dữ liệu.");
+        }
+        else
+        {
+            Console.WriteLine("[INFO] [DATABASE] Phát hiện cơ sở dữ liệu chưa có dữ liệu sản phẩm. Đang tiến hành nạp data-test.sql...");
             try
             {
+                var sql = await File.ReadAllTextAsync(testDataFile);
                 var connection = dbContext.Database.GetDbConnection();
                 if (connection.State != System.Data.ConnectionState.Open)
                 {
                     await connection.OpenAsync();
                 }
-                using var checkCmd = connection.CreateCommand();
-                checkCmd.CommandText = "SELECT COUNT(1) FROM [catalog].[Products];";
-                var countObj = await checkCmd.ExecuteScalarAsync();
-                if (countObj != null && Convert.ToInt32(countObj) > 0)
-                {
-                    hasExistingData = true;
-                }
+                using var command = connection.CreateCommand();
+                command.CommandText = sql;
+                command.CommandTimeout = 300;
+                await command.ExecuteNonQueryAsync();
+                Console.WriteLine("[SUCCESS] [DATABASE] Nạp dữ liệu data-test.sql thành công!");
             }
-            catch
+            catch (Exception ex)
             {
-            }
-
-            if (hasExistingData)
-            {
-                Console.WriteLine("[INFO] [DATABASE] Dữ liệu sản phẩm đã tồn tại, bỏ qua nạp data-test.sql để tránh trùng lặp dữ liệu.");
-            }
-            else
-            {
-                Console.WriteLine("[INFO] [DATABASE] Phát hiện cơ sở dữ liệu mới tạo. Đang tiến hành nạp data-test.sql lần đầu tiên...");
-                try
-                {
-                    var sql = await File.ReadAllTextAsync(testDataFile);
-                    var connection = dbContext.Database.GetDbConnection();
-                    if (connection.State != System.Data.ConnectionState.Open)
-                    {
-                        await connection.OpenAsync();
-                    }
-                    using var command = connection.CreateCommand();
-                    command.CommandText = sql;
-                    command.CommandTimeout = 300;
-                    await command.ExecuteNonQueryAsync();
-                    Console.WriteLine("[SUCCESS] [DATABASE] Nạp dữ liệu data-test.sql thành công!");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[ERROR] [DATABASE] Lỗi khi nạp data-test.sql: {ex.Message}");
-                    throw;
-                }
+                Console.WriteLine($"[ERROR] [DATABASE] Lỗi khi nạp data-test.sql: {ex.Message}");
+                throw;
             }
         }
-    }
-    else
-    {
-        Console.WriteLine("[INFO] [DATABASE] Cơ sở dữ liệu đã tồn tại từ trước, bỏ qua nạp data-test.sql để bảo toàn dữ liệu.");
     }
 
     Console.WriteLine("[INFO] [SEEDER] Đang kiểm tra và khởi tạo dữ liệu mặc định...");

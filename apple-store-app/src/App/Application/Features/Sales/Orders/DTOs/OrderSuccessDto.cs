@@ -10,5 +10,6 @@ namespace Application.Features.Sales.Orders.DTOs
         public string RecipientPhone { get; set; } = default!;
         public string PaymentMethod { get; set; } = default!;
         public DateTimeOffset PlacedAt { get; set; }
+        public string? PaymentUrl { get; set; }
     }
 }

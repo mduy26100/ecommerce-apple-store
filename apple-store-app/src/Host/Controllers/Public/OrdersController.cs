@@ -98,5 +98,15 @@ namespace Host.Controllers.Public
             await _publicOrderService.ConfirmReceivedAsync(id, userId, cancellationToken);
             return Ok();
         }
+
+        [Authorize]
+        [HttpPost("{id:int}/repay-vnpay")]
+        public async Task<IActionResult> RepayVnPay(int id, CancellationToken cancellationToken)
+        {
+            var userId = GetCurrentUserId();
+            var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var paymentUrl = await _publicOrderService.CreateRepayUrlAsync(id, userId, clientIp, cancellationToken);
+            return Ok(new { paymentUrl });
+        }
     }
 }

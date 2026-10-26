@@ -1,8 +1,10 @@
 using Application.Common.Interfaces.Persistence;
 using Application.Common.Interfaces.Storage;
+using Application.Common.Services.Payments;
 using Application.Features.Identity.Services;
 using Infrastructure.Identity.Models;
 using Infrastructure.Identity.Services;
+using Infrastructure.Payments;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Seeders;
 using Infrastructure.Settings;
@@ -18,6 +20,7 @@ namespace Infrastructure
             services.AddIdentityServices();
             services.AddJwtAuthentication(configuration);
             services.AddStorageServices(configuration);
+            services.AddPaymentServices(configuration);
 
             return services;
         }
@@ -119,6 +122,14 @@ namespace Infrastructure
         {
             services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
             services.AddScoped<ICloudinaryService, CloudinaryStorageService>();
+
+            return services;
+        }
+
+        private static IServiceCollection AddPaymentServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<VnPaySettings>(configuration.GetSection(VnPaySettings.SectionName));
+            services.AddScoped<IVnPayService, VnPayService>();
 
             return services;
         }

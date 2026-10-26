@@ -10,7 +10,6 @@ import {
   message,
   Empty,
   Spin,
-  Tooltip,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -207,6 +206,11 @@ const CheckoutPage: React.FC = () => {
       const result = await orderApi.createOrder(payload);
 
       queryClient.invalidateQueries({ queryKey: CART_QUERY_KEYS.CART });
+
+      if (result.paymentUrl) {
+        window.location.href = result.paymentUrl;
+        return;
+      }
 
       navigate("/checkout/success", {
         replace: true,
@@ -634,20 +638,23 @@ const CheckoutPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <Tooltip title="Cổng thanh toán trực tuyến qua thẻ và ví điện tử đang trong giai đoạn kết nối thử nghiệm.">
-                      <div className="p-2.5 rounded-xl bg-slate-50 opacity-60 cursor-not-allowed flex items-start gap-2.5">
-                        <Radio value="ONLINE" disabled className="mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-700 text-xs sm:text-sm">Thanh toán trực tuyến (VNPAY / Thẻ / Ví)</span>
-                            <Tag color="orange" className="rounded-full text-[10px] font-bold">Đang phát triển</Tag>
-                          </div>
-                          <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
-                            Tích hợp QR Code và bảo mật ngân hàng sẽ khả dụng sớm.
-                          </div>
+                    <div
+                      onClick={() => form.setFieldsValue({ paymentMethod: "VNPAY" })}
+                      className="p-2.5 rounded-xl border border-blue-200/80 bg-blue-50/30 hover:bg-blue-50 cursor-pointer transition-colors flex items-start gap-2.5"
+                    >
+                      <Radio value="VNPAY" className="mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-800 text-xs sm:text-sm">
+                            Cổng thanh toán điện tử VNPAY (ATM/QR)
+                          </span>
+                          <Tag color="blue" className="rounded-full text-[10px] font-bold">Khuyên dùng</Tag>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                          Hỗ trợ quét mã VNPAY-QR, thẻ ATM nội địa 40+ ngân hàng và thẻ quốc tế Visa, Master, JCB.
                         </div>
                       </div>
-                    </Tooltip>
+                    </div>
                   </Radio.Group>
                 </Form.Item>
               </div>

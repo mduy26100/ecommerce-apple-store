@@ -71,4 +71,8 @@ export const orderApi = {
   confirmReceived: async (id: number): Promise<void> => {
     await api.post<void>(ORDER_ENDPOINTS.CONFIRM_RECEIVED(id));
   },
+
+  repayVnPay: async (id: number): Promise<{ paymentUrl: string }> => {
+    return await api.post<{ paymentUrl: string }>(ORDER_ENDPOINTS.REPAY_VNPAY(id));
+  },
 };

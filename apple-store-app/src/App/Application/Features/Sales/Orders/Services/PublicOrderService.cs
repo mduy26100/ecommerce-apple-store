@@ -3,6 +3,7 @@ using Application.Features.Sales.Carts.Services;
 using Application.Features.Sales.Orders.DTOs;
 using Application.Features.Sales.Orders.Helpers;
 using Application.Features.Sales.Orders.Specifications;
+using Application.Common.Services.Payments;
 using Application.Features.Sales.Vouchers.DTOs;
 using Application.Features.Sales.Vouchers.Services;
 using Application.Wrappers;
@@ -23,6 +24,7 @@ namespace Application.Features.Sales.Orders.Services
         private readonly IRepository<VoucherUsage> _voucherUsageRepository;
         private readonly IPublicVoucherService _voucherService;
         private readonly ICartService _cartService;
+        private readonly IVnPayService _vnPayService;
 
         public PublicOrderService(
             IRepository<Order> orderRepository,
@@ -32,7 +34,8 @@ namespace Application.Features.Sales.Orders.Services
             IRepository<UserVoucher> userVoucherRepository,
             IRepository<VoucherUsage> voucherUsageRepository,
             IPublicVoucherService voucherService,
-            ICartService cartService)
+            ICartService cartService,
+            IVnPayService vnPayService)
         {
             _orderRepository = orderRepository;
             _orderItemRepository = orderItemRepository;
@@ -42,6 +45,7 @@ namespace Application.Features.Sales.Orders.Services
             _voucherUsageRepository = voucherUsageRepository;
             _voucherService = voucherService;
             _cartService = cartService;
+            _vnPayService = vnPayService;
         }
 
         public async Task<OrderSuccessDto> CreateOrderAsync(CreateOrderRequest request, int? currentUserId, CancellationToken cancellationToken = default)
@@ -81,9 +85,9 @@ namespace Application.Features.Sales.Orders.Services
                 paymentMethod = PaymentMethod.COD;
             }
 
-            if (paymentMethod != PaymentMethod.COD)
+            if (paymentMethod != PaymentMethod.COD && paymentMethod != PaymentMethod.VNPAY)
             {
-                throw new BusinessRuleException("Phương thức thanh toán trực tuyến đang trong quá trình phát triển. Vui lòng chọn Thanh toán khi nhận hàng (COD).");
+                throw new BusinessRuleException("Phương thức thanh toán trực tuyến được hỗ trợ hiện tại là Cổng thanh toán điện tử VNPAY hoặc Thanh toán khi nhận hàng (COD).");
             }
 
             var orderNumber = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
@@ -244,6 +248,18 @@ namespace Application.Features.Sales.Orders.Services
                 }
             }
 
+            string? paymentUrl = null;
+            if (paymentMethod == PaymentMethod.VNPAY)
+            {
+                paymentUrl = _vnPayService.CreatePaymentUrl(new VnPayCreatePaymentRequest
+                {
+                    OrderNumber = order.OrderNumber,
+                    Amount = order.TotalAmount,
+                    OrderInfo = $"Thanh toan don hang {order.OrderNumber}",
+                    ClientIpAddress = null
+                });
+            }
+
             return new OrderSuccessDto
             {
                 OrderId = order.Id,
@@ -254,6 +270,7 @@ namespace Application.Features.Sales.Orders.Services
                 RecipientPhone = order.RecipientPhone,
                 PaymentMethod = order.PaymentMethod.ToString(),
                 PlacedAt = order.PlacedAt,
+                PaymentUrl = paymentUrl,
             };
         }
 
@@ -276,7 +293,11 @@ namespace Application.Features.Sales.Orders.Services
             }
 
             var orders = await _orderRepository.ListAsync(new GuestOrdersByGuestIdSpec(guestId), cancellationToken);
-            return orders.Take(10).Select(MapToSummaryDto).ToList();
+            return orders
+                .Where(o => o.PaymentMethod == PaymentMethod.COD || (o.PaymentMethod == PaymentMethod.VNPAY && o.PaymentStatus == PaymentStatus.Paid))
+                .Take(10)
+                .Select(MapToSummaryDto)
+                .ToList();
         }
 
         public async Task<OrderDetailDto> GetUserOrderDetailAsync(int orderId, int userId, CancellationToken cancellationToken = default)
@@ -286,6 +307,8 @@ namespace Application.Features.Sales.Orders.Services
             {
                 throw new NotFoundException(nameof(Order), orderId);
             }
+
+            await CheckAndCancelExpiredOrderAsync(order, cancellationToken);
 
             return MapToDetailDto(order);
         }
@@ -607,6 +630,92 @@ namespace Application.Features.Sales.Orders.Services
                     LineTotal = i.LineTotal,
                 }).ToList(),
             };
+        }
+
+        public async Task<string> CreateRepayUrlAsync(int orderId, int currentUserId, string? clientIpAddress, CancellationToken cancellationToken = default)
+        {
+            var order = await _orderRepository.FirstOrDefaultAsync(new OrderByIdWithDetailsSpec(orderId), cancellationToken);
+            if (order == null || order.UserId != currentUserId)
+            {
+                throw new NotFoundException("Đơn hàng", orderId);
+            }
+
+            if (order.PaymentMethod != PaymentMethod.VNPAY || order.PaymentStatus != PaymentStatus.Pending)
+            {
+                throw new BusinessRuleException("Đơn hàng không hỗ trợ thanh toán lại trực tuyến.");
+            }
+
+            if (order.Status != OrderStatus.Pending)
+            {
+                throw new BusinessRuleException("Đơn hàng không ở trạng thái chờ thanh toán.");
+            }
+
+            if (DateTimeOffset.UtcNow > order.PlacedAt.AddMinutes(15))
+            {
+                await CheckAndCancelExpiredOrderAsync(order, cancellationToken);
+                throw new BusinessRuleException("Đơn hàng đã hết thời hạn thanh toán (15 phút) và đã được tự động hủy.");
+            }
+
+            return _vnPayService.CreatePaymentUrl(new VnPayCreatePaymentRequest
+            {
+                OrderNumber = order.OrderNumber,
+                Amount = order.TotalAmount,
+                OrderInfo = $"Thanh toan lai don hang {order.OrderNumber}",
+                ClientIpAddress = clientIpAddress
+            });
+        }
+
+        private async Task CheckAndCancelExpiredOrderAsync(Order order, CancellationToken cancellationToken)
+        {
+            if (order.PaymentMethod == PaymentMethod.VNPAY
+                && order.PaymentStatus == PaymentStatus.Pending
+                && order.Status == OrderStatus.Pending
+                && DateTimeOffset.UtcNow > order.PlacedAt.AddMinutes(15))
+            {
+                foreach (var item in order.Items)
+                {
+                    if (item.ProductVariantId.HasValue)
+                    {
+                        var variant = await _variantRepository.GetByIdAsync(item.ProductVariantId.Value, cancellationToken);
+                        if (variant != null)
+                        {
+                            variant.QuantityInStock += item.Quantity;
+                            await _variantRepository.UpdateAsync(variant, cancellationToken);
+                        }
+                    }
+                }
+
+                if (order.VoucherId.HasValue)
+                {
+                    var voucher = await _voucherRepository.GetByIdAsync(order.VoucherId.Value, cancellationToken);
+                    if (voucher != null && voucher.UsageCount > 0)
+                    {
+                        voucher.UsageCount -= 1;
+                        await _voucherRepository.UpdateAsync(voucher, cancellationToken);
+                    }
+
+                    if (order.UserId.HasValue)
+                    {
+                        var userVouchers = await _userVoucherRepository.ListAsync(cancellationToken);
+                        var userVoucher = userVouchers.FirstOrDefault(uv => uv.UserId == order.UserId.Value && uv.VoucherId == order.VoucherId.Value && uv.IsActive && !uv.IsDeleted);
+                        if (userVoucher != null && userVoucher.UsedCount > 0)
+                        {
+                            userVoucher.UsedCount -= 1;
+                            await _userVoucherRepository.UpdateAsync(userVoucher, cancellationToken);
+                        }
+                    }
+                }
+
+                order.Status = OrderStatus.Cancelled;
+                order.StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
+                    order.StatusHistoryJson,
+                    OrderStatus.Cancelled,
+                    "System",
+                    "Hệ thống Apple Store",
+                    "Đơn hàng tự động hủy do quá thời hạn thanh toán VNPAY (15 phút).");
+
+                await _orderRepository.UpdateAsync(order, cancellationToken);
+            }
         }
     }
 }

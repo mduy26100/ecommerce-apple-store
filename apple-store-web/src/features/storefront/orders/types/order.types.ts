@@ -37,6 +37,7 @@ export interface OrderSuccessResponse {
   recipientPhone: string;
   paymentMethod: string;
   placedAt: string;
+  paymentUrl?: string | null;
 }
 
 export interface OrderItemDetail {
@@ -88,6 +89,8 @@ export interface OrderDetail {
   placedAt: string;
   shippingAddressUpdateCount?: number;
   canUpdateShippingAddress?: boolean;
+  canRepay?: boolean;
+  expiresAt?: string | null;
   statusHistoryJson?: string | null;
   statusHistory?: OrderStatusHistoryItem[];
   items: OrderItemDetail[];
@@ -126,6 +129,12 @@ export interface OrderSummary {
   totalAmount: number;
   totalItems: number;
   placedAt: string;
+  canRepay?: boolean;
+  expiresAt?: string | null;
+}
+
+export interface RepayVnPayResponse {
+  paymentUrl: string;
 }
 
 export interface OrderLookupPayload {

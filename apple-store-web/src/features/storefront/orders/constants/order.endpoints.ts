@@ -12,4 +12,5 @@ export const ORDER_ENDPOINTS = {
   CANCEL: (id: number) => `/api/orders/${id}/cancel`,
   CONFIRM_RECEIVED: (id: number) => `/api/orders/${id}/confirm-received`,
   UPDATE_SHIPPING_ADDRESS: (id: number) => `/api/orders/my-orders/${id}/shipping-address`,
+  REPAY_VNPAY: (id: number) => `/api/orders/${id}/repay-vnpay`,
 };

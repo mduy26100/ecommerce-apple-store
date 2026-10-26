@@ -14,6 +14,7 @@ import CheckoutPage from "@pages/storefront/Checkout/CheckoutPage";
 import CheckoutSuccessPage from "@pages/storefront/Checkout/CheckoutSuccessPage";
 import MyOrdersPage from "@pages/storefront/Orders/MyOrdersPage";
 import OrderLookupPage from "@pages/storefront/OrderLookup/OrderLookupPage";
+import VnPayReturnPage from "@pages/storefront/Payment/VnPayReturnPage";
 
 import DashboardPage from "@pages/admin/Dashboard/DashboardPage";
 import ColorsPage from "@pages/admin/Colors/ColorsPage";
@@ -73,6 +74,10 @@ const router = createBrowserRouter([
       {
         path: "checkout/success",
         element: <CheckoutSuccessPage />,
+      },
+      {
+        path: "payment/vnpay-return",
+        element: <VnPayReturnPage />,
       },
       {
         path: "orders",

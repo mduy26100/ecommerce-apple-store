@@ -35,3 +35,7 @@ Dự án **Urban Stitch** là nền tảng bán lẻ trực tuyến toàn diện
 
 - 📈 **[Báo cáo Tiến độ Dự án (PROJECT_PROGRESS.md)](./PROJECT_PROGRESS.md):**  
   Bảng theo dõi tiến độ thực tế của nhóm, phân loại rõ các tính năng đã hoàn thành, các phần đang code dở và các dự định tiếp theo.
+
+- 💳 **[Tích hợp Cổng thanh toán VNPay Sandbox (PAYMENT_INTEGRATION.md)](./PAYMENT_INTEGRATION.md):**  
+  Kiến trúc Clean Architecture phân tầng cho dịch vụ thanh toán, luồng xử lý Return URL & IPN Webhook, mã hóa HMAC-SHA512, cơ chế thanh toán lại và kiểm thử tự động toàn diện với Playwright.
+

@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8088";
+
 test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn hàng (Checkout & Orders Flow)", () => {
   test("1. Khách vãng lai: Đặt hàng COD, áp dụng voucher APPLE2026, chuyển hướng trang thành công", async ({ page }) => {
     await page.goto("/products/iphone-16-pro-max");
@@ -52,7 +54,7 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
     const codOption = page.locator("text=Thanh toán khi nhận hàng (COD)");
     await expect(codOption).toBeVisible();
 
-    const onlineOption = page.locator("text=Đang phát triển");
+    const onlineOption = page.locator("text=Cổng thanh toán điện tử VNPAY");
     await expect(onlineOption).toBeVisible();
 
     const [createOrderResponse] = await Promise.all([
@@ -235,7 +237,7 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
   });
 
   test("5. Bảo mật Backend: Kiểm tra chống làm sai lệch dữ liệu từ FE (Đơn giá, voucher giả mạo, phương thức thanh toán)", async ({ request }) => {
-    const fakeVoucherRes = await request.post("http://localhost:5288/api/orders", {
+    const fakeVoucherRes = await request.post("/api/orders", {
       data: {
         recipientName: "Khách Hack Voucher",
         recipientPhone: "0912345678",
@@ -258,7 +260,7 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
     });
     expect(fakeVoucherRes.status()).toBe(400);
 
-    const invalidPaymentRes = await request.post("http://localhost:5288/api/orders", {
+    const invalidPaymentRes = await request.post("/api/orders", {
       data: {
         recipientName: "Khách Hack Payment",
         recipientPhone: "0912345678",
@@ -280,12 +282,12 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
     });
     expect(invalidPaymentRes.status()).toBe(400);
 
-    const productRes = await request.get("http://localhost:5288/api/products/iphone-16-pro-max");
+    const productRes = await request.get("/api/products/iphone-16-pro-max");
     const productJson = await productRes.json();
     const availableVariant = (productJson?.data?.variants || []).find((v: any) => v.quantityInStock > 0);
     expect(availableVariant).toBeTruthy();
 
-    const priceTamperRes = await request.post("http://localhost:5288/api/orders", {
+    const priceTamperRes = await request.post("/api/orders", {
       data: {
         recipientName: "Khách Thử Đổi Giá",
         recipientPhone: "0912345678",
@@ -312,12 +314,12 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
   });
 
   test("6. Bảo mật Tra cứu Đơn hàng: Chỉ cho phép tra cứu đơn khách vãng lai, chặn đơn của thành viên và loại bỏ API hủy public", async ({ page, request }) => {
-    const userOrderRes = await request.get("http://localhost:5288/api/manager/orders?pageSize=50");
+    const userOrderRes = await request.get("/api/manager/orders?pageSize=50");
     const userOrderJson = await userOrderRes.json();
     const registeredOrder = (userOrderJson?.data || []).find((o: any) => o.userId != null);
 
     if (registeredOrder) {
-      const publicLookupAttempt = await request.post("http://localhost:5288/api/orders/lookup", {
+      const publicLookupAttempt = await request.post("/api/orders/lookup", {
         data: {
           orderNumber: registeredOrder.orderNumber,
           phoneOrEmail: registeredOrder.recipientPhone || registeredOrder.recipientEmail,
@@ -326,7 +328,7 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
       expect(publicLookupAttempt.status()).toBe(404);
     }
 
-    const cancelPublicAttempt = await request.post("http://localhost:5288/api/orders/lookup/cancel", {
+    const cancelPublicAttempt = await request.post("/api/orders/lookup/cancel", {
       data: {
         orderNumber: "ORD-FAKE-12345",
         phoneOrEmail: "fake@apple.com",
@@ -350,7 +352,7 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
   });
 
   test("7. Thành viên đăng nhập: Đổi địa chỉ nhận hàng (tối đa 1 lần), bảo mật chống hủy đơn chéo tài khoản và hủy đơn khi Chờ xử lý", async ({ page, request }) => {
-    const productRes = await request.get("http://localhost:5288/api/products/iphone-16-pro-max");
+    const productRes = await request.get("/api/products/iphone-16-pro-max");
     const productJson = await productRes.json();
     const availableVariant = (productJson?.data?.variants || []).find((v: any) => v.quantityInStock > 0);
     const initialStock = availableVariant.quantityInStock;
@@ -362,7 +364,7 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
     await page.click("button[type='submit']");
     await page.waitForURL("**/", { timeout: 10000 });
 
-    const userLoginRes = await request.post("http://localhost:5288/api/auth/login", {
+    const userLoginRes = await request.post("/api/auth/login", {
       data: { identifier: "user@apple-store.com", password: "User@123456" },
     });
     const userLoginJson = await userLoginRes.json();
@@ -390,18 +392,18 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
 
     await page.waitForURL("**/checkout/success");
 
-    const unauthCancelRes = await request.post(`http://localhost:5288/api/orders/${newOrderId}/cancel`, {
+    const unauthCancelRes = await request.post(`/api/orders/${newOrderId}/cancel`, {
       data: { reason: "Kẻ xấu cố tình hủy" },
     });
     expect(unauthCancelRes.status()).toBe(401);
 
-    const adminLoginRes = await request.post("http://localhost:5288/api/auth/login", {
+    const adminLoginRes = await request.post("/api/auth/login", {
       data: { identifier: "admin@apple-store.com", password: "Admin@123456" },
     });
     const adminLoginJson = await adminLoginRes.json();
     const adminToken = adminLoginJson?.data?.accessToken || adminLoginJson?.accessToken;
 
-    const crossUserCancelRes = await request.post(`http://localhost:5288/api/orders/${newOrderId}/cancel`, {
+    const crossUserCancelRes = await request.post(`/api/orders/${newOrderId}/cancel`, {
       headers: { Authorization: `Bearer ${adminToken}` },
       data: { reason: "User khác cố tình hủy trộm" },
     });
@@ -441,7 +443,7 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
     await expect(detailModal.locator("text=Đã cập nhật địa chỉ (1/1 lần)")).toBeVisible();
     await expect(detailModal.locator("button:has-text('Đổi địa chỉ nhận hàng')")).toHaveCount(0);
 
-    const secondUpdateRes = await request.put(`http://localhost:5288/api/orders/my-orders/${newOrderId}/shipping-address`, {
+    const secondUpdateRes = await request.put(`/api/orders/my-orders/${newOrderId}/shipping-address`, {
       headers: { Authorization: `Bearer ${userToken}` },
       data: {
         recipientName: "Test",
@@ -467,7 +469,7 @@ test.describe("Storefront - Toàn bộ Quy trình Thanh toán & Quản lý Đơn
 
     await page.click("button:has-text('Đóng')");
 
-    const afterCancelRes = await request.get("http://localhost:5288/api/products/iphone-16-pro-max");
+    const afterCancelRes = await request.get("/api/products/iphone-16-pro-max");
     const afterCancelJson = await afterCancelRes.json();
     const stockAfterCancel = (afterCancelJson?.data?.variants || []).find((v: any) => v.id === availableVariant.id)?.quantityInStock;
     expect(stockAfterCancel).toBe(initialStock);
