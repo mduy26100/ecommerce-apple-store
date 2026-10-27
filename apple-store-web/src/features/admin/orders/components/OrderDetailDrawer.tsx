@@ -169,7 +169,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                 >
                   Cập nhật trạng thái
                 </Button>
-                {order.status !== "Cancelled" && order.status !== "Delivered" && (
+                {order.status !== "Cancelled" && order.status !== "Delivered" && order.paymentStatus !== "Paid" && (
                   <Popconfirm
                     title="Xác nhận hủy đơn hàng"
                     description="Đơn hàng sẽ được chuyển sang Đã hủy và toàn bộ số lượng sẽ được hoàn lại kho."

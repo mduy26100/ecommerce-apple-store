@@ -301,7 +301,7 @@ Sử dụng cấu trúc chuẩn của **ASP.NET Core Identity** đặt trong sch
 
 ## 5. Giải trình Thiết kế: Tối ưu cho Ngành Bán Lẻ Điện Thoại & Thiết Bị Công Nghệ
 
-Hệ thống bán lẻ thiết bị công nghệ Apple đòi hỏi sự kết hợp hài hòa giữa tốc độ truy vấn cao và khả năng biến đổi cấu hình linh hoạt:
+Hệ thống bán lẻ thiết bị công nghệ Apple đòi hỏi sự kết hợp hài hòa giữa tốc độ truy vấn cao, khả năng biến đổi cấu hình linh hoạt và tính toàn vẹn dữ liệu tài chính - kho hàng tuyệt đối:
 
 1. **Mô hình Hybrid EAV (Cố định kết hợp Động):**  
    - 95% dòng máy iPhone phân hóa theo Màu sắc và Dung lượng $\rightarrow$ Đặt trực tiếp khóa ngoại `ColorId` và `StorageOptionId` trong `ProductVariants` có đánh Index giúp các thao tác lọc danh mục, tìm kiếm trên Storefront đạt tốc độ tối đa không cần qua bảng nối.
@@ -310,7 +310,16 @@ Hệ thống bán lẻ thiết bị công nghệ Apple đòi hỏi sự kết h�
    - Gom hàng chục thông số phức tạp của thiết bị di động thành các nhóm chuyên môn (Màn hình, Camera, Vi xử lý, Pin & Sạc), phục vụ hiển thị accordion trực quan và dễ dàng phát triển tính năng so sánh cấu hình sau này.
 3. **Quản lý ảnh đa chiều theo màu sắc (Color-specific Media):**  
    - Bảng `ProductImages` liên kết trực tiếp với `ColorId`, giúp giao diện Storefront tự động cập nhật đúng bộ ảnh chụp khi người dùng bấm đổi màu sắc máy.
-4. **Khóa lạc quan chống bán vượt tồn kho (Overselling Concurrency Protection):**  
-   - Cột `RowVersion` trên bảng `ProductVariants` ngăn chặn triệt để tình trạng 2 khách hàng đồng thời đặt mua chiếc máy cuối cùng trong kho.
-5. **Snapshot dữ liệu đơn hàng bất biến (Order Immutability):**  
-   - Bảng `OrderItems` lưu trữ độc lập giá bán và tên sản phẩm tại thời điểm giao dịch, bảo vệ lịch sử hóa đơn không bao giờ bị sai lệch khi giá niêm yết trong kho thay đổi.
+4. **Kiểm soát Tồn kho Tức thì & Tính Nhất quán (Immediate Inventory Reservation):**  
+   - Ngay tại thời điểm người dùng hoàn tất đặt hàng (dù chọn COD hay VNPay), số lượng tồn kho `QuantityInStock` trên bảng `catalog.ProductVariants` được trừ ngay lập tức khi đơn ở trạng thái `Pending` (Chờ xử lý).
+   - Thiết kế này bảo vệ người mua thanh toán trực tuyến: Khách hàng không bao giờ bị rơi vào tình cảnh đã thanh toán tiền qua cổng VNPay nhưng sau đó nhận thông báo "hết hàng" vì bị người khác mua mất trong thời gian nhập thẻ.
+   - Khi đơn hàng bị hủy (`Cancelled`), hệ thống tự động cộng hoàn trả chính xác số lượng biến thể về lại kho hàng trong cùng một giao dịch.
+5. **Cơ chế Khóa Tương tranh Đa Cấp Chống Bán Vượt Tồn Kho (Multi-level Concurrency Protection):**  
+   - Kết hợp nhịp nhàng giữa 3 lớp phòng vệ: **Semaphore khóa bộ nhớ** theo thứ tự ID biến thể tăng dần (Lock Ordering triệt tiêu Deadlock) $\rightarrow$ **Giao dịch toàn vẹn ACID** thông qua `IDatabaseTransaction` $\rightarrow$ **Khóa lạc quan cấp dữ liệu** với cột `RowVersion` kiểu `rowversion/timestamp` trên bảng `catalog.ProductVariants`.
+   - Ngăn chặn triệt để tình trạng 2 khách hàng đồng thời đặt mua chiếc máy cuối cùng trong kho.
+6. **Snapshot Dữ liệu Đơn hàng Bất biến (Order Immutability):**  
+   - Bảng `sales.OrderItems` lưu trữ độc lập giá bán (`UnitPrice`), giá vốn (`CostPrice`), tên sản phẩm (`ProductName`), tên biến thể (`VariantName`), ảnh đại diện (`ThumbnailUrl`) và chuỗi thuộc tính tùy chọn (`SelectedAttributesJson`) tại đúng thời điểm giao dịch.
+   - Bảo vệ lịch sử đơn hàng không bao giờ bị sai lệch khi giá niêm yết trong kho thay đổi hoặc sản phẩm bị sửa đổi cấu hình sau này.
+7. **Tính Bất biến của Đơn hàng đã Thanh toán (Paid Order Immutability & Anti-Cancellation):**  
+   - Khi đơn hàng ghi nhận `PaymentStatus = 'Paid'` (qua IPN Webhook hoặc Return URL đối soát thành công), trạng thái thanh toán được bảo vệ tuyệt đối.
+   - Hệ thống khóa chặt quyền hủy đơn ở cả tầng Domain, tầng Application (`DomainException`) và giao diện Storefront / Admin. Không cho phép bất kỳ hành vi hủy đơn tự do nào đối với các đơn đã nhận tiền, loại bỏ hoàn toàn các rủi ro gian lận hoàn kho khi tiền đã vào tài khoản doanh nghiệp.

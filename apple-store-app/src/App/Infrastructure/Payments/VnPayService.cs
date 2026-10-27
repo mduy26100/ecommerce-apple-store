@@ -4,11 +4,6 @@ using Application.Features.Sales.Orders.Helpers;
 using Application.Features.Sales.Orders.Specifications;
 using Domain.Entities.Sales;
 using Domain.Enums.Sales;
-using Microsoft.Extensions.Options;
-using System.Globalization;
-using System.Net;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Infrastructure.Payments
 {

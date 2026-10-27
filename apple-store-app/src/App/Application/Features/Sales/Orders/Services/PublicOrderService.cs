@@ -25,6 +25,8 @@ namespace Application.Features.Sales.Orders.Services
         private readonly IPublicVoucherService _voucherService;
         private readonly ICartService _cartService;
         private readonly IVnPayService _vnPayService;
+        private readonly IAppDbContext _appDbContext;
+        private static readonly ConcurrentDictionary<int, SemaphoreSlim> _variantLocks = new();
 
         public PublicOrderService(
             IRepository<Order> orderRepository,
@@ -35,7 +37,8 @@ namespace Application.Features.Sales.Orders.Services
             IRepository<VoucherUsage> voucherUsageRepository,
             IPublicVoucherService voucherService,
             ICartService cartService,
-            IVnPayService vnPayService)
+            IVnPayService vnPayService,
+            IAppDbContext appDbContext)
         {
             _orderRepository = orderRepository;
             _orderItemRepository = orderItemRepository;
@@ -46,6 +49,7 @@ namespace Application.Features.Sales.Orders.Services
             _voucherService = voucherService;
             _cartService = cartService;
             _vnPayService = vnPayService;
+            _appDbContext = appDbContext;
         }
 
         public async Task<OrderSuccessDto> CreateOrderAsync(CreateOrderRequest request, int? currentUserId, CancellationToken cancellationToken = default)
@@ -60,7 +64,7 @@ namespace Application.Features.Sales.Orders.Services
                 throw new BusinessRuleException("Vui lòng nhập họ tên người nhận hàng hợp lệ.");
             }
 
-            if (string.IsNullOrWhiteSpace(request.RecipientPhone) || !System.Text.RegularExpressions.Regex.IsMatch(request.RecipientPhone.Trim(), @"^(0|\+84)[0-9]{9,10}$"))
+            if (string.IsNullOrWhiteSpace(request.RecipientPhone) || !Regex.IsMatch(request.RecipientPhone.Trim(), @"^(0|\+84)[0-9]{9,10}$"))
             {
                 throw new BusinessRuleException("Số điện thoại nhận hàng không đúng định dạng.");
             }
@@ -75,11 +79,6 @@ namespace Application.Features.Sales.Orders.Services
                 throw new BusinessRuleException("Vui lòng nhập đầy đủ địa chỉ giao hàng.");
             }
 
-            if (request.Items == null || request.Items.Count == 0)
-            {
-                throw new BusinessRuleException("Đơn hàng phải chứa ít nhất một sản phẩm.");
-            }
-
             if (!Enum.TryParse<PaymentMethod>(request.PaymentMethod, true, out var paymentMethod))
             {
                 paymentMethod = PaymentMethod.COD;
@@ -90,188 +89,224 @@ namespace Application.Features.Sales.Orders.Services
                 throw new BusinessRuleException("Phương thức thanh toán trực tuyến được hỗ trợ hiện tại là Cổng thanh toán điện tử VNPAY hoặc Thanh toán khi nhận hàng (COD).");
             }
 
-            var orderNumber = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
-            decimal subtotal = 0;
+            var distinctVariantIds = request.Items
+                .Where(x => x.ProductVariantId.HasValue && x.ProductVariantId.Value > 0)
+                .Select(x => x.ProductVariantId!.Value)
+                .Distinct()
+                .OrderBy(id => id)
+                .ToList();
 
-            var resolvedUserId = currentUserId ?? (request.UserId.HasValue && request.UserId.Value > 0 ? request.UserId.Value : null);
-
-            var order = new Order
+            var acquiredSemaphores = new List<SemaphoreSlim>();
+            foreach (var variantId in distinctVariantIds)
             {
-                OrderNumber = orderNumber,
-                UserId = resolvedUserId,
-                GuestId = resolvedUserId == null ? request.GuestId : null,
-                Status = OrderStatus.Pending,
-                PaymentMethod = paymentMethod,
-                PaymentStatus = PaymentStatus.Pending,
-                RecipientName = request.RecipientName.Trim(),
-                RecipientPhone = request.RecipientPhone.Trim(),
-                RecipientEmail = request.RecipientEmail.Trim().ToLowerInvariant(),
-                ShippingAddressLine = request.ShippingAddressLine.Trim(),
-                ShippingWard = request.ShippingWard?.Trim(),
-                ShippingDistrict = request.ShippingDistrict?.Trim(),
-                ShippingProvince = request.ShippingProvince.Trim(),
-                CustomerNote = request.CustomerNote?.Trim(),
-                ShippingFee = Math.Max(0, request.ShippingFee),
-                PlacedAt = DateTimeOffset.UtcNow,
-                StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
-                    null,
-                    OrderStatus.Pending,
-                    "Customer",
-                    request.RecipientName.Trim(),
-                    "Khách hàng đặt hàng thành công qua Website."),
-            };
-
-            foreach (var itemReq in request.Items)
-            {
-                if (itemReq.Quantity <= 0)
-                {
-                    throw new BusinessRuleException("Số lượng đặt mua cho mỗi sản phẩm phải lớn hơn 0.");
-                }
-
-                if (!itemReq.ProductVariantId.HasValue || itemReq.ProductVariantId.Value <= 0)
-                {
-                    throw new BusinessRuleException("Mã phân loại sản phẩm không hợp lệ.");
-                }
-
-                var variant = await _variantRepository.GetByIdAsync(itemReq.ProductVariantId.Value, cancellationToken);
-                if (variant == null || !variant.IsActive)
-                {
-                    throw new BusinessRuleException($"Phiên bản '{itemReq.ProductName}' không tồn tại hoặc đã ngừng kinh doanh.");
-                }
-
-                if (variant.QuantityInStock < itemReq.Quantity)
-                {
-                    throw new BusinessRuleException($"Sản phẩm '{itemReq.ProductName}' chỉ còn {variant.QuantityInStock} máy trong kho, không đủ đáp ứng số lượng {itemReq.Quantity}.");
-                }
-
-                var verifiedUnitPrice = variant.Price;
-                var verifiedCostPrice = variant.CostPrice;
-                var lineTotal = verifiedUnitPrice * itemReq.Quantity;
-                subtotal += lineTotal;
-
-                variant.QuantityInStock -= itemReq.Quantity;
-                await _variantRepository.UpdateAsync(variant, cancellationToken);
-
-                order.Items.Add(new OrderItem
-                {
-                    ProductVariantId = variant.Id,
-                    ProductName = itemReq.ProductName,
-                    SKU = variant.SKU,
-                    VariantName = variant.VariantName ?? itemReq.VariantName,
-                    ThumbnailUrl = itemReq.ThumbnailUrl,
-                    SelectedAttributesJson = itemReq.SelectedAttributesJson,
-                    ColorName = itemReq.ColorName,
-                    StorageName = itemReq.StorageName,
-                    CostPrice = verifiedCostPrice,
-                    UnitPrice = verifiedUnitPrice,
-                    Quantity = itemReq.Quantity,
-                    LineTotal = lineTotal,
-                });
+                var sem = _variantLocks.GetOrAdd(variantId, _ => new SemaphoreSlim(1, 1));
+                await sem.WaitAsync(cancellationToken);
+                acquiredSemaphores.Add(sem);
             }
 
-            order.Subtotal = subtotal;
-
-            Voucher? appliedVoucher = null;
-            decimal discountAmount = 0;
-
-            if (!string.IsNullOrWhiteSpace(request.VoucherCode))
+            try
             {
-                var validateResponse = await _voucherService.ValidateVoucherAsync(
-                    resolvedUserId,
-                    new ValidateVoucherRequest
-                    {
-                        VoucherCode = request.VoucherCode,
-                        Subtotal = subtotal,
-                        GuestId = order.GuestId,
-                        Phone = order.RecipientPhone,
-                        Email = order.RecipientEmail
-                    },
-                    cancellationToken);
-
-                if (!validateResponse.IsValid)
+                await using var transaction = await _appDbContext.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    throw new BusinessRuleException(validateResponse.Message ?? "Mã giảm giá không hợp lệ.");
-                }
+                    var orderNumber = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+                    decimal subtotal = 0;
 
-                if (validateResponse.VoucherId.HasValue)
-                {
-                    appliedVoucher = await _voucherRepository.GetByIdAsync(validateResponse.VoucherId.Value, cancellationToken);
-                    if (appliedVoucher != null)
+                    var resolvedUserId = currentUserId ?? (request.UserId.HasValue && request.UserId.Value > 0 ? request.UserId.Value : null);
+
+                    var order = new Order
                     {
-                        discountAmount = validateResponse.DiscountAmount;
-                        order.VoucherId = appliedVoucher.Id;
-                        order.VoucherCode = appliedVoucher.Code;
-                        order.DiscountAmount = discountAmount;
+                        OrderNumber = orderNumber,
+                        UserId = resolvedUserId,
+                        GuestId = resolvedUserId == null ? request.GuestId : null,
+                        Status = OrderStatus.Pending,
+                        PaymentMethod = paymentMethod,
+                        PaymentStatus = PaymentStatus.Pending,
+                        RecipientName = request.RecipientName.Trim(),
+                        RecipientPhone = request.RecipientPhone.Trim(),
+                        RecipientEmail = request.RecipientEmail.Trim().ToLowerInvariant(),
+                        ShippingAddressLine = request.ShippingAddressLine.Trim(),
+                        ShippingWard = request.ShippingWard?.Trim(),
+                        ShippingDistrict = request.ShippingDistrict?.Trim(),
+                        ShippingProvince = request.ShippingProvince.Trim(),
+                        CustomerNote = request.CustomerNote?.Trim(),
+                        ShippingFee = Math.Max(0, request.ShippingFee),
+                        PlacedAt = DateTimeOffset.UtcNow,
+                        StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
+                            null,
+                            OrderStatus.Pending,
+                            "Customer",
+                            request.RecipientName.Trim(),
+                            "Khách hàng đặt hàng thành công qua Website."),
+                    };
 
-                        appliedVoucher.UsageCount++;
-                        await _voucherRepository.UpdateAsync(appliedVoucher, cancellationToken);
-
-                        if (appliedVoucher.TargetType == VoucherTargetType.AssignedOnly && resolvedUserId.HasValue)
+                    foreach (var itemReq in request.Items)
+                    {
+                        if (itemReq.Quantity <= 0)
                         {
-                            var userVouchers = await _userVoucherRepository.ListAsync(cancellationToken);
-                            var userVoucher = userVouchers.FirstOrDefault(uv => uv.UserId == resolvedUserId.Value && uv.VoucherId == appliedVoucher.Id && uv.IsActive && !uv.IsDeleted);
-                            if (userVoucher != null)
+                            throw new BusinessRuleException("Số lượng đặt mua cho mỗi sản phẩm phải lớn hơn 0.");
+                        }
+
+                        if (!itemReq.ProductVariantId.HasValue || itemReq.ProductVariantId.Value <= 0)
+                        {
+                            throw new BusinessRuleException("Mã phân loại sản phẩm không hợp lệ.");
+                        }
+
+                        var variant = await _variantRepository.GetByIdAsync(itemReq.ProductVariantId.Value, cancellationToken);
+                        if (variant == null || !variant.IsActive)
+                        {
+                            throw new BusinessRuleException($"Phiên bản '{itemReq.ProductName}' không tồn tại hoặc đã ngừng kinh doanh.");
+                        }
+
+                        if (variant.QuantityInStock < itemReq.Quantity)
+                        {
+                            throw new BusinessRuleException($"Sản phẩm '{itemReq.ProductName}' chỉ còn {variant.QuantityInStock} máy trong kho, không đủ đáp ứng số lượng {itemReq.Quantity}.");
+                        }
+
+                        var verifiedUnitPrice = variant.Price;
+                        var verifiedCostPrice = variant.CostPrice;
+                        var lineTotal = verifiedUnitPrice * itemReq.Quantity;
+                        subtotal += lineTotal;
+
+                        variant.QuantityInStock -= itemReq.Quantity;
+                        await _variantRepository.UpdateAsync(variant, cancellationToken);
+
+                        order.Items.Add(new OrderItem
+                        {
+                            ProductVariantId = variant.Id,
+                            ProductName = itemReq.ProductName,
+                            SKU = variant.SKU,
+                            VariantName = variant.VariantName ?? itemReq.VariantName,
+                            ThumbnailUrl = itemReq.ThumbnailUrl,
+                            SelectedAttributesJson = itemReq.SelectedAttributesJson,
+                            ColorName = itemReq.ColorName,
+                            StorageName = itemReq.StorageName,
+                            CostPrice = verifiedCostPrice,
+                            UnitPrice = verifiedUnitPrice,
+                            Quantity = itemReq.Quantity,
+                            LineTotal = lineTotal,
+                        });
+                    }
+
+                    order.Subtotal = subtotal;
+
+                    Voucher? appliedVoucher = null;
+                    decimal discountAmount = 0;
+
+                    if (!string.IsNullOrWhiteSpace(request.VoucherCode))
+                    {
+                        var validateResponse = await _voucherService.ValidateVoucherAsync(
+                            resolvedUserId,
+                            new ValidateVoucherRequest
                             {
-                                userVoucher.UsedCount++;
-                                await _userVoucherRepository.UpdateAsync(userVoucher, cancellationToken);
+                                VoucherCode = request.VoucherCode,
+                                Subtotal = subtotal,
+                                GuestId = order.GuestId,
+                                Phone = order.RecipientPhone,
+                                Email = order.RecipientEmail
+                            },
+                            cancellationToken);
+
+                        if (!validateResponse.IsValid)
+                        {
+                            throw new BusinessRuleException(validateResponse.Message ?? "Mã giảm giá không hợp lệ.");
+                        }
+
+                        if (validateResponse.VoucherId.HasValue)
+                        {
+                            appliedVoucher = await _voucherRepository.GetByIdAsync(validateResponse.VoucherId.Value, cancellationToken);
+                            if (appliedVoucher != null)
+                            {
+                                discountAmount = validateResponse.DiscountAmount;
+                                order.VoucherId = appliedVoucher.Id;
+                                order.VoucherCode = appliedVoucher.Code;
+                                order.DiscountAmount = discountAmount;
+
+                                appliedVoucher.UsageCount++;
+                                await _voucherRepository.UpdateAsync(appliedVoucher, cancellationToken);
+
+                                if (appliedVoucher.TargetType == VoucherTargetType.AssignedOnly && resolvedUserId.HasValue)
+                                {
+                                    var userVouchers = await _userVoucherRepository.ListAsync(cancellationToken);
+                                    var userVoucher = userVouchers.FirstOrDefault(uv => uv.UserId == resolvedUserId.Value && uv.VoucherId == appliedVoucher.Id && uv.IsActive && !uv.IsDeleted);
+                                    if (userVoucher != null)
+                                    {
+                                        userVoucher.UsedCount++;
+                                        await _userVoucherRepository.UpdateAsync(userVoucher, cancellationToken);
+                                    }
+                                }
                             }
                         }
                     }
+
+                    order.TotalAmount = Math.Max(0, subtotal + request.ShippingFee - discountAmount);
+
+                    await _orderRepository.AddAsync(order, cancellationToken);
+
+                    if (appliedVoucher != null)
+                    {
+                        var usage = new VoucherUsage
+                        {
+                            VoucherId = appliedVoucher.Id,
+                            OrderId = order.Id,
+                            UserId = resolvedUserId,
+                            GuestId = order.GuestId,
+                            CustomerPhone = order.RecipientPhone,
+                            CustomerEmail = order.RecipientEmail,
+                            DiscountAmount = discountAmount,
+                            UsedAt = DateTimeOffset.UtcNow,
+                        };
+                        await _voucherUsageRepository.AddAsync(usage, cancellationToken);
+                    }
+
+                    foreach (var itemReq in request.Items)
+                    {
+                        if (itemReq.ProductVariantId.HasValue)
+                        {
+                            await _cartService.RemoveItemAsync(resolvedUserId, request.GuestId, itemReq.ProductVariantId.Value, cancellationToken);
+                        }
+                    }
+
+                    await transaction.CommitAsync(cancellationToken);
+
+                    string? paymentUrl = null;
+                    if (paymentMethod == PaymentMethod.VNPAY)
+                    {
+                        paymentUrl = _vnPayService.CreatePaymentUrl(new VnPayCreatePaymentRequest
+                        {
+                            OrderNumber = order.OrderNumber,
+                            Amount = order.TotalAmount,
+                            OrderInfo = $"Thanh toan don hang {order.OrderNumber}",
+                            ClientIpAddress = null
+                        });
+                    }
+
+                    return new OrderSuccessDto
+                    {
+                        OrderId = order.Id,
+                        OrderNumber = order.OrderNumber,
+                        TotalAmount = order.TotalAmount,
+                        RecipientEmail = order.RecipientEmail,
+                        RecipientName = order.RecipientName,
+                        RecipientPhone = order.RecipientPhone,
+                        PaymentMethod = order.PaymentMethod.ToString(),
+                        PlacedAt = order.PlacedAt,
+                        PaymentUrl = paymentUrl,
+                    };
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
                 }
             }
-
-            order.TotalAmount = Math.Max(0, subtotal + request.ShippingFee - discountAmount);
-
-            await _orderRepository.AddAsync(order, cancellationToken);
-
-            if (appliedVoucher != null)
+            finally
             {
-                var usage = new VoucherUsage
+                foreach (var sem in acquiredSemaphores)
                 {
-                    VoucherId = appliedVoucher.Id,
-                    OrderId = order.Id,
-                    UserId = resolvedUserId,
-                    GuestId = order.GuestId,
-                    CustomerPhone = order.RecipientPhone,
-                    CustomerEmail = order.RecipientEmail,
-                    DiscountAmount = discountAmount,
-                    UsedAt = DateTimeOffset.UtcNow,
-                };
-                await _voucherUsageRepository.AddAsync(usage, cancellationToken);
-            }
-
-            foreach (var itemReq in request.Items)
-            {
-                if (itemReq.ProductVariantId.HasValue)
-                {
-                    await _cartService.RemoveItemAsync(resolvedUserId, request.GuestId, itemReq.ProductVariantId.Value, cancellationToken);
+                    sem.Release();
                 }
             }
-
-            string? paymentUrl = null;
-            if (paymentMethod == PaymentMethod.VNPAY)
-            {
-                paymentUrl = _vnPayService.CreatePaymentUrl(new VnPayCreatePaymentRequest
-                {
-                    OrderNumber = order.OrderNumber,
-                    Amount = order.TotalAmount,
-                    OrderInfo = $"Thanh toan don hang {order.OrderNumber}",
-                    ClientIpAddress = null
-                });
-            }
-
-            return new OrderSuccessDto
-            {
-                OrderId = order.Id,
-                OrderNumber = order.OrderNumber,
-                TotalAmount = order.TotalAmount,
-                RecipientEmail = order.RecipientEmail,
-                RecipientName = order.RecipientName,
-                RecipientPhone = order.RecipientPhone,
-                PaymentMethod = order.PaymentMethod.ToString(),
-                PlacedAt = order.PlacedAt,
-                PaymentUrl = paymentUrl,
-            };
         }
 
         public async Task<PagedList<OrderSummaryDto>> GetMyOrdersAsync(int userId, UserOrderPagedRequest request, CancellationToken cancellationToken = default)
@@ -307,8 +342,6 @@ namespace Application.Features.Sales.Orders.Services
             {
                 throw new NotFoundException(nameof(Order), orderId);
             }
-
-            await CheckAndCancelExpiredOrderAsync(order, cancellationToken);
 
             return MapToDetailDto(order);
         }
@@ -475,54 +508,94 @@ namespace Application.Features.Sales.Orders.Services
                 throw new BusinessRuleException("Chỉ đơn hàng ở trạng thái 'Chờ xử lý' mới được phép hủy trực tiếp trên hệ thống. Đối với đơn hàng đã được tiếp nhận hoặc đang vận chuyển, quý khách vui lòng liên hệ Hotline để được hỗ trợ.");
             }
 
-            foreach (var item in order.Items)
+            if (order.PaymentStatus == PaymentStatus.Paid)
             {
-                if (item.ProductVariantId.HasValue)
-                {
-                    var variant = await _variantRepository.GetByIdAsync(item.ProductVariantId.Value, cancellationToken);
-                    if (variant != null)
-                    {
-                        variant.QuantityInStock += item.Quantity;
-                        await _variantRepository.UpdateAsync(variant, cancellationToken);
-                    }
-                }
+                throw new BusinessRuleException("Đơn hàng đã được thanh toán thành công, không thể hủy trực tiếp trên hệ thống. Quý khách vui lòng liên hệ bộ phận Chăm sóc khách hàng qua Hotline 1900 8888 để được hỗ trợ.");
             }
 
-            if (order.VoucherId.HasValue)
-            {
-                var voucher = await _voucherRepository.GetByIdAsync(order.VoucherId.Value, cancellationToken);
-                if (voucher != null && voucher.UsageCount > 0)
-                {
-                    voucher.UsageCount -= 1;
-                    await _voucherRepository.UpdateAsync(voucher, cancellationToken);
-                }
+            var variantIds = order.Items
+                .Where(i => i.ProductVariantId.HasValue)
+                .Select(i => i.ProductVariantId!.Value)
+                .Distinct()
+                .OrderBy(vId => vId)
+                .ToList();
 
-                if (order.UserId.HasValue)
-                {
-                    var userVouchers = await _userVoucherRepository.ListAsync(cancellationToken);
-                    var userVoucher = userVouchers.FirstOrDefault(uv => uv.UserId == order.UserId.Value && uv.VoucherId == order.VoucherId.Value && uv.IsActive && !uv.IsDeleted);
-                    if (userVoucher != null && userVoucher.UsedCount > 0)
-                    {
-                        userVoucher.UsedCount -= 1;
-                        await _userVoucherRepository.UpdateAsync(userVoucher, cancellationToken);
-                    }
-                }
+            var acquiredSemaphores = new List<SemaphoreSlim>();
+            foreach (var vId in variantIds)
+            {
+                var sem = _variantLocks.GetOrAdd(vId, _ => new SemaphoreSlim(1, 1));
+                await sem.WaitAsync(cancellationToken);
+                acquiredSemaphores.Add(sem);
             }
 
-            order.Status = OrderStatus.Cancelled;
-            var reasonNote = string.IsNullOrWhiteSpace(request?.Reason) ? "Khách hàng hủy đơn" : $"Lý do hủy: {request.Reason}";
-            order.CustomerNote = string.IsNullOrWhiteSpace(order.CustomerNote)
-                ? $"[{reasonNote}]"
-                : $"{order.CustomerNote} [{reasonNote}]";
+            try
+            {
+                await using var transaction = await _appDbContext.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    foreach (var item in order.Items)
+                    {
+                        if (item.ProductVariantId.HasValue)
+                        {
+                            var variant = await _variantRepository.GetByIdAsync(item.ProductVariantId.Value, cancellationToken);
+                            if (variant != null)
+                            {
+                                variant.QuantityInStock += item.Quantity;
+                                await _variantRepository.UpdateAsync(variant, cancellationToken);
+                            }
+                        }
+                    }
 
-            order.StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
-                order.StatusHistoryJson,
-                OrderStatus.Cancelled,
-                "Customer",
-                order.RecipientName,
-                reasonNote);
+                    if (order.VoucherId.HasValue)
+                    {
+                        var voucher = await _voucherRepository.GetByIdAsync(order.VoucherId.Value, cancellationToken);
+                        if (voucher != null && voucher.UsageCount > 0)
+                        {
+                            voucher.UsageCount -= 1;
+                            await _voucherRepository.UpdateAsync(voucher, cancellationToken);
+                        }
 
-            await _orderRepository.UpdateAsync(order, cancellationToken);
+                        if (order.UserId.HasValue)
+                        {
+                            var userVouchers = await _userVoucherRepository.ListAsync(cancellationToken);
+                            var userVoucher = userVouchers.FirstOrDefault(uv => uv.UserId == order.UserId.Value && uv.VoucherId == order.VoucherId.Value && uv.IsActive && !uv.IsDeleted);
+                            if (userVoucher != null && userVoucher.UsedCount > 0)
+                            {
+                                userVoucher.UsedCount -= 1;
+                                await _userVoucherRepository.UpdateAsync(userVoucher, cancellationToken);
+                            }
+                        }
+                    }
+
+                    order.Status = OrderStatus.Cancelled;
+                    var reasonNote = string.IsNullOrWhiteSpace(request?.Reason) ? "Khách hàng hủy đơn" : $"Lý do hủy: {request.Reason}";
+                    order.CustomerNote = string.IsNullOrWhiteSpace(order.CustomerNote)
+                        ? $"[{reasonNote}]"
+                        : $"{order.CustomerNote} [{reasonNote}]";
+
+                    order.StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
+                        order.StatusHistoryJson,
+                        OrderStatus.Cancelled,
+                        "Customer",
+                        order.RecipientName,
+                        reasonNote);
+
+                    await _orderRepository.UpdateAsync(order, cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            }
+            finally
+            {
+                foreach (var sem in acquiredSemaphores)
+                {
+                    sem.Release();
+                }
+            }
         }
 
         public async Task ConfirmReceivedAsync(int id, int currentUserId, CancellationToken cancellationToken = default)
@@ -640,7 +713,7 @@ namespace Application.Features.Sales.Orders.Services
                 throw new NotFoundException("Đơn hàng", orderId);
             }
 
-            if (order.PaymentMethod != PaymentMethod.VNPAY || order.PaymentStatus != PaymentStatus.Pending)
+            if (order.PaymentMethod != PaymentMethod.VNPAY || (order.PaymentStatus != PaymentStatus.Pending && order.PaymentStatus != PaymentStatus.Failed))
             {
                 throw new BusinessRuleException("Đơn hàng không hỗ trợ thanh toán lại trực tuyến.");
             }
@@ -650,12 +723,6 @@ namespace Application.Features.Sales.Orders.Services
                 throw new BusinessRuleException("Đơn hàng không ở trạng thái chờ thanh toán.");
             }
 
-            if (DateTimeOffset.UtcNow > order.PlacedAt.AddMinutes(15))
-            {
-                await CheckAndCancelExpiredOrderAsync(order, cancellationToken);
-                throw new BusinessRuleException("Đơn hàng đã hết thời hạn thanh toán (15 phút) và đã được tự động hủy.");
-            }
-
             return _vnPayService.CreatePaymentUrl(new VnPayCreatePaymentRequest
             {
                 OrderNumber = order.OrderNumber,
@@ -663,59 +730,6 @@ namespace Application.Features.Sales.Orders.Services
                 OrderInfo = $"Thanh toan lai don hang {order.OrderNumber}",
                 ClientIpAddress = clientIpAddress
             });
-        }
-
-        private async Task CheckAndCancelExpiredOrderAsync(Order order, CancellationToken cancellationToken)
-        {
-            if (order.PaymentMethod == PaymentMethod.VNPAY
-                && order.PaymentStatus == PaymentStatus.Pending
-                && order.Status == OrderStatus.Pending
-                && DateTimeOffset.UtcNow > order.PlacedAt.AddMinutes(15))
-            {
-                foreach (var item in order.Items)
-                {
-                    if (item.ProductVariantId.HasValue)
-                    {
-                        var variant = await _variantRepository.GetByIdAsync(item.ProductVariantId.Value, cancellationToken);
-                        if (variant != null)
-                        {
-                            variant.QuantityInStock += item.Quantity;
-                            await _variantRepository.UpdateAsync(variant, cancellationToken);
-                        }
-                    }
-                }
-
-                if (order.VoucherId.HasValue)
-                {
-                    var voucher = await _voucherRepository.GetByIdAsync(order.VoucherId.Value, cancellationToken);
-                    if (voucher != null && voucher.UsageCount > 0)
-                    {
-                        voucher.UsageCount -= 1;
-                        await _voucherRepository.UpdateAsync(voucher, cancellationToken);
-                    }
-
-                    if (order.UserId.HasValue)
-                    {
-                        var userVouchers = await _userVoucherRepository.ListAsync(cancellationToken);
-                        var userVoucher = userVouchers.FirstOrDefault(uv => uv.UserId == order.UserId.Value && uv.VoucherId == order.VoucherId.Value && uv.IsActive && !uv.IsDeleted);
-                        if (userVoucher != null && userVoucher.UsedCount > 0)
-                        {
-                            userVoucher.UsedCount -= 1;
-                            await _userVoucherRepository.UpdateAsync(userVoucher, cancellationToken);
-                        }
-                    }
-                }
-
-                order.Status = OrderStatus.Cancelled;
-                order.StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
-                    order.StatusHistoryJson,
-                    OrderStatus.Cancelled,
-                    "System",
-                    "Hệ thống Apple Store",
-                    "Đơn hàng tự động hủy do quá thời hạn thanh toán VNPAY (15 phút).");
-
-                await _orderRepository.UpdateAsync(order, cancellationToken);
-            }
         }
     }
 }

@@ -36,10 +36,6 @@ namespace Infrastructure
                 options.UseSqlServer(connectionString, sqlOptions =>
                 {
                     sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-                    sqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(30),
-                        errorNumbersToAdd: null);
                 });
             });
 

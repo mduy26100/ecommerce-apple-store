@@ -15,15 +15,18 @@ namespace Application.Features.Sales.Orders.Services
         private readonly IRepository<Order> _orderRepository;
         private readonly IRepository<OrderItem> _orderItemRepository;
         private readonly IRepository<ProductVariant> _variantRepository;
+        private readonly IAppDbContext _appDbContext;
 
         public OrderService(
             IRepository<Order> orderRepository,
             IRepository<OrderItem> orderItemRepository,
-            IRepository<ProductVariant> variantRepository)
+            IRepository<ProductVariant> variantRepository,
+            IAppDbContext appDbContext)
         {
             _orderRepository = orderRepository;
             _orderItemRepository = orderItemRepository;
             _variantRepository = variantRepository;
+            _appDbContext = appDbContext;
         }
 
         public async Task<PagedList<OrderSummaryDto>> GetPagedAsync(OrderPagedRequest request, CancellationToken cancellationToken = default)
@@ -95,77 +98,123 @@ namespace Application.Features.Sales.Orders.Services
                 PlacedAt = DateTimeOffset.UtcNow,
             };
 
-            foreach (var itemReq in request.Items)
+            await using var transaction = await _appDbContext.BeginTransactionAsync(cancellationToken);
+            try
             {
-                decimal costPrice = 0;
-                if (itemReq.ProductVariantId.HasValue)
+                foreach (var itemReq in request.Items)
                 {
-                    var variant = await _variantRepository.GetByIdAsync(itemReq.ProductVariantId.Value, cancellationToken);
-                    if (variant == null || !variant.IsActive)
+                    decimal costPrice = 0;
+                    if (itemReq.ProductVariantId.HasValue)
                     {
-                        throw new BusinessRuleException($"Phiên bản '{itemReq.ProductName}' không tồn tại hoặc đã ngừng kinh doanh");
+                        var variant = await _variantRepository.GetByIdAsync(itemReq.ProductVariantId.Value, cancellationToken);
+                        if (variant == null || !variant.IsActive)
+                        {
+                            throw new BusinessRuleException($"Phiên bản '{itemReq.ProductName}' không tồn tại hoặc đã ngừng kinh doanh");
+                        }
+                        if (variant.QuantityInStock < itemReq.Quantity)
+                        {
+                            throw new BusinessRuleException($"Số lượng tồn kho cho '{itemReq.ProductName}' không đủ (còn {variant.QuantityInStock})");
+                        }
+                        costPrice = variant.CostPrice;
+                        variant.QuantityInStock -= itemReq.Quantity;
+                        await _variantRepository.UpdateAsync(variant, cancellationToken);
                     }
-                    if (variant.QuantityInStock < itemReq.Quantity)
+
+                    var lineTotal = itemReq.UnitPrice * itemReq.Quantity;
+                    subtotal += lineTotal;
+
+                    order.Items.Add(new OrderItem
                     {
-                        throw new BusinessRuleException($"Số lượng tồn kho cho '{itemReq.ProductName}' không đủ (còn {variant.QuantityInStock})");
-                    }
-                    costPrice = variant.CostPrice;
-                    variant.QuantityInStock -= itemReq.Quantity;
-                    await _variantRepository.UpdateAsync(variant, cancellationToken);
+                        ProductVariantId = itemReq.ProductVariantId,
+                        ProductName = itemReq.ProductName,
+                        SKU = itemReq.SKU,
+                        VariantName = itemReq.VariantName,
+                        ThumbnailUrl = itemReq.ThumbnailUrl,
+                        SelectedAttributesJson = itemReq.SelectedAttributesJson,
+                        ColorName = itemReq.ColorName,
+                        StorageName = itemReq.StorageName,
+                        CostPrice = costPrice,
+                        UnitPrice = itemReq.UnitPrice,
+                        Quantity = itemReq.Quantity,
+                        LineTotal = lineTotal,
+                    });
                 }
 
-                var lineTotal = itemReq.UnitPrice * itemReq.Quantity;
-                subtotal += lineTotal;
+                order.Subtotal = subtotal;
+                order.TotalAmount = subtotal + request.ShippingFee - order.DiscountAmount;
 
-                order.Items.Add(new OrderItem
-                {
-                    ProductVariantId = itemReq.ProductVariantId,
-                    ProductName = itemReq.ProductName,
-                    SKU = itemReq.SKU,
-                    VariantName = itemReq.VariantName,
-                    ThumbnailUrl = itemReq.ThumbnailUrl,
-                    SelectedAttributesJson = itemReq.SelectedAttributesJson,
-                    ColorName = itemReq.ColorName,
-                    StorageName = itemReq.StorageName,
-                    CostPrice = costPrice,
-                    UnitPrice = itemReq.UnitPrice,
-                    Quantity = itemReq.Quantity,
-                    LineTotal = lineTotal,
-                });
+                await _orderRepository.AddAsync(order, cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                return order.Id;
             }
-
-            order.Subtotal = subtotal;
-            order.TotalAmount = subtotal + request.ShippingFee - order.DiscountAmount;
-
-            await _orderRepository.AddAsync(order, cancellationToken);
-            return order.Id;
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
 
         public async Task UpdateStatusAsync(int id, UpdateOrderStatusRequest request, CancellationToken cancellationToken = default)
         {
-            var order = await _orderRepository.GetByIdAsync(id, cancellationToken);
+            var order = await _orderRepository.FirstOrDefaultAsync(new OrderByIdWithDetailsSpec(id), cancellationToken);
             if (order == null)
             {
                 throw new NotFoundException(nameof(Order), id);
             }
 
-            if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<OrderStatus>(request.Status, true, out var status))
+            var isTransitioningToCancelled = !string.IsNullOrWhiteSpace(request.Status)
+                && Enum.TryParse<OrderStatus>(request.Status, true, out var newStatus)
+                && newStatus == OrderStatus.Cancelled
+                && order.Status != OrderStatus.Cancelled;
+
+            if (isTransitioningToCancelled && order.PaymentStatus == PaymentStatus.Paid)
             {
-                order.Status = status;
-                order.StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
-                    order.StatusHistoryJson,
-                    status,
-                    "Manager",
-                    "Quản trị viên",
-                    request.Note ?? $"Cập nhật trạng thái sang {OrderStatusHistoryHelper.GetStatusDisplayName(status)}");
+                throw new BusinessRuleException("Đơn hàng đã được thanh toán thành công, không thể chuyển sang trạng thái Đã hủy. Vui lòng thực hiện quy trình hoàn tiền.");
             }
 
-            if (!string.IsNullOrWhiteSpace(request.PaymentStatus) && Enum.TryParse<PaymentStatus>(request.PaymentStatus, true, out var paymentStatus))
+            await using var transaction = await _appDbContext.BeginTransactionAsync(cancellationToken);
+            try
             {
-                order.PaymentStatus = paymentStatus;
-            }
+                if (isTransitioningToCancelled)
+                {
+                    foreach (var item in order.Items)
+                    {
+                        if (item.ProductVariantId.HasValue)
+                        {
+                            var variant = await _variantRepository.GetByIdAsync(item.ProductVariantId.Value, cancellationToken);
+                            if (variant != null)
+                            {
+                                variant.QuantityInStock += item.Quantity;
+                                await _variantRepository.UpdateAsync(variant, cancellationToken);
+                            }
+                        }
+                    }
+                }
 
-            await _orderRepository.UpdateAsync(order, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<OrderStatus>(request.Status, true, out var status))
+                {
+                    order.Status = status;
+                    order.StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
+                        order.StatusHistoryJson,
+                        status,
+                        "Manager",
+                        "Quản trị viên",
+                        request.Note ?? $"Cập nhật trạng thái sang {OrderStatusHistoryHelper.GetStatusDisplayName(status)}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.PaymentStatus) && Enum.TryParse<PaymentStatus>(request.PaymentStatus, true, out var paymentStatus))
+                {
+                    order.PaymentStatus = paymentStatus;
+                }
+
+                await _orderRepository.UpdateAsync(order, cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
 
         public async Task CancelOrderAsync(int id, CancelOrderRequest request, CancellationToken cancellationToken = default)
@@ -181,38 +230,53 @@ namespace Application.Features.Sales.Orders.Services
                 return;
             }
 
-            foreach (var item in order.Items)
+            if (order.PaymentStatus == PaymentStatus.Paid)
             {
-                if (item.ProductVariantId.HasValue)
+                throw new BusinessRuleException("Đơn hàng đã được thanh toán thành công, không thể hủy trực tiếp. Vui lòng thực hiện quy trình hoàn tiền.");
+            }
+
+            await using var transaction = await _appDbContext.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                foreach (var item in order.Items)
                 {
-                    var variant = await _variantRepository.GetByIdAsync(item.ProductVariantId.Value, cancellationToken);
-                    if (variant != null)
+                    if (item.ProductVariantId.HasValue)
                     {
-                        variant.QuantityInStock += item.Quantity;
-                        await _variantRepository.UpdateAsync(variant, cancellationToken);
+                        var variant = await _variantRepository.GetByIdAsync(item.ProductVariantId.Value, cancellationToken);
+                        if (variant != null)
+                        {
+                            variant.QuantityInStock += item.Quantity;
+                            await _variantRepository.UpdateAsync(variant, cancellationToken);
+                        }
                     }
                 }
-            }
 
-            order.Status = OrderStatus.Cancelled;
-            var reasonNote = string.IsNullOrWhiteSpace(request?.Reason)
-                ? "Đơn hàng bị hủy bởi ban quản trị"
-                : $"Lý do hủy: {request.Reason}";
-            if (!string.IsNullOrWhiteSpace(request?.Reason))
+                order.Status = OrderStatus.Cancelled;
+                var reasonNote = string.IsNullOrWhiteSpace(request?.Reason)
+                    ? "Đơn hàng bị hủy bởi ban quản trị"
+                    : $"Lý do hủy: {request.Reason}";
+                if (!string.IsNullOrWhiteSpace(request?.Reason))
+                {
+                    order.CustomerNote = string.IsNullOrWhiteSpace(order.CustomerNote)
+                        ? $"[{reasonNote}]"
+                        : $"{order.CustomerNote} [{reasonNote}]";
+                }
+
+                order.StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
+                    order.StatusHistoryJson,
+                    OrderStatus.Cancelled,
+                    "Manager",
+                    "Quản trị viên",
+                    reasonNote);
+
+                await _orderRepository.UpdateAsync(order, cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
             {
-                order.CustomerNote = string.IsNullOrWhiteSpace(order.CustomerNote)
-                    ? $"[{reasonNote}]"
-                    : $"{order.CustomerNote} [{reasonNote}]";
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
             }
-
-            order.StatusHistoryJson = OrderStatusHistoryHelper.AppendHistory(
-                order.StatusHistoryJson,
-                OrderStatus.Cancelled,
-                "Manager",
-                "Quản trị viên",
-                reasonNote);
-
-            await _orderRepository.UpdateAsync(order, cancellationToken);
         }
 
         private static OrderSummaryDto MapToSummaryDto(Order order)

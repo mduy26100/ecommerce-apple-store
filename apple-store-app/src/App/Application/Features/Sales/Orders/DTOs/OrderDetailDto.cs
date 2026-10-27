@@ -25,8 +25,9 @@ namespace Application.Features.Sales.Orders.DTOs
         public DateTimeOffset PlacedAt { get; set; }
         public int ShippingAddressUpdateCount { get; set; }
         public bool CanUpdateShippingAddress => Status == "Pending" && UserId.HasValue && ShippingAddressUpdateCount == 0;
-        public bool CanRepay => PaymentMethod == "VNPAY" && PaymentStatus == "Pending" && Status == "Pending" && UserId.HasValue && DateTimeOffset.UtcNow <= PlacedAt.AddMinutes(15);
-        public DateTimeOffset? ExpiresAt => PaymentMethod == "VNPAY" && PaymentStatus == "Pending" && Status == "Pending" ? PlacedAt.AddMinutes(15) : null;
+        public bool CanRepay => PaymentMethod == "VNPAY" && (PaymentStatus == "Pending" || PaymentStatus == "Failed") && Status == "Pending" && UserId.HasValue;
+        public bool CanCancel => Status == "Pending" && PaymentStatus != "Paid";
+        public DateTimeOffset? ExpiresAt => null;
         public string? StatusHistoryJson { get; set; }
         public List<OrderStatusHistoryItemDto> StatusHistory { get; set; } = new();
         public List<OrderItemDto> Items { get; set; } = new();

@@ -90,6 +90,7 @@ export interface OrderDetail {
   shippingAddressUpdateCount?: number;
   canUpdateShippingAddress?: boolean;
   canRepay?: boolean;
+  canCancel?: boolean;
   expiresAt?: string | null;
   statusHistoryJson?: string | null;
   statusHistory?: OrderStatusHistoryItem[];
@@ -130,6 +131,7 @@ export interface OrderSummary {
   totalItems: number;
   placedAt: string;
   canRepay?: boolean;
+  canCancel?: boolean;
   expiresAt?: string | null;
 }
 

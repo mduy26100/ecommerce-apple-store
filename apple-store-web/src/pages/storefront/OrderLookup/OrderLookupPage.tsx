@@ -29,6 +29,7 @@ import { getGuestId } from "@features/storefront/cart/utils/guest";
 import {
   orderApi,
   OrderStatusBadge,
+  PaymentStatusBadge,
   type OrderDetail,
   type OrderSummary,
 } from "@features/storefront/orders";
@@ -199,6 +200,7 @@ const OrderLookupPage: React.FC = () => {
                   {orderDetail.orderNumber}
                 </span>
                 <OrderStatusBadge status={orderDetail.status} />
+                <PaymentStatusBadge status={orderDetail.paymentStatus} />
               </div>
               <div className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
                 <CalendarOutlined />
@@ -305,7 +307,10 @@ const OrderLookupPage: React.FC = () => {
                   {orderDetail.paymentMethod === "COD" ? "Thanh toán khi nhận hàng (COD)" : orderDetail.paymentMethod}
                 </span>
               </div>
-              <div>Tình trạng thanh toán: <span className="font-semibold text-slate-800">{orderDetail.paymentStatus}</span></div>
+              <div className="flex items-center gap-2">
+                <span>Tình trạng thanh toán:</span>
+                <PaymentStatusBadge status={orderDetail.paymentStatus} />
+              </div>
               <div>Vận chuyển: <span className="font-semibold text-emerald-600">Miễn phí giao hàng</span></div>
               {orderDetail.voucherCode && (
                 <div>

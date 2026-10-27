@@ -75,6 +75,7 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
             options={ORDER_STATUS_OPTIONS.map((opt) => ({
               value: opt.value,
               label: opt.label,
+              disabled: opt.value === "Cancelled" && (order?.paymentStatus === "Paid" || order?.paymentStatus === "paid"),
             }))}
           />
         </Form.Item>

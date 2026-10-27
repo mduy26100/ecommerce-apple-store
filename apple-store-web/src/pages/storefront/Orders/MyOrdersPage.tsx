@@ -41,6 +41,7 @@ import { getGuestId } from "@features/storefront/cart/utils/guest";
 import {
   orderApi,
   OrderStatusBadge,
+  PaymentStatusBadge,
   GuestOrderMergeBanner,
   type OrderSummary,
   type OrderDetail,
@@ -435,6 +436,7 @@ const MyOrdersPage: React.FC = () => {
                     {order.orderNumber}
                   </span>
                   <OrderStatusBadge status={order.status} />
+                  <PaymentStatusBadge status={order.paymentStatus} />
                   <span className="text-xs text-slate-400 flex items-center gap-1">
                     <CalendarOutlined />
                     {new Date(order.placedAt).toLocaleString("vi-VN")}
@@ -484,7 +486,7 @@ const MyOrdersPage: React.FC = () => {
                       </Button>
                     )}
 
-                    {order.status.toUpperCase() === "PENDING" && (
+                    {(order.canCancel ?? (order.status.toUpperCase() === "PENDING" && order.paymentStatus.toUpperCase() !== "PAID")) && (
                       <Button
                         danger
                         size="middle"
@@ -572,11 +574,17 @@ const MyOrdersPage: React.FC = () => {
           </div>
         ) : (
           <div className="py-2 space-y-4">
-            <div className="flex items-center justify-between p-3.5 bg-slate-50/80 rounded-xl">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-50/80 rounded-xl">
               <div>
                 <span className="text-xs text-slate-400 block">Trạng thái đơn:</span>
                 <div className="mt-1">
                   <OrderStatusBadge status={selectedOrder.status} />
+                </div>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block">Thanh toán:</span>
+                <div className="mt-1">
+                  <PaymentStatusBadge status={selectedOrder.paymentStatus} />
                 </div>
               </div>
               <div className="text-right">
@@ -783,7 +791,7 @@ const MyOrdersPage: React.FC = () => {
                   </Button>
                 )}
 
-                {selectedOrder.status.toLowerCase() === "pending" && (
+                {(selectedOrder.canCancel ?? (selectedOrder.status.toLowerCase() === "pending" && selectedOrder.paymentStatus.toLowerCase() !== "paid")) && (
                   <Button
                     danger
                     icon={<CloseCircleOutlined />}

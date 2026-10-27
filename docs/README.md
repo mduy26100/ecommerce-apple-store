@@ -28,14 +28,14 @@ Dự án **Urban Stitch** là nền tảng bán lẻ trực tuyến toàn diện
 Để nắm bắt chi tiết từng khía cạnh kỹ thuật của hệ thống, vui lòng tham khảo các tài liệu chuyên sâu dưới đây:
 
 - 📊 **[Thiết kế Cơ sở Dữ liệu (DATABASE_DESIGN.md)](./DATABASE_DESIGN.md):**  
-  Sơ đồ quan hệ thực thể (ERD), từ điển dữ liệu chi tiết toàn bộ các bảng, các khóa chính/ngoại, chỉ mục (Index) và giải trình kiến trúc dữ liệu linh hoạt (Dynamic Variant EAV, Grouped Specifications) dành riêng cho ngành hàng điện tử viễn thông.
+  Từ điển dữ liệu chi tiết toàn bộ các bảng, các khóa chính/ngoại, chỉ mục (Index), kiểm soát khóa lạc quan (RowVersion) và giải trình kiến trúc dữ liệu linh hoạt (Dynamic Variant EAV, Grouped Specifications) dành riêng cho ngành hàng điện tử viễn thông.
 
 - 🏛️ **[Kiến trúc Hệ thống (SYSTEM_ARCHITECTURE.md)](./SYSTEM_ARCHITECTURE.md):**  
-  Mô hình phân tầng Onion Architecture cho Backend, kiến trúc Feature-based cho Frontend, luồng di chuyển dữ liệu (Data Flow) từ Client tới Database và các chuẩn mực thiết kế API Response.
+  Mô hình phân tầng Onion Architecture cho Backend, kiến trúc Feature-based cho Frontend, luồng di chuyển dữ liệu (Data Flow) từ Client tới Database và chuyên đề chuyên sâu về **Kiến trúc Thanh toán Trực tuyến VNPay & Kiểm soát Tương tranh Đa lớp** (Concurrency Lock, Idempotency, Quản lý Tồn kho).
+
+- 📱 **[Đặc Tả Tính Năng Hệ Thống (FEATURES_SPECIFICATION.md)](./FEATURES_SPECIFICATION.md):**  
+  Tài liệu chức năng chuyên sâu (Functional Specification Document - FSD) đặc tả toàn diện 10 phân hệ nghiệp vụ hiện có của dự án, bao gồm bảng mã tính năng, quy tắc bảo mật Zero-Trust, cơ chế xử lý trường hợp biên, và kiến trúc tự động hóa hạ tầng container Docker.
 
 - 📈 **[Báo cáo Tiến độ Dự án (PROJECT_PROGRESS.md)](./PROJECT_PROGRESS.md):**  
   Bảng theo dõi tiến độ thực tế của nhóm, phân loại rõ các tính năng đã hoàn thành, các phần đang code dở và các dự định tiếp theo.
-
-- 💳 **[Tích hợp Cổng thanh toán VNPay Sandbox (PAYMENT_INTEGRATION.md)](./PAYMENT_INTEGRATION.md):**  
-  Kiến trúc Clean Architecture phân tầng cho dịch vụ thanh toán, luồng xử lý Return URL & IPN Webhook, mã hóa HMAC-SHA512, cơ chế thanh toán lại và kiểm thử tự động toàn diện với Playwright.
 
