@@ -35,6 +35,13 @@ namespace Host.Controllers.Public
             return Ok(result);
         }
 
+        [HttpGet("search")]
+        public async Task<IActionResult> Search([FromQuery] string query, [FromQuery] int limit = 8, CancellationToken cancellationToken = default)
+        {
+            var result = await _productService.SearchAsync(query, limit, cancellationToken);
+            return Ok(result);
+        }
+
         [HttpGet("{slug}")]
         public async Task<IActionResult> GetBySlug([FromRoute] string slug, CancellationToken cancellationToken = default)
         {

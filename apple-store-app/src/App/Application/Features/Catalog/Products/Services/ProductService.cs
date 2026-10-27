@@ -119,6 +119,20 @@ namespace Application.Features.Catalog.Products.Services
             return randomized.Select(MapToCardDto).ToList();
         }
 
+        public async Task<IReadOnlyList<ProductSearchResultDto>> SearchAsync(string query, int limit = 8, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(query) || query.Trim().Length < 3)
+            {
+                return Array.Empty<ProductSearchResultDto>();
+            }
+
+            var safeLimit = limit <= 0 ? 8 : Math.Min(limit, 20);
+            var spec = new ProductQuickSearchSpec(query, safeLimit);
+            var products = await _productRepository.ListAsync(spec, cancellationToken);
+
+            return products.Select(MapToSearchResultDto).ToList();
+        }
+
         public async Task<ProductDetailDto> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
             var product = await _productRepository.FirstOrDefaultAsync(new ProductByIdWithDetailsSpec(id), cancellationToken);
@@ -582,6 +596,42 @@ namespace Application.Features.Catalog.Products.Services
                 OptionValueIds = variantValues.Select(vv => vv.OptionValueId).ToList(),
                 CreatedOn = variant.CreatedOn,
                 LastModifiedOn = variant.LastModifiedOn
+            };
+        }
+
+        private static ProductSearchResultDto MapToSearchResultDto(Product product)
+        {
+            var activeVariants = product.Variants?
+                .Where(v => v.IsActive && !v.IsDeleted)
+                .ToList();
+
+            var primaryVariant = activeVariants?.OrderBy(v => v.Price).FirstOrDefault();
+            var minPrice = primaryVariant?.Price ?? 0;
+            var compareAtPrice = primaryVariant?.CompareAtPrice;
+
+            var primaryImage = product.Images?
+                .Where(img => img.IsActive && !img.IsDeleted && !string.IsNullOrWhiteSpace(img.ImageUrl))
+                .OrderBy(img => img.OptionValue?.DisplayOrder ?? 999)
+                .ThenByDescending(img => img.IsPrimary)
+                .ThenBy(img => img.DisplayOrder)
+                .Select(img => img.ImageUrl)
+                .FirstOrDefault();
+
+            var chipSpec = product.SpecificationGroups?
+                .SelectMany(g => g.Specifications)
+                .FirstOrDefault(s => s.IsActive && !s.IsDeleted && (s.Name == "Chip xử lý" || s.Name.ToLower().Contains("chip")))?
+                .Value;
+
+            return new ProductSearchResultDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Slug = product.Slug,
+                CategoryName = product.Category?.Name ?? string.Empty,
+                ChipName = chipSpec,
+                Price = minPrice,
+                CompareAtPrice = compareAtPrice,
+                ImageUrl = primaryImage
             };
         }
     }

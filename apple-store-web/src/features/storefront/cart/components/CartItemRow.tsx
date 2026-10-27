@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Checkbox, Button, Popconfirm, Tag } from "antd";
 import { DeleteOutlined, MinusOutlined, PlusOutlined, EditOutlined, DownOutlined } from "@ant-design/icons";
+import { AppleLogo } from "@shared/components/icons";
 import type { CartItem } from "../types/cart.types";
 
 export interface CartItemRowProps {
@@ -27,6 +29,7 @@ export const CartItemRow = ({
   onChangeVariant,
   isUpdating = false,
 }: CartItemRowProps) => {
+  const [imgError, setImgError] = useState(false);
   const isOutOfStock = !item.isAvailable || item.quantityInStock <= 0;
   const currentQuantity = !isOutOfStock && item.quantity > item.quantityInStock ? 1 : item.quantity;
   const currentLineTotal = item.unitPrice * currentQuantity;
@@ -53,16 +56,17 @@ export const CartItemRow = ({
             to={`/products/${item.productSlug}`}
             className="w-18 h-18 sm:w-20 sm:h-20 rounded-xl bg-slate-100 p-1.5 shrink-0 flex items-center justify-center overflow-hidden border border-slate-200/60 group"
           >
-            {item.imageUrl ? (
+            {item.imageUrl && !imgError ? (
               <img
                 src={item.imageUrl}
                 alt={item.productName}
                 className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
+                onError={() => setImgError(true)}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-300 text-xs">
-                Apple
+              <div className="w-full h-full flex items-center justify-center text-slate-400 group-hover:scale-105 transition-transform duration-300">
+                <AppleLogo size={32} className="text-slate-400" />
               </div>
             )}
           </Link>

@@ -1,3 +1,14 @@
+export interface ProductSearchResult {
+  id: number;
+  name: string;
+  slug: string;
+  categoryName: string;
+  chipName?: string;
+  price: number;
+  compareAtPrice?: number;
+  imageUrl?: string | null;
+}
+
 export interface ProductCardItem {
   id: number;
   categoryId: number;

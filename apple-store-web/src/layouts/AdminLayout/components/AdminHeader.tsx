@@ -179,11 +179,9 @@ export const AdminHeader = ({
         <Dropdown menu={{ items: profileMenuItems, onClick: handleMenuClick }} trigger={["click"]} placement="bottomRight">
           <div className="flex items-center gap-3 pl-1.5 py-1 pr-1 sm:pr-2 hover:bg-slate-50 rounded-lg cursor-pointer select-none transition-all duration-150">
             <div className="relative shrink-0">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256"
-                alt="User"
-                className="w-10 h-10 rounded-full object-cover border border-slate-200"
-              />
+              <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 text-base">
+                <UserOutlined />
+              </div>
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
             </div>
             <div className="hidden sm:flex flex-col text-left">

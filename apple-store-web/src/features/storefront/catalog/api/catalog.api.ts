@@ -7,6 +7,7 @@ import type {
   ProductCardPagedResponse,
   CategoryProductShowcase,
   ProductDetailResponse,
+  ProductSearchResult,
 } from "../types/catalog.types";
 
 export const catalogApi = {
@@ -147,6 +148,21 @@ export const catalogApi = {
     try {
       const data = await api.get<ProductCardItem[]>("/api/products/random", {
         params: { count, excludeId },
+      });
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  },
+
+  searchProducts: async (query: string, limit: number = 8): Promise<ProductSearchResult[]> => {
+    const trimmed = query.trim();
+    if (!trimmed || trimmed.length < 3) {
+      return [];
+    }
+    try {
+      const data = await api.get<ProductSearchResult[]>("/api/products/search", {
+        params: { query: trimmed, limit },
       });
       return Array.isArray(data) ? data : [];
     } catch {

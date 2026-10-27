@@ -13,6 +13,7 @@ namespace Application.Features.Catalog.Products.Services
         Task<ProductDetailDto> GetByIdAsync(int id, CancellationToken cancellationToken = default);
         Task<ProductDetailDto> GetBySlugAsync(string slug, CancellationToken cancellationToken = default);
         Task<ProductVariantOptionsDto> GetOptionsMatrixAsync(int id, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<ProductSearchResultDto>> SearchAsync(string query, int limit = 8, CancellationToken cancellationToken = default);
         Task<int> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default);
         Task UpdateAsync(int id, UpdateProductRequest request, CancellationToken cancellationToken = default);
         Task DeleteAsync(int id, CancellationToken cancellationToken = default);

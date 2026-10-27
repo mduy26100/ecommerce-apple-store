@@ -55,3 +55,13 @@ export const useRandomProducts = (count: number = 12, excludeId?: number) => {
   });
 };
 
+export const useProductSearch = (query: string, limit: number = 8) => {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ["catalog", "search", trimmed, limit],
+    queryFn: () => catalogApi.searchProducts(trimmed, limit),
+    enabled: trimmed.length >= 3,
+    staleTime: 60 * 1000,
+  });
+};
+

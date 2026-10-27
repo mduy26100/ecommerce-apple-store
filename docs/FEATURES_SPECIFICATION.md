@@ -121,6 +121,7 @@
 | **STF-03** | Xem chi tiết sản phẩm toàn diện (Product Detail) | Công khai | `/products/:slug` | `/api/products/{slug}` |
 | **STF-04** | Bộ chuyển đổi Biến thể Động (Dynamic Variant Switcher) | Công khai | `/products/:slug` | Xử lý Client State + React Query |
 | **STF-05** | Bảng Thông số kỹ thuật phân cấp (Grouped Specs) | Công khai | `/products/:slug` | Thuộc DTO chi tiết sản phẩm |
+| **STF-06** | Tìm kiếm gần đúng Realtime trên Header (Desktop & Mobile Portal) | Công khai | Navigation Bar | `/api/products/search` |
 
 ### 4.2. Mô tả Chi tiết Tương tác Người dùng
 
@@ -133,6 +134,24 @@
 #### 2. Hiển thị Thông số Kỹ thuật Phân cấp (STF-05)
 - Thông số kỹ thuật không hiển thị dưới dạng văn bản thô mà được chia thành các nhóm chuyên biệt (Màn hình, Camera sau, Camera trước, Vi xử lý & Đồ họa, Pin & Sạc, Thiết kế & Trọng lượng).
 - Giao diện thiết kế dạng Accordion đóng mở mượt mà, hỗ trợ khách hàng tra cứu cấu hình chi tiết chuẩn xác như trên trang chủ Apple.
+
+#### 3. Tìm kiếm gần đúng Realtime trên Header & Mobile Portal (STF-06)
+- **Quy tắc kích hoạt tìm kiếm:** Hệ thống lắng nghe sự kiện nhập liệu của người dùng trên ô tìm kiếm; chỉ gửi request tới Backend khi độ dài từ khóa đạt từ 3 ký tự trở lên (`query.trim().length >= 3`).
+- **Xử lý phía Backend (.NET 8):**
+  - Endpoint `GET /api/products/search?query=...&limit=8`.
+  - Áp dụng Specification Pattern `ProductQuickSearchSpec` thực thi truy vấn gần đúng đa trường qua `EF.Functions.Like`: Tên sản phẩm (`Name`), Đường dẫn (`Slug`), Mã dòng máy (`ModelCode`), Tên danh mục (`CategoryName`) và Mô tả ngắn (`ShortDescription`).
+  - Trả về danh sách `ProductSearchResultDto` gồm: `Id`, `Name`, `Slug`, `CategoryName`, `ChipName`, `Price`, `CompareAtPrice`, `ImageUrl`.
+- **Cơ chế Fallback Ảnh An Toàn:**
+  - Cả trên Header và danh sách giỏ hàng, nếu đường dẫn ảnh là `null` hoặc trình duyệt gặp lỗi tải ảnh (`onError`), hệ thống tự động fallback về biểu tượng chuẩn Apple Logo (`<AppleLogo />`) với phông nền xám nhạt tối giản, chống vỡ giao diện.
+- **Tối ưu Trải nghiệm Desktop:**
+  - Khi người dùng bấm icon Tìm kiếm trên Header, thanh tìm kiếm mở rộng toàn bộ phần giữa của Header (chiều cao chuẩn `h-16`, chiều rộng `max-w-4xl`), đồng thời ẩn thanh menu danh mục chính để tập trung sự chú ý.
+  - Đóng thanh tìm kiếm linh hoạt: người dùng có thể bấm lại icon Tìm kiếm, nhấn phím `Escape` hoặc click ra ngoài vùng tìm kiếm (`handleClickOutside`).
+- **Tối ưu Trải nghiệm Mobile (Fullscreen Portal):**
+  - **Khắc phục lỗi Containing Block của CSS:** Do thẻ `<header>` sử dụng hiệu ứng làm mờ nền `backdrop-blur-sm` (`backdrop-filter: blur(4px)`), theo chuẩn W3C thẻ header sẽ trở thành containing block cô lập các phần tử con `position: fixed`. Do đó, hệ thống sử dụng React Portal (`createPortal(..., document.body)`) đưa toàn bộ giao diện tìm kiếm ra ngoài DOM body dưới dạng Fullscreen Overlay (`fixed inset-0 z-50 bg-white flex flex-col`).
+  - **Bố cục màn hình chuyên biệt:** Thanh top bar cao chuẩn `h-16` ngang bằng header, tích hợp nút quay lại (`ArrowLeftOutlined`) và nút `Hủy`. Danh sách gợi ý cuộn toàn màn hình (`flex-1 overflow-y-auto`), hiển thị thoáng đãng; giá bán màu xanh và giá niêm yết màu xám được phân tách thành 2 dòng riêng biệt chống chồng chéo chữ trên màn hình hẹp.
+  - **Nút Xem tất cả ghim đáy:** Nút "Xem tất cả kết quả cho..." được ghim cố định ở đáy màn hình điện thoại, dễ thao tác bằng một tay.
+  - **Chống đóng tìm kiếm nhầm lẫn trên Mobile:** Hệ thống bỏ qua sự kiện `handleClickOutside` khi độ rộng màn hình nhỏ hơn 768px, đảm bảo khi người dùng chạm vào ô input hoặc vuốt danh sách kết quả thì giao diện tìm kiếm vẫn được giữ nguyên, chỉ đóng khi chủ động nhấn nút Hủy, nút Quay lại hoặc chọn sản phẩm.
+- **Chuẩn hóa URL Điều hướng:** Khi người dùng nhấn vào nút "Xem tất cả kết quả cho...", hệ thống điều hướng đồng bộ sang trang danh mục sản phẩm theo đúng cấu trúc: `/products?q={encodeURIComponent(query)}&page=1`.
 
 ---
 

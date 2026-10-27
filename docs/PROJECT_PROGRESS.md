@@ -44,10 +44,11 @@ Nhóm phân loại các đầu việc theo 3 trạng thái cụ thể:
   - `/api/products/showcase`: Danh sách sản phẩm trưng bày trang chủ theo từng ngành hàng.
   - `/api/products/random`: Danh sách sản phẩm ngẫu nhiên phục vụ gợi ý mua sắm.
   - `/api/products/{slug}`: Chi tiết sản phẩm toàn diện (trả về danh mục, bộ sưu tập ảnh, toàn bộ biến thể, tùy chọn động và thông số kỹ thuật phân cấp).
+  - `/api/products/search`: API tìm kiếm gần đúng Realtime (`query`, `limit`), truy vấn đa trường (Tên, Slug, ModelCode, Danh mục, Mô tả ngắn) qua Specification Pattern `ProductQuickSearchSpec`, chặn tìm kiếm nếu dưới 3 ký tự.
 - [x] **Đóng gói & Triển khai Docker (DevOps):**
   - Docker hóa toàn bộ hệ thống với multi-stage build tối ưu cho Backend và Frontend.
   - Thiết lập kịch bản Docker Compose khởi chạy tuần tự có Healthcheck (`sqlserver` $\rightarrow$ `backend` $\rightarrow$ `frontend`).
-  - Cơ chế tự động chạy EF Core Migration và tự động nạp dữ liệu mẫu ban đầu [data-test.sql](file:///c:/Users/Admin/Documents/ecommerce-apple-store/data-test.sql) **chỉ 1 lần duy nhất** khi khởi tạo database mới, chống ghi đè an toàn.
+  - Cơ chế tự động chạy EF Core Migration và tự động nạp dữ liệu mẫu ban đầu `data-test.sql` **chỉ 1 lần duy nhất** khi khởi tạo database mới, chống ghi đè an toàn.
 
 #### Frontend (ReactJS & TypeScript)
 - [x] **Hạ tầng cốt lõi (Core Infrastructure):**
@@ -58,6 +59,12 @@ Nhóm phân loại các đầu việc theo 3 trạng thái cụ thể:
   - Chuẩn hóa 100% văn bản giao diện hiển thị sang Tiếng Việt.
 - [x] **Giao diện Khách hàng (Storefront Screens):**
   - **Trang chủ (`/`):** Banner hero Apple cao cấp, danh mục sản phẩm, khối hiển thị các dòng máy nổi bật (iPhone, MacBook, iPad, AirPods...), thanh header và footer chuẩn phong cách Apple.
+  - **Tìm kiếm gần đúng Realtime trên Storefront Header (`StorefrontHeader.tsx`):**
+    - Kích hoạt tìm kiếm tự động khi nhập từ 3 ký tự trở lên (`useProductSearch`), hiển thị dropdown danh sách sản phẩm nhanh (ảnh, tên, dòng chip, giá bán, giá niêm yết).
+    - Cơ chế Fallback an toàn: Tự động hiển thị biểu tượng Apple Logo (`<AppleLogo />`) khi ảnh null hoặc lỗi tải.
+    - **Desktop Experience:** Mở rộng thanh tìm kiếm toàn bộ chiều ngang giữa header (`h-16`, `max-w-4xl`), ẩn thanh category navigation; đóng linh hoạt khi click ra ngoài, click lại icon search hoặc bấm phím `Escape`.
+    - **Mobile Fullscreen Portal:** Sử dụng React Portal (`createPortal(..., document.body)`) đưa giao diện tìm kiếm ra ngoài DOM body dưới dạng Fullscreen Overlay, giải quyết triệt để lỗi bị giới hạn chiều cao do `backdrop-blur-sm` trên header; top bar cao chuẩn `h-16` bằng header, nút quay lại, nút hủy, hiển thị giá bán và giá niêm yết thành 2 dòng riêng biệt chống chồng chéo, nút xem tất cả kết quả cố định ở đáy màn hình.
+    - Chuẩn hóa điều hướng sang trang danh mục: `/products?q={query}&page=1`.
   - **Trang danh mục sản phẩm (`/products`):** Hiển thị danh sách sản phẩm dạng lưới, thanh tìm kiếm từ khóa, phân trang và bộ lọc danh mục.
   - **Trang chi tiết sản phẩm (`/products/:slug`):** Xem chi tiết sản phẩm toàn diện; tương tác chọn màu sắc qua vòng màu trực quan; chọn dung lượng; chọn cấu hình tùy chọn động; giá tiền và trạng thái tồn kho cập nhật tức thì theo biến thể; bộ ảnh sản phẩm tự động chuyển theo màu sắc; bảng thông số kỹ thuật phân cấp theo nhóm chuyên nghiệp.
   - **Trang hồ sơ cá nhân (`/profile`):** Xem thông tin cá nhân của người dùng đã đăng nhập.
@@ -66,6 +73,7 @@ Nhóm phân loại các đầu việc theo 3 trạng thái cụ thể:
   - **Trang Đăng ký (`/register`):** Biểu mẫu tạo tài khoản khách hàng mới.
 - [x] **Giao diện Quản trị (Admin Screens):**
   - **Bảng điều khiển (`/admin/dashboard`):** Tổng quan số liệu thống kê cơ bản, các thẻ chỉ số hiệu suất.
+  - **Thanh Header Quản trị (`AdminHeader.tsx`):** Chuyển đổi avatar mặc định người dùng sang icon `UserOutlined` của Ant Design, tinh gọn và chuyên nghiệp.
   - **Quản lý Danh mục (`/admin/categories`):** Bảng danh mục sản phẩm, modal tạo mới/chỉnh sửa, chuyển đổi trạng thái hiển thị.
   - **Quản lý Màu sắc (`/admin/colors`):** Bảng danh sách màu sắc, hiển thị mẫu màu trực quan, thêm/sửa/xóa màu sắc.
   - **Quản lý Dung lượng (`/admin/storage-options`):** Bảng các mức bộ nhớ, thêm/sửa/xóa dung lượng.
@@ -81,7 +89,7 @@ Nhóm phân loại các đầu việc theo 3 trạng thái cụ thể:
   - [x] **Cơ chế Tự phục hồi Số lượng Tồn kho (Self-Healing Cart):** Xử lý tận gốc tại Backend (`CartService.cs`). Khi tồn kho biến động nhỏ hơn số lượng trong giỏ, hệ thống tự động ép số lượng về `1`, tính lại tổng tiền, cập nhật xuống Database; Frontend hiển thị cảnh báo tồn kho và khóa nút tăng vượt quá tồn kho thực tế.
   - [x] **Đổi phân loại sản phẩm trong giỏ hàng (`ChangeVariantModal`):** Cho phép người dùng chuyển đổi màu sắc, dung lượng ngay tại trang giỏ hàng; tự động cộng dồn số lượng nếu phiên bản mới đã có trong giỏ hàng.
   - [x] **Tự động gộp giỏ hàng (Guest Cart Auto-Merge):** Tự động phát hiện và gộp toàn bộ sản phẩm từ giỏ khách vãng lai sang tài khoản thành viên ngay khi đăng nhập thành công.
-  - [x] **Giao diện Storefront Giỏ hàng (`/cart`):** Thiết kế Responsive chuẩn Apple; Header Badge và số lượng tiêu đề chỉ đếm sản phẩm khả dụng; phân tách khu vực sản phẩm tạm hết hàng với cảnh báo trực quan; hỗ trợ chọn mua toàn bộ hoặc từng phần (Selective Checkout).
+  - [x] **Giao diện Storefront Giỏ hàng (`/cart`):** Thiết kế Responsive chuẩn Apple; Header Badge và số lượng tiêu đề chỉ đếm sản phẩm khả dụng; phân tách khu vực sản phẩm tạm hết hàng với cảnh báo trực quan; hỗ trợ chọn mua toàn bộ hoặc từng phần (Selective Checkout); tích hợp cơ chế fallback ảnh sản phẩm (`CartItemRow.tsx`) về biểu tượng `<AppleLogo />` khi đường dẫn ảnh bị null hoặc gặp sự cố tải.
 
 - [x] **Quy trình Đặt hàng & Quản lý Vòng đời Đơn hàng Toàn diện (Checkout Flow & Order Lifecycle):**
   - [x] **Cơ sở dữ liệu & Entity Đơn hàng & Voucher:** Nâng cấp toàn diện `sales.Orders` và `sales.OrderItems` (chuyển sang Enums `OrderStatus`, `PaymentMethod`, `PaymentStatus`; hỗ trợ Guest Checkout `UserId?` + `GuestId`; snapshot Dynamic Options `SelectedAttributesJson`, `VariantName`, `ThumbnailUrl`; bổ sung giá vốn `CostPrice` trên cả `ProductVariant` và `OrderItem` để tính lợi nhuận gộp; bổ sung `RowVersion` khóa lạc quan và Check Constraints toàn vẹn).

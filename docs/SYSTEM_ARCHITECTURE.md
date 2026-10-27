@@ -73,7 +73,7 @@ Giao diện người dùng sử dụng **ReactJS** được tổ chức theo ki�
 
 ### 3.1. Phân tách Phân hệ Độc lập
 Hệ thống chia tách độc lập 2 phân hệ lớn:
-1. **Storefront (`src/features/storefront`, `src/pages/storefront`):** Giao diện bán hàng cao cấp cho người tiêu dùng (`StorefrontLayout`), phục vụ xem sản phẩm, đổi biến thể màu/dung lượng tức thì, giỏ hàng trực tuyến (`src/features/storefront/cart`) hỗ trợ khách vãng lai, tự động gộp giỏ hàng khi đăng nhập, đổi phân loại trong giỏ và tự phục hồi số lượng tồn kho.
+1. **Storefront (`src/features/storefront`, `src/pages/storefront`):** Giao diện bán hàng cao cấp cho người tiêu dùng (`StorefrontLayout`), phục vụ xem sản phẩm, đổi biến thể màu/dung lượng tức thì, tìm kiếm gần đúng Realtime trên thanh Header đa nền tảng (`StorefrontHeader.tsx`), giỏ hàng trực tuyến (`src/features/storefront/cart`) hỗ trợ khách vãng lai, tự động gộp giỏ hàng khi đăng nhập, đổi phân loại trong giỏ và tự phục hồi số lượng tồn kho.
 2. **Admin Portal (`src/features/admin`, `src/pages/admin`):** Cổng quản trị tập trung (`AdminLayout`), sidebar điều hướng đa cấp, dashboard số liệu, quản lý danh mục, sản phẩm, biến thể, màu sắc, cấu hình hệ thống.
 3. **Module Xác thực dùng chung (`src/features/auth`):** Cung cấp các biểu mẫu đăng nhập, đăng ký và cơ chế lưu trữ phiên làm việc an toàn cho cả hai phân hệ.
 
@@ -90,6 +90,10 @@ Mỗi module nghiệp vụ (ví dụ: `catalog`, `cart`, `auth`) được đóng
 Hệ thống phân tách rạch ròi 2 dạng trạng thái:
 - **Server State (Dữ liệu máy chủ):** Được quản lý toàn diện bởi React Query. Phụ trách tự động fetch, lưu cache theo thời gian sống (`staleTime`), đồng bộ hóa dữ liệu ngầm và cập nhật giao diện lạc quan (Optimistic Update).
 - **Client State (Trạng thái nội bộ ứng dụng):** Được quản lý bởi Zustand. Chỉ lưu trữ các dữ liệu thuần túy phía client như phiên đăng nhập (thông tin user hiện tại), trạng thái đóng/mở sidebar. **Tuyệt đối không lưu cache danh sách API vào Zustand**.
+
+### 3.4. Kỹ thuật React Portal Tách Lớp Giao diện Di động (Mobile Fullscreen Overlay Pattern)
+- **Vấn đề W3C Containing Block:** Khi một phần tử cha (cụ thể là thẻ `<header>`) sở hữu thuộc tính `backdrop-filter` (ví dụ class Tailwind `backdrop-blur-sm`), theo tiêu chuẩn W3C trình duyệt sẽ coi phần tử đó là containing block cho toàn bộ các phần tử con có `position: fixed`. Hệ quả là một overlay toàn màn hình `fixed inset-0` đặt bên trong header sẽ bị giới hạn chiều cao nghiêm trọng (chỉ bằng đúng chiều cao 64px của header).
+- **Giải pháp Kiến trúc:** Tách lớp hiển thị bằng React Portal (`createPortal(children, document.body)`). Giao diện tìm kiếm trên thiết bị di động được kết xuất trực tiếp vào nút gốc của DOM (`document.body`), giải phóng hoàn toàn khỏi context CSS của header, cho phép overlay mở rộng 100% toàn màn hình thiết bị với thanh điều hướng top bar chuẩn mực và danh sách kết quả cuộn mượt mà.
 
 ---
 
