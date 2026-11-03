@@ -22,3 +22,4 @@ global using Microsoft.Extensions.Options;
 global using Microsoft.IdentityModel.Tokens;
 global using Expression = System.Linq.Expressions.Expression;
 global using System.Globalization;
+global using ClosedXML.Excel;

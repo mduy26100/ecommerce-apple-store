@@ -8,3 +8,5 @@ export * from "./product-images";
 export * from "./variant-images";
 export * from "./specifications";
 export * from "./orders";
+export * from "./reports";
+export * from "./dashboard";

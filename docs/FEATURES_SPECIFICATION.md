@@ -327,8 +327,25 @@ Bảo đảm tính toàn vẹn tuyệt đối cho kho hàng trong các đợt m�
 | **ADM-06** | Chuyển trạng thái Đơn hàng tuần tự & Ghi chú | Quản trị viên | `/admin/orders` (Modal trạng thái) |
 | **ADM-07** | Quản trị Người dùng & Phân quyền vai trò (RBAC) | Quản trị viên cấp cao | `/admin/users`, `/admin/roles` |
 | **ADM-08** | Cài đặt hệ thống & Hồ sơ quản trị viên | Quản trị viên | `/admin/settings`, `/admin/profile` |
+| **ADM-09** | Báo cáo Thống kê Đơn hàng, Dòng tiền & Xuất Excel OpenXML | Quản trị viên | `/admin/reports` |
 
-### 9.2. Mô tả Chi tiết Nghiệp vụ Quản trị Đơn hàng (ADM-05 & ADM-06)
+### 9.2. Bảng Điều Khiển Tổng Quan Hệ Thống (ADM-01 Dashboard)
+- **Khối Thẻ Chỉ Số Hiệu Suất Cốt Lõi (Core Metrics Cards):**
+  - *Doanh thu thực thu:* Tổng tiền từ các đơn hàng thành công (`Completed`, `Delivered`) và không bị hoàn tiền (`PaymentStatus != Refunded`). So sánh tăng trưởng với chu kỳ trước (ngày/tuần/tháng); nếu chu kỳ trước = 0, hiển thị huy hiệu "Mới phát sinh" thay vì gán 100%.
+  - *Doanh số gộp ước tính:* Tổng giá trị đơn hàng phát sinh trong kỳ trừ đi đơn hủy/hoàn, kèm số tiền voucher ưu đãi đã áp dụng.
+  - *Tổng số đơn hàng:* Số lượng đơn phát sinh kèm biến động số lượng so với kỳ trước.
+  - *Tỷ lệ đơn thành công:* Tỷ lệ đơn giao thành công trên tổng đơn, kèm tỷ lệ đơn bị hủy/hoàn.
+  - *Giá trị đơn hàng trung bình (AOV):* Doanh thu thực thu chia cho tổng số đơn thành công (mẫu số = 0 thì AOV = 0đ).
+- **Trung Tâm Hành Động Khẩn Cấp (Action Center):** 5 hàng đợi điều hành gồm *Chờ xác nhận*, *Chờ giao hàng*, *Sắp hết hàng* (< 10 sản phẩm), *Đã hết hàng* (0 sản phẩm), và *Khiếu nại / Hủy đơn*. Bấm vào hàng đợi tự động điều hướng sang màn hình quản lý tương ứng với bộ lọc đã áp dụng sẵn.
+- **Biểu Đồ Trực Quan Hóa Đa Chiều:**
+  - Biểu đồ xu hướng doanh thu kép (Doanh thu & Số lượng đơn theo ngày).
+  - Biểu đồ tỷ lệ kênh thanh toán (VNPAY trực tuyến vs Tiền mặt COD).
+  - Biểu đồ cơ cấu số lượng tồn kho theo danh mục sản phẩm Apple (iPhone, iPad, Mac, Watch, Phụ kiện).
+- **Bảng Xếp Hạng Doanh Thu & Khách Hàng:**
+  - *Top 5 Sản phẩm bán chạy nhất:* Tổng hợp số lượng bán và doanh thu **chỉ tính trên các đơn hàng thành công**, loại bỏ hoàn toàn đơn ảo/đơn hủy.
+  - *Top 5 Khách hàng thân thiết:* Tổng hợp doanh số thực tế khách đã chi trả thành công.
+
+### 9.3. Mô tả Chi tiết Nghiệp vụ Quản trị Đơn hàng (ADM-05 & ADM-06)
 - **Bộ lọc & Tìm kiếm:** Phân trang danh sách đơn hàng, tìm kiếm tức thì theo mã đơn hàng, tên người nhận, số điện thoại hoặc email; lọc theo trạng thái đơn hàng (`Chờ xử lý`, `Đã xác nhận`, `Đang giao`, `Đã giao`, `Đã nhận hàng`, `Đã hủy`) và phương thức thanh toán.
 - **Ngăn kéo (Drawer) Chi tiết Đơn hàng:**
   - Hiển thị thông tin người nhận, địa chỉ giao hàng và huy hiệu số lần cập nhật địa chỉ.
@@ -336,6 +353,28 @@ Bảo đảm tính toàn vẹn tuyệt đối cho kho hàng trong các đợt m�
   - Hiển thị timeline nhật ký tiến trình (`StatusHistoryJson`) ghi nhận từng mốc thời gian, trạng thái chuyển đổi, người thực hiện và lý do/ghi chú.
 - **Kiểm soát Chuyển trạng thái Tuần tự:** Quản trị viên chỉ được phép chuyển trạng thái theo quy trình hợp lệ (`Pending` $\rightarrow$ `Confirmed` $\rightarrow$ `Shipping` $\rightarrow$ `Delivered` $\rightarrow$ `Completed`). Không được phép nhảy cóc trạng thái trái quy luật.
 - **Vô hiệu hóa Hủy đơn đã Thanh toán:** Khi đơn hàng đã có `PaymentStatus == 'Paid'`, giao diện quản trị tự động vô hiệu hóa lựa chọn "Hủy đơn", kèm chú thích hướng dẫn thực hiện theo quy trình Hoàn tiền (Refund) có biên bản đối soát.
+
+### 9.4. Báo Cáo Thống Kê Đơn Hàng, Dòng Tiền & Xuất Excel Chuẩn OpenXML (ADM-09 Reports)
+- **Kiến Trúc Tách Biệt Khối Số Liệu Cố Định:**
+  - Giao diện báo cáo tách độc lập làm 2 tầng dữ liệu: Khối thẻ KPI tổng quan trên cùng **luôn cố định theo khoảng thời gian lọc** (Từ ngày - Đến ngày) và độc lập hoàn toàn với bộ lọc trạng thái đơn hàng.
+  - Khi quản trị viên bấm chọn lọc trạng thái ở bảng bên dưới (ví dụ: chỉ lọc đơn "Chờ xử lý" hoặc "Đã hủy"), chỉ có bảng danh sách chi tiết và các phân bổ phía dưới thay đổi; khối KPI tài chính trên đầu vẫn giữ nguyên vẹn tổng thể kỳ báo cáo.
+- **Khối Thẻ KPI Tài Chính & Vận Hành Chuyên Sâu:**
+  - *Doanh thu thực thu:* Tổng tiền từ đơn `Completed`/`Delivered`, không bị `Refunded`.
+  - *Doanh số gộp:* Hiển thị song song Tổng phát sinh gộp danh nghĩa (`TotalGrossAmount`) và Doanh số gộp hiệu dụng (`NetGrossAmount`) sau khi trừ đơn Hủy/Hoàn.
+  - *Tổng đơn hàng & Tổng khách hàng:* Số lượng đơn và số lượng khách hàng duy nhất phát sinh giao dịch trong kỳ.
+  - *Tỷ lệ thành công & Đơn giá trung bình (AOV):* Tính chuẩn xác trên tập đơn hoàn tất, không lấp liếm bằng số ước tính.
+- **Hệ Thống 5 Tab Biểu Đồ Phân Tích Chuyên Sâu:**
+  - *Tab 1: Xu hướng Doanh thu:* Biểu đồ cột kép kết hợp đường xu hướng thể hiện doanh thu thực tế và số lượng đơn hàng theo từng ngày.
+  - *Tab 2: Kênh Thanh toán:* Biểu đồ tròn so sánh tỷ trọng giá trị và số lượng đơn giữa VNPay và COD.
+  - *Tab 3: Phân khúc Khách hàng:* Thống kê tỷ trọng đơn hàng và doanh số giữa Thành viên đã đăng ký tài khoản và Khách vãng lai.
+  - *Tab 4: Cơ cấu Dòng tiền:* Phân tích trực quan 3 luồng dòng tiền: An toàn (đã giao thành công), Đang luân chuyển (đang giao/xử lý, bao gồm đơn VNPay đã thanh toán nhưng chưa giao xong) và Tổn thất (đơn hủy/hoàn tiền).
+  - *Tab 5: Phân tích Sản phẩm:* Bảng xếp hạng Top 5 sản phẩm bán chạy nhất (mang lại doanh thu cao nhất) và Top 5 sản phẩm kén khách nhất (tồn kho nhiều nhưng sức mua thấp) để kịp thời đưa ra chương trình khuyến mãi.
+- **Module Xuất Báo Cáo Excel OpenXML Chuẩn (.xlsx) Bằng ClosedXML:**
+  - *Cấu trúc bảng phẳng cấp độ mục hàng (Item-level Flat List):* Mỗi dòng trong file Excel tương ứng với một sản phẩm trong đơn hàng.
+  - *Cột dữ liệu chuẩn hóa:* STT, Mã đơn hàng, Ngày đặt, Khách hàng, Số điện thoại, Kênh thanh toán, Trạng thái đơn, Tên sản phẩm, Mã SKU, Đơn giá, Số lượng, Thành tiền món, Tiền hàng (Subtotal), Giảm giá voucher, Phí ship, Tổng tiền đơn (TotalAmount), và Cột **Phân loại dòng tiền** (*An toàn*, *Đang luân chuyển*, *Tổn thất*).
+  - *Khối chú thích nghiệp vụ chuẩn:* Đặt tại dòng 4 ngay dưới tiêu đề báo cáo cửa hàng Urban Stitch, giải thích rõ quy ước tài chính và cách thức phân loại dòng tiền cho bộ phận kế toán.
+  - *Đồng bộ bộ lọc 100%:* API xuất Excel tiếp nhận chính xác tham số ngày tháng, trạng thái đơn và kênh thanh toán đang chọn trên giao diện, đảm bảo tổng tiền trên file Excel khớp 100% với số liệu hiển thị trên trang báo cáo.
+- **Cẩm Nang Chú Thích Thuật Ngữ Báo Cáo (`ReportGlossary`):** Tích hợp component chú thích tương tác ngay trên trang Báo cáo, phân loại theo 4 tab chuyên đề (*Chỉ số Tài chính*, *Chỉ số Vận hành*, *Cơ cấu Dòng tiền*, *Quy chuẩn Xuất Excel*) giúp mọi nhân sự vận hành hiểu tường tận nguồn gốc và công thức của từng con số hiển thị.
 
 ---
 

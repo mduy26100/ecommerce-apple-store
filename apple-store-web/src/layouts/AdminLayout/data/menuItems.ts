@@ -13,6 +13,7 @@ import {
   FolderOutlined,
   ShoppingOutlined,
   OrderedListOutlined,
+  BarChartOutlined,
 } from "@ant-design/icons";
 import type { MenuItem } from "../models/menu-item.model";
 import { USER_ROLES } from "@core/constants/role.constants";
@@ -20,7 +21,7 @@ import { USER_ROLES } from "@core/constants/role.constants";
 export const menuItems: MenuItem[] = [
   {
     key: "dashboard",
-    label: "Bảng điều khiển",
+    label: "Tổng quan",
     path: "/admin/dashboard",
     icon: React.createElement(DashboardOutlined),
   },
@@ -60,6 +61,12 @@ export const menuItems: MenuItem[] = [
     label: "Đơn hàng",
     path: "/admin/orders",
     icon: React.createElement(OrderedListOutlined),
+  },
+  {
+    key: "reports",
+    label: "Báo cáo thống kê",
+    path: "/admin/reports",
+    icon: React.createElement(BarChartOutlined),
   },
   {
     key: "user-management",

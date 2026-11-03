@@ -9,7 +9,9 @@ using Application.Features.Catalog.ProductSpecifications.Services;
 using Application.Features.Catalog.ProductVariants.Services;
 using Application.Features.Catalog.StorageOptions.Services;
 using Application.Features.Sales.Carts.Services;
+using Application.Features.Sales.Dashboard.Services;
 using Application.Features.Sales.Orders.Services;
+using Application.Features.Sales.Reports.Services;
 using Application.Features.Sales.Vouchers.Services;
 
 namespace Application
@@ -31,6 +33,8 @@ namespace Application
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IPublicOrderService, PublicOrderService>();
             services.AddScoped<IPublicVoucherService, PublicVoucherService>();
+            services.AddScoped<IOrderReportService, OrderReportService>();
+            services.AddScoped<IDashboardService, DashboardService>();
 
             return services;
         }

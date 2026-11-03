@@ -139,6 +139,31 @@ Nhóm phân loại các đầu việc theo 3 trạng thái cụ thể:
     - Chuẩn hóa múi giờ Việt Nam (UTC+7) trên môi trường Docker Linux container.
   - [x] **Tự động hóa toàn diện qua Docker & Ngrok:** Tự động nạp cấu hình từ file `.env` duy nhất, khởi chạy hoàn chỉnh chỉ với 1 lệnh `docker compose up -d`.
 
+- [x] **Bảng Điều Khiển Tổng Quan & Báo Cáo Thống Kê Đơn Hàng (Dashboard & Reporting Analytics):**
+  - [x] **Hạ tầng & Kiến trúc Phân tầng Clean Architecture cho Xuất Báo Cáo:**
+    - Tạo giao diện trừu tượng `IExcelExportService` tại `Application/Common/Interfaces/Reports/`.
+    - Hiện thực hóa kỹ thuật `ClosedXmlOrderReportExportService` bằng thư viện `ClosedXML` độc quyền tại tầng `Infrastructure`.
+    - Cung cấp endpoint `GET /api/manager/reports/orders/export-excel` tại tầng `Host` stream trực tiếp file nhị phân OpenXML `.xlsx` chuẩn xác, tối ưu thời gian tạo file dưới 1 giây.
+  - [x] **Chuẩn hóa Logic Tính Toán Tài Chính Cốt Lõi (Financial Logic Core):**
+    - Siết chặt điều kiện Doanh thu thực thu (`NetRevenue`): Chỉ tính các đơn hàng có trạng thái vận chuyển `Completed` hoặc `Delivered` và không bị `Refunded`.
+    - Phân tách minh bạch giữa Tổng phát sinh gộp danh nghĩa (`TotalGrossAmount`) và Doanh số gộp hiệu dụng (`NetGrossAmount` = trừ đơn Hủy/Hoàn).
+    - Giá trị đơn hàng trung bình (AOV): Luôn tính theo `NetRevenue / SuccessfulOrders` (nếu không có đơn thành công, AOV = 0đ; tuyệt đối không dùng doanh thu ước tính).
+    - Tỷ lệ tăng trưởng chu kỳ: Tuân thủ toán học (chia cho 0 là không xác định), trả về `null` (`decimal?`) để giao diện hiển thị huy hiệu "Mới phát sinh", không gán 100% giả lập.
+    - Phân loại 3 luồng dòng tiền độc lập: *An toàn* (đơn đã giao xong), *Đang luân chuyển* (đang giao/xử lý, bao gồm đơn VNPAY đã thanh toán nhưng chưa giao xong) và *Tổn thất* (đơn hủy/hoàn).
+    - Bảng xếp hạng Top sản phẩm bán chạy và Top khách hàng thân thiết được đồng bộ bộ lọc, chỉ tính trên các đơn hàng thành công thực tế.
+  - [x] **Giao diện Bảng Điều Khiển Tổng Quan (`/admin/dashboard`):**
+    - Khối thẻ chỉ số tài chính & vận hành thời gian thực.
+    - Trung tâm hành động (Action Center 5 hàng đợi khẩn cấp) tự động điều hướng sang danh sách đơn/kho với bộ lọc tương ứng.
+    - Biểu đồ xu hướng doanh thu kép, tỷ lệ kênh VNPAY vs COD, và cơ cấu số lượng tồn kho theo danh mục sản phẩm Apple.
+  - [x] **Giao diện Báo Cáo Thống Kê & Phân Tích Đơn Hàng (`/admin/reports`):**
+    - Khối thẻ KPI tổng quan cố định theo kỳ lọc thời gian, độc lập hoàn toàn với bộ lọc trạng thái đơn hàng bên dưới.
+    - Hệ thống 5 tab biểu đồ trực quan hóa chuyên sâu: Xu hướng kép, Kênh thanh toán, Phân khúc khách hàng, Cơ cấu 3 luồng dòng tiền, Top sản phẩm bán chạy & Kén khách nhất.
+    - Tích hợp cẩm nang chú thích thuật ngữ tương tác `ReportGlossary` (4 tab: Tài chính, Vận hành, Dòng tiền, Quy chuẩn Excel).
+    - Nút xuất file Excel OpenXML (.xlsx) chuẩn OpenXML: Định dạng bảng phẳng cấp độ từng dòng sản phẩm (Item-level), cột phân loại dòng tiền, khối chú thích nghiệp vụ tại dòng 4, đồng bộ 100% với bộ lọc đang chọn.
+  - [x] **Kiểm Thử Tự Động Toàn Diện E2E Playwright:**
+    - Bộ test `admin-dashboard-report.spec.ts`: **10/10 tests PASSED** (kiểm tra tính đúng đắn của số liệu KPI, tính cố định của thẻ trên đầu khi đổi bộ lọc trạng thái, 5 tab biểu đồ, component chú thích thuật ngữ, và tính năng tải file Excel OpenXML).
+    - Bộ test `admin-dashboard.spec.ts`: **7/7 tests PASSED** (kiểm tra Action Center, biểu đồ xu hướng, cơ cấu tồn kho và top sản phẩm).
+
 ---
 
 ### [-] Đang xử lý
@@ -166,7 +191,3 @@ Nhóm phân loại các đầu việc theo 3 trạng thái cụ thể:
 - [ ] **Đánh giá & Nhận xét sản phẩm (Reviews & Ratings):**
   - Cho phép khách hàng đã mua sản phẩm gửi đánh giá sao (1 - 5 sao), nhận xét và đính kèm hình ảnh thực tế.
   - Phân hệ duyệt bình luận dành cho quản trị viên nhằm kiểm soát nội dung trước khi hiển thị công khai.
-- [ ] **Báo cáo Thống kê & Phân tích chuyên sâu (Advanced Analytics):**
-  - Biểu đồ biến động doanh thu theo tuần/tháng/quý.
-  - Thống kê tỷ lệ chuyển đổi, top sản phẩm bán chạy nhất theo ngành hàng.
-  - Cảnh báo sản phẩm sắp hết hàng trong kho.

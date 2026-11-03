@@ -1,4 +1,5 @@
 using Application.Common.Interfaces.Persistence;
+using Application.Common.Interfaces.Reports;
 using Application.Common.Interfaces.Storage;
 using Application.Common.Services.Payments;
 using Application.Features.Identity.Services;
@@ -7,6 +8,7 @@ using Infrastructure.Identity.Services;
 using Infrastructure.Payments;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Seeders;
+using Infrastructure.Reports.Services;
 using Infrastructure.Settings;
 using Infrastructure.Storage;
 
@@ -21,6 +23,7 @@ namespace Infrastructure
             services.AddJwtAuthentication(configuration);
             services.AddStorageServices(configuration);
             services.AddPaymentServices(configuration);
+            services.AddScoped<IExcelExportService, ClosedXmlOrderReportExportService>();
 
             return services;
         }

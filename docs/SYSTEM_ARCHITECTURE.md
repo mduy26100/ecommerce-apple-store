@@ -202,3 +202,48 @@ Trước đây, một số hệ thống áp đặt thời hạn thanh toán lạ
 | **4** | Kẻ xấu can thiệp sửa đổi số tiền `vnp_Amount` hoặc mã đơn `vnp_TxnRef` trên URL | Gian lận thanh toán giá rẻ hoặc thanh toán cho đơn hàng của người khác. | Kiểm tra chữ ký HMAC-SHA512 thất bại ngay lập tức do dữ liệu đã bị biến đổi so với mã băm ban đầu. Đồng thời, hệ thống đối chiếu số tiền thực tế trong cơ sở dữ liệu (`order.TotalAmount * 100 == vnp_Amount`), nếu sai lệch sẽ lập tức từ chối giao dịch. |
 | **5** | Khách hàng đã thanh toán thành công cố tình gọi API hủy đơn | Tiền đã vào tài khoản nhưng đơn bị hủy và sản phẩm bị trả lại kho hàng. | Backend kiểm tra `order.PaymentStatus == PaymentStatus.Paid` và ném `DomainException`, từ chối 100% yêu cầu hủy đơn. Frontend ẩn nút hủy đơn và vô hiệu hóa tùy chọn hủy trên giao diện Quản trị. |
 | **6** | Lỗi kết nối cơ sở dữ liệu hoặc sự cố mạng trong lúc trừ tồn kho | Dữ liệu bị phân mảnh: kho bị trừ nhưng đơn hàng không tạo được, hoặc ngược lại. | Khối `using var transaction = await _appDbContext.BeginTransactionAsync()` đảm bảo tính toàn vẹn ACID. Khi xảy ra ngoại lệ, toàn bộ thay đổi tự động được rollback về trạng thái ban đầu. |
+
+---
+
+## 6. Kiến Trúc Phân Hệ Thống Kê & Báo Cáo Tài Chính (Dashboard & Reporting Architecture)
+
+> Phân hệ Bảng điều khiển (Dashboard) và Báo cáo Thống kê Đơn hàng (Reports) cung cấp bức tranh tài chính và vận hành trung thực, minh bạch cho doanh nghiệp, loại bỏ hoàn toàn các số liệu ảo hoặc ước tính thiếu cơ sở.
+
+---
+
+### 6.1. Thiết Kế Phân Tầng Clean Architecture Cho Module Xuất Báo Cáo (Excel OpenXML Exporting Pattern)
+
+Hệ thống tuân thủ nghiêm ngặt nguyên lý Dependency Inversion Principle trong việc tích hợp thư viện tạo bảng tính Office OpenXML (`ClosedXML`):
+
+| Phân tầng | Tệp nguồn / Thành phần | Trách nhiệm kỹ thuật |
+| :--- | :--- | :--- |
+| **Application** | `Application/Common/Interfaces/Reports/IExcelExportService.cs` | Định nghĩa giao diện trừu tượng xuất file: `byte[] ExportOrdersReport(OrderReportDto reportData, string storeName)`. Tầng này hoàn toàn độc lập, không cài đặt hay phụ thuộc vào bất kỳ thư viện bên thứ ba nào như ClosedXML hay DocumentFormat.OpenXml. |
+| **Infrastructure** | `Infrastructure/Reports/ClosedXmlOrderReportExportService.cs` | Hiện thực hóa kỹ thuật thông qua thư viện `ClosedXML` (OpenXML SDK). Tầng Infrastructure chịu trách nhiệm khởi tạo `XLWorkbook`, định dạng font chữ Segoe UI, kẻ viền (border), tô màu header bảng, định dạng số tiền VND, tỷ lệ %, căn chỉnh chiều cao dòng và chèn khối chú thích nghiệp vụ tại dòng 4. |
+| **Host** | `Host/Controllers/Manager/OrderReportsController.cs` | Đăng ký dịch vụ DI (`builder.Services.AddScoped<IExcelExportService, ClosedXmlOrderReportExportService>()`), đón nhận query params của bộ lọc (`fromDate`, `toDate`, `status`, `paymentMethod`), gọi tầng Application lấy dữ liệu, truyền sang `IExcelExportService` để sinh mảng byte và trả về file stream định dạng `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`. |
+
+---
+
+### 6.2. Mô Hình Xử Lý Hiệu Năng & Luồng Dữ Liệu Báo Cáo (Performance Pipeline)
+
+Hệ thống tối ưu hóa luồng xuất báo cáo theo dung lượng dữ liệu:
+
+1. **Luồng Trực Tiếp Đồng Bộ (Synchronous Stream - Dưới 5.000 dòng):**
+   - Với quy mô dữ liệu đơn hàng dưới 5.000 dòng chi tiết, hệ thống xử lý sinh file trực tiếp trên bộ nhớ (`MemoryStream`) và trả thẳng file stream về trình duyệt của người dùng trong thời gian dưới 1 giây.
+   - Tránh phát sinh tải không cần thiết lên hệ thống lưu trữ đĩa cứng hoặc hàng đợi tin nhắn.
+2. **Kiến Trúc Mở Rộng Cho Dữ Liệu Lớn (Background Job Architecture - Trên 5.000 dòng):**
+   - Khi số lượng bản ghi vượt ngưỡng 5.000 dòng, request xuất báo cáo được đẩy vào hàng đợi tác vụ nền (Background Service / Hangfire).
+   - Tiến trình nền tạo file ngầm, lưu tạm vào Storage và đẩy thông báo (In-App Notification hoặc SignalR) kèm đường dẫn tải về an toàn, ngăn chặn hoàn toàn nguy cơ cạn kiệt RAM (Out Of Memory) hoặc Timeout kết nối HTTP.
+
+---
+
+### 6.3. Quy Chuẩn Logic Tài Chính Nhất Quán (Financial Calculation Integrity)
+
+Hệ thống thiết lập các nguyên tắc tính toán tài chính bất biến từ tầng Backend:
+
+| Chỉ số tài chính | Công thức & Quy chuẩn Backend | Ý nghĩa nghiệp vụ |
+| :--- | :--- | :--- |
+| **Doanh thu thực thu (`NetRevenue`)** | `SUM(TotalAmount)` của các đơn có `OrderStatus IN (Delivered, Completed)` VÀ `PaymentStatus != Refunded`. | Chỉ ghi nhận tiền thực tế khi hàng đã giao thành công tới tay khách hàng, không ghi nhận khống đơn hàng đang vận chuyển hoặc đơn VNPAY có nguy cơ hủy/hoàn. |
+| **Doanh số gộp hiệu dụng (`NetGrossAmount`)** | `SUM(TotalAmount)` của tất cả đơn ngoại trừ đơn có `OrderStatus = Cancelled` hoặc `PaymentStatus = Refunded`. | Phản ánh chính xác tổng giá trị đơn hàng đang có hiệu lực trong chu trình vận hành, loại bỏ hoàn toàn các đơn ảo hoặc đã bị hủy. |
+| **Giá trị đơn hàng trung bình (`AOV`)** | `NetRevenue / Count(SuccessfulOrders)`. Nếu số đơn thành công = 0 thì AOV = 0. | Loại bỏ việc dùng doanh thu ước tính để lấp dữ liệu trống. AOV phản ánh số tiền thực chi bình quân của một đơn hàng thành công. |
+| **Tỷ lệ tăng trưởng chu kỳ (`GrowthPercentage`)** | `((Current - Previous) / Previous) * 100%`. Nếu `Previous = 0` và `Current > 0`, trả về `null` (`decimal?`). | Tuân thủ chuẩn toán học (phép chia cho 0 không xác định), không gán số 100% gây hiểu lầm. Frontend hiển thị huy hiệu "Mới phát sinh". |
+| **Top Sản phẩm & Top Khách hàng** | Chỉ tổng hợp số lượng và doanh thu từ các đơn hàng thành công (`Completed` / `Delivered`). | Đảm bảo bảng xếp hạng phản ánh doanh thu thực tế, loại trừ việc sản phẩm bị đặt ảo rồi hủy đơn. |

@@ -323,3 +323,15 @@ Hệ thống bán lẻ thiết bị công nghệ Apple đòi hỏi sự kết h�
 7. **Tính Bất biến của Đơn hàng đã Thanh toán (Paid Order Immutability & Anti-Cancellation):**  
    - Khi đơn hàng ghi nhận `PaymentStatus = 'Paid'` (qua IPN Webhook hoặc Return URL đối soát thành công), trạng thái thanh toán được bảo vệ tuyệt đối.
    - Hệ thống khóa chặt quyền hủy đơn ở cả tầng Domain, tầng Application (`DomainException`) và giao diện Storefront / Admin. Không cho phép bất kỳ hành vi hủy đơn tự do nào đối với các đơn đã nhận tiền, loại bỏ hoàn toàn các rủi ro gian lận hoàn kho khi tiền đã vào tài khoản doanh nghiệp.
+8. **Mô hình Dữ liệu và Truy vấn Thống kê Báo cáo Đa Chiều (Dashboard & Reporting Analytics Data Model):**
+   - **Nguồn dữ liệu đối soát tài chính:** Tích hợp trực tiếp từ 2 bảng cốt lõi `sales.Orders` và `sales.OrderItems`, kết hợp các trường định lượng tài chính bất biến: `Subtotal`, `DiscountAmount`, `ShippingFee`, `TotalAmount` và `LineTotal` của từng dòng sản phẩm.
+   - **Quy chuẩn ghi nhận Doanh thu thực thu (`NetRevenue`):** Loại bỏ hoàn toàn việc tính toán doanh thu trên các đơn hàng ảo hoặc chưa hoàn tất vận chuyển. Đơn hàng chỉ được ghi nhận vào Doanh thu thực thu khi thỏa mãn đồng thời: `OrderStatus IN (Delivered, Completed)` VÀ `PaymentStatus != Refunded`.
+   - **Tách bạch Doanh số gộp danh nghĩa và hiệu dụng:**
+     - *Tổng phát sinh gộp danh nghĩa (`TotalGrossAmount`):* Tổng tiền phát sinh của 100% đơn hàng tạo ra trong kỳ nhằm phản ánh tổng nhu cầu thị trường.
+     - *Doanh số gộp hiệu dụng (`NetGrossAmount`):* Tổng phát sinh gộp sau khi loại trừ triệt để các đơn hàng bị Hủy (`Cancelled`) hoặc Hoàn tiền (`Refunded`).
+   - **Mô hình Phân loại 3 Luồng Dòng Tiền Độc Lập:**
+     - *Dòng tiền an toàn (`SafeCashflow`):* Tập hợp đơn hàng có trạng thái vận chuyển `Delivered` hoặc `Completed` (đã giao hoặc đã nhận hàng thành công).
+     - *Dòng tiền đang luân chuyển (`OperatingCashflow`):* Tập hợp đơn hàng đang xử lý hoặc đang vận chuyển (`Pending`, `Confirmed`, `Shipping`) chưa bị hủy/hoàn, bao gồm cả đơn đã thanh toán VNPAY nhưng hàng chưa giao đến tay khách.
+     - *Dòng tiền tổn thất (`LostCashflow`):* Tập hợp đơn hàng rơi vào trạng thái hủy hoặc hoàn tiền (`Cancelled`, `Refunded`).
+   - **Mô hình Trích xuất Báo cáo Phẳng cấp độ Mục hàng (Item-level Flat Structure):**
+     - Cấu trúc truy vấn liên kết `sales.Orders` JOIN `sales.OrderItems` để bóc tách dữ liệu theo từng dòng sản phẩm (mỗi sản phẩm là một bản ghi độc lập), làm cơ sở dữ liệu nền cho module xuất file Excel OpenXML (.xlsx) phục vụ bộ phận kế toán và kiểm toán đối soát dòng tiền chi tiết.
