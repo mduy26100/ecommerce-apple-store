@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Layout, Button, Badge, Dropdown, Input, Tooltip } from "antd";
+import { Layout, Button, Badge, Dropdown, Input, Tooltip, Avatar } from "antd";
 import { useNavigate, Link } from "react-router-dom";
 import {
   MenuFoldOutlined,
@@ -178,11 +178,14 @@ export const AdminHeader = ({
 
         <Dropdown menu={{ items: profileMenuItems, onClick: handleMenuClick }} trigger={["click"]} placement="bottomRight">
           <div className="flex items-center gap-3 pl-1.5 py-1 pr-1 sm:pr-2 hover:bg-slate-50 rounded-lg cursor-pointer select-none transition-all duration-150">
-            <div className="relative shrink-0">
-              <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 text-base">
-                <UserOutlined />
-              </div>
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+            <div className="relative inline-flex shrink-0">
+              <Avatar
+                size={40}
+                src={user?.avatarUrl || undefined}
+                icon={<UserOutlined />}
+                className="border border-slate-200 bg-slate-100 flex items-center justify-center overflow-hidden text-slate-600"
+              />
+              <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-xs pointer-events-none" />
             </div>
             <div className="hidden sm:flex flex-col text-left">
               <span className="text-sm font-semibold text-slate-800 leading-tight">{user?.fullName || "Quản trị viên"}</span>

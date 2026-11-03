@@ -29,6 +29,21 @@ export const authApi = {
     await api.post(AUTH_ENDPOINTS.LOGOUT);
   },
 
+  uploadAvatar: async (file: File): Promise<{ avatarUrl: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.post<{ avatarUrl: string }>(
+      AUTH_ENDPOINTS.AVATAR,
+      formData,
+    );
+    return response;
+  },
+
+  getProfile: async (): Promise<any> => {
+    const response = await api.get(AUTH_ENDPOINTS.ME);
+    return response;
+  },
+
   refreshToken: async (): Promise<AuthResponse> => {
     if (refreshTokenPromise) {
       return refreshTokenPromise;

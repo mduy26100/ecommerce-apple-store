@@ -5,6 +5,8 @@ export const AUTH_ENDPOINTS = {
   LOGOUT: `${API_PREFIX}/auth/logout`,
   REFRESH_TOKEN: `${API_PREFIX}/auth/refresh-token`,
   REGISTER: `${API_PREFIX}/auth/register`,
+  AVATAR: `${API_PREFIX}/auth/avatar`,
+  ME: `${API_PREFIX}/auth/me`,
 } as const;
 
 export default AUTH_ENDPOINTS;

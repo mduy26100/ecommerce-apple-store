@@ -5,6 +5,12 @@ using Domain.Exceptions;
 
 namespace Host.Controllers.Public
 {
+    public class UploadAvatarForm
+    {
+        public IFormFile? File { get; set; }
+        public IFormFile? Image { get; set; }
+    }
+
     [Tags("Public - Auth")]
     [Route("api/auth")]
     public class AuthController : BasePublicController
@@ -107,6 +113,28 @@ namespace Host.Controllers.Public
             var userId = GetCurrentUserId();
             var profile = await _userService.GetProfileAsync(userId, cancellationToken);
             return Ok(profile);
+        }
+
+        [Authorize]
+        [HttpPost("avatar")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadAvatar([FromForm] UploadAvatarForm form, CancellationToken cancellationToken)
+        {
+            var file = form.File ?? form.Image;
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("Vui lòng đính kèm tệp hình ảnh.");
+            }
+
+            var userId = GetCurrentUserId();
+            var avatarUrl = await _userService.UploadAvatarAsync(
+                userId,
+                file.OpenReadStream(),
+                file.FileName,
+                file.ContentType,
+                cancellationToken);
+
+            return Ok(new { avatarUrl });
         }
     }
 }

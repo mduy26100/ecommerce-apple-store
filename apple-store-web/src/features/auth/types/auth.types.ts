@@ -8,6 +8,7 @@ export interface UserDetails {
   lastName?: string;
   userName?: string;
   phoneNumber?: string;
+  avatarUrl?: string;
 }
 
 export interface AuthResponse {

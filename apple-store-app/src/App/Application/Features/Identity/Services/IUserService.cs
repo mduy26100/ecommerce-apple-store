@@ -6,5 +6,6 @@ namespace Application.Features.Identity.Services
     {
         Task<UserProfileDto> GetProfileAsync(int userId, CancellationToken cancellationToken = default);
         Task UpdateProfileAsync(int userId, UpdateProfileRequest request, CancellationToken cancellationToken = default);
+        Task<string> UploadAvatarAsync(int userId, Stream imageStream, string fileName, string? contentType, CancellationToken cancellationToken = default);
     }
 }
