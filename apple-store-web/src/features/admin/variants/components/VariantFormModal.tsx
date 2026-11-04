@@ -61,7 +61,7 @@ export const VariantFormModal = ({
   }, [open, initialData, form]);
 
   const handleFinish = (values: any) => {
-    const rawOptionValues = values.optionValues || {};
+    const rawOptionValues = values?.optionValues || {};
     const optionValueIds: number[] = Object.values(rawOptionValues)
       .map((val) => Number(val))
       .filter((val) => !isNaN(val) && val > 0);
@@ -147,9 +147,10 @@ export const VariantFormModal = ({
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
                   {productOptions.map((opt) => {
+                    const optValues = opt.values || [];
                     const isColorOption =
-                      opt.name.toLowerCase().includes("màu") ||
-                      opt.values.some((v) => Boolean(v.colorHexCode));
+                      Boolean(opt.name?.toLowerCase().includes("màu")) ||
+                      optValues.some((v) => Boolean(v?.colorHexCode));
 
                     return (
                       <Form.Item
@@ -162,7 +163,7 @@ export const VariantFormModal = ({
                           id={`option_${opt.id}`}
                           className="w-full!"
                           placeholder={`Chọn ${opt.name}`}
-                          options={opt.values.map((v) => ({
+                          options={optValues.map((v) => ({
                             value: v.id,
                             label: (
                               <div className="flex items-center gap-2">

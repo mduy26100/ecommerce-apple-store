@@ -8,11 +8,11 @@ interface AuthHeaderProps {
 export const AuthHeader = ({ title, subtitle }: AuthHeaderProps) => {
   return (
     <div className="flex flex-col items-center text-center select-none">
-      <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-900 text-white shadow-lg">
-        <AppleLogo size={24} className="text-white" />
+      <div className="flex items-center justify-center text-slate-900 mb-2">
+        <AppleLogo size={48} className="text-slate-900 hover:opacity-80 transition-opacity" />
       </div>
 
-      <div className="mt-4 flex flex-col gap-1">
+      <div className="mt-2 flex flex-col gap-1">
         <h2 className="text-xl font-bold text-slate-800 tracking-tight">
           {title}
         </h2>

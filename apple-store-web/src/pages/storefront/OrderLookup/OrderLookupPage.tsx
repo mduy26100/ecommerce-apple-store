@@ -110,8 +110,8 @@ const OrderLookupPage: React.FC = () => {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
   };
 
-  const getStepCurrent = (status: string) => {
-    const s = status.toLowerCase();
+  const getStepCurrent = (status?: string) => {
+    const s = (status || "").toLowerCase();
     if (s === "pending") return 0;
     if (s === "confirmed") return 1;
     if (s === "processing" || s === "shipping") return 2;
@@ -214,7 +214,7 @@ const OrderLookupPage: React.FC = () => {
             </div>
           </div>
 
-          {orderDetail.status.toLowerCase() !== "cancelled" ? (
+          {(orderDetail.status || "").toLowerCase() !== "cancelled" ? (
             <div className="py-4 px-2">
               <Steps
                 current={getStepCurrent(orderDetail.status)}
@@ -234,7 +234,7 @@ const OrderLookupPage: React.FC = () => {
             </div>
           )}
 
-          {(orderDetail.status.toLowerCase() === "delivered" || orderDetail.status.toLowerCase() === "completed") && (
+          {((orderDetail.status || "").toLowerCase() === "delivered" || (orderDetail.status || "").toLowerCase() === "completed") && (
             <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-2xl text-xs text-amber-900 leading-relaxed">
               <span className="font-bold text-amber-800 block mb-1">
                 Lưu ý nhận hàng & Chính sách đổi trả:
@@ -251,7 +251,7 @@ const OrderLookupPage: React.FC = () => {
               <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-100">
                 <Timeline
                   className="mt-1"
-                  items={orderDetail.statusHistory.map((h) => ({
+                  items={(orderDetail.statusHistory || []).map((h) => ({
                     children: (
                       <div className="text-xs">
                         <div className="font-semibold text-slate-800 flex items-center gap-2">

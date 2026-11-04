@@ -54,7 +54,7 @@ export const CatalogProductsPage = () => {
 
   const currentCategory = useMemo(() => {
     if (!categorySlugParam) return null;
-    return categories.find((c) => c.slug.toLowerCase() === categorySlugParam.toLowerCase()) || null;
+    return categories.find((c) => (c.slug || "").toLowerCase() === categorySlugParam.toLowerCase()) || null;
   }, [categories, categorySlugParam]);
 
   const selectedPriceRange = useMemo(() => {
@@ -221,7 +221,7 @@ export const CatalogProductsPage = () => {
             </button>
 
             {categories.map((cat) => {
-              const isActive = cat.slug.toLowerCase() === categorySlugParam.toLowerCase();
+              const isActive = (cat.slug || "").toLowerCase() === categorySlugParam.toLowerCase();
               return (
                 <button
                   key={cat.id}

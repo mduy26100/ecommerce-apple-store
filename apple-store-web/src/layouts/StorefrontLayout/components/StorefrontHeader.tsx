@@ -74,7 +74,7 @@ export const StorefrontHeader = () => {
 
   const isOverflowActive = useMemo(() => {
     if (!activeCategorySlug) return false;
-    return overflowCategories.some((cat) => cat.slug.toLowerCase() === activeCategorySlug);
+    return overflowCategories.some((cat) => (cat.slug || "").toLowerCase() === activeCategorySlug);
   }, [overflowCategories, activeCategorySlug]);
 
   useEffect(() => {
@@ -360,7 +360,7 @@ export const StorefrontHeader = () => {
         ) : (
           <nav className="hidden md:flex items-center gap-1 lg:gap-2.5 xl:gap-4 shrink min-w-0">
             {mainCategories.map((cat) => {
-              const isActive = activeCategorySlug === cat.slug.toLowerCase();
+              const isActive = activeCategorySlug === (cat.slug || "").toLowerCase();
               return (
                 <Link
                   key={cat.id}
@@ -406,7 +406,7 @@ export const StorefrontHeader = () => {
                       Danh mục khác
                     </div>
                     {overflowCategories.map((cat) => {
-                      const isActive = activeCategorySlug === cat.slug.toLowerCase();
+                      const isActive = activeCategorySlug === (cat.slug || "").toLowerCase();
                       return (
                         <Link
                           key={cat.id}
@@ -593,7 +593,7 @@ export const StorefrontHeader = () => {
 
           <div className="flex flex-col">
             {mainCategories.map((cat) => {
-              const isActive = activeCategorySlug === cat.slug.toLowerCase();
+              const isActive = activeCategorySlug === (cat.slug || "").toLowerCase();
               return (
                 <Link
                   key={cat.id}
@@ -630,7 +630,7 @@ export const StorefrontHeader = () => {
                 {isMobileMoreOpen && (
                   <div className="max-h-60 overflow-y-auto custom-scrollbar flex flex-col pl-2 border-l-2 border-slate-100 ml-3 mt-1">
                     {overflowCategories.map((cat) => {
-                      const isActive = activeCategorySlug === cat.slug.toLowerCase();
+                      const isActive = activeCategorySlug === (cat.slug || "").toLowerCase();
                       return (
                         <Link
                           key={cat.id}

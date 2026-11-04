@@ -106,10 +106,10 @@ export const ProductDetailPage = () => {
     : 0;
 
   const colorOption = useMemo(() => {
-    return product?.options?.find(
+    return (product?.options || []).find(
       (opt) =>
-        opt.name.toLowerCase().includes("màu") ||
-        opt.values.some((v) => Boolean(v.colorHexCode))
+        Boolean(opt.name?.toLowerCase().includes("màu")) ||
+        Boolean((opt.values || []).some((v) => Boolean(v?.colorHexCode)))
     );
   }, [product]);
 
@@ -187,11 +187,11 @@ export const ProductDetailPage = () => {
 
   const handleSelectOptionValue = (optionId: number, valueId: number, isColor = false) => {
     const activeVariants = (product?.variants || []).filter((v) => v.isActive !== false);
-    const nextOptions = { ...selectedOptions, [optionId]: valueId };
+    const nextOptions = { ...(selectedOptions || {}), [optionId]: valueId };
 
     const exact = activeVariants.find((v) => {
       const vValIds = v.optionValueIds || [];
-      return Object.entries(nextOptions).every(([, valId]) => vValIds.includes(valId));
+      return Object.entries(nextOptions || {}).every(([, valId]) => vValIds.includes(valId));
     });
 
     if (exact) {

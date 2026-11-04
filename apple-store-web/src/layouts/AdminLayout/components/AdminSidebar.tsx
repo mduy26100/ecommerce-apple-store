@@ -72,8 +72,8 @@ export const AdminSidebar = ({
   );
 
   const selectedKeys = useMemo(() => {
-    return Object.keys(flatMenuMap).filter((key) => {
-      const { path } = flatMenuMap[key];
+    return Object.keys(flatMenuMap || {}).filter((key) => {
+      const { path } = flatMenuMap[key] || {};
       return path && pathname.startsWith(path);
     });
   }, [flatMenuMap, pathname]);
@@ -81,8 +81,8 @@ export const AdminSidebar = ({
   const [prevPathname, setPrevPathname] = useState(pathname);
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
     const keysToOpen: string[] = [];
-    Object.keys(flatMenuMap).forEach((key) => {
-      const { path, parentKey } = flatMenuMap[key];
+    Object.keys(flatMenuMap || {}).forEach((key) => {
+      const { path, parentKey } = flatMenuMap[key] || {};
       if (path && pathname.startsWith(path) && parentKey) {
         if (!keysToOpen.includes(parentKey)) {
           keysToOpen.push(parentKey);
@@ -95,8 +95,8 @@ export const AdminSidebar = ({
   if (pathname !== prevPathname) {
     setPrevPathname(pathname);
     const keysToOpen: string[] = [];
-    Object.keys(flatMenuMap).forEach((key) => {
-      const { path, parentKey } = flatMenuMap[key];
+    Object.keys(flatMenuMap || {}).forEach((key) => {
+      const { path, parentKey } = flatMenuMap[key] || {};
       if (path && pathname.startsWith(path) && parentKey) {
         if (!keysToOpen.includes(parentKey)) {
           keysToOpen.push(parentKey);

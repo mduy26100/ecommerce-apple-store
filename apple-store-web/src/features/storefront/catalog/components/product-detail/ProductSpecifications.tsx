@@ -24,21 +24,22 @@ export const ProductSpecifications = ({
   productName,
 }: ProductSpecificationsProps) => {
   const displayGroups = useMemo<DisplayGroup[]>(() => {
-    if (specificationGroups && specificationGroups.length > 0) {
+    if (specificationGroups && Array.isArray(specificationGroups) && specificationGroups.length > 0) {
       return [...specificationGroups]
-        .sort((a, b) => a.displayOrder - b.displayOrder)
+        .filter((g): g is ProductSpecificationGroupItem => Boolean(g))
+        .sort((a, b) => (a?.displayOrder ?? 0) - (b?.displayOrder ?? 0))
         .map((g) => ({
-          name: g.name,
-          specs: [...(g.specifications || [])].sort(
-            (a, b) => a.displayOrder - b.displayOrder
-          ),
+          name: g.name || "Thông số",
+          specs: [...(g.specifications || [])]
+            .filter((s): s is ProductSpecificationItem => Boolean(s))
+            .sort((a, b) => (a?.displayOrder ?? 0) - (b?.displayOrder ?? 0)),
         }))
         .filter((g) => g.specs.length > 0);
     }
 
-    if (!specifications || specifications.length === 0) return [];
+    if (!specifications || !Array.isArray(specifications) || specifications.length === 0) return [];
     const map: Record<string, ProductSpecificationItem[]> = {};
-    specifications.forEach((spec) => {
+    specifications.filter((s): s is ProductSpecificationItem => Boolean(s)).forEach((spec) => {
       const gName = spec.groupName?.trim() || "Thông số chung";
       if (!map[gName]) {
         map[gName] = [];
@@ -48,7 +49,7 @@ export const ProductSpecifications = ({
 
     return Object.keys(map).map((name) => ({
       name,
-      specs: map[name].sort((a, b) => a.displayOrder - b.displayOrder),
+      specs: (map[name] || []).sort((a, b) => (a?.displayOrder ?? 0) - (b?.displayOrder ?? 0)),
     }));
   }, [specificationGroups, specifications]);
 

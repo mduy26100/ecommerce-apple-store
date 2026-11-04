@@ -105,7 +105,7 @@ export const StorageOptionsTable = ({
     <Table<StorageOptionItem>
       rowKey="id"
       columns={columns}
-      dataSource={data}
+      dataSource={data || []}
       loading={loading}
       pagination={pagination}
       scroll={{ x: "max-content" }}

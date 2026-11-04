@@ -177,7 +177,7 @@ export const AdminHeader = ({
         <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block" />
 
         <Dropdown menu={{ items: profileMenuItems, onClick: handleMenuClick }} trigger={["click"]} placement="bottomRight">
-          <div className="flex items-center gap-3 pl-1.5 py-1 pr-1 sm:pr-2 hover:bg-slate-50 rounded-lg cursor-pointer select-none transition-all duration-150">
+          <div data-testid="admin-avatar-btn" className="flex items-center gap-3 pl-1.5 py-1 pr-1 sm:pr-2 hover:bg-slate-50 rounded-lg cursor-pointer select-none transition-all duration-150">
             <div className="relative inline-flex shrink-0">
               <Avatar
                 size={40}

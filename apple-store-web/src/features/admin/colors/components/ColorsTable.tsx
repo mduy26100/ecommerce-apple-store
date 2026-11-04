@@ -113,7 +113,7 @@ export const ColorsTable = ({
     <Table<ColorItem>
       rowKey="id"
       columns={columns}
-      dataSource={data}
+      dataSource={data || []}
       loading={loading}
       pagination={pagination}
       scroll={{ x: "max-content" }}

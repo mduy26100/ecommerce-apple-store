@@ -179,7 +179,7 @@ export const VariantsTable = ({
     <Table<ProductVariantItem>
       rowKey="id"
       columns={columns}
-      dataSource={data}
+      dataSource={data || []}
       loading={loading}
       pagination={false}
       scroll={{ x: "max-content" }}

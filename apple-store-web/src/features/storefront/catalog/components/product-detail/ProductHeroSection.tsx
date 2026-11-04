@@ -115,7 +115,8 @@ export const ProductHeroSection = ({
   };
 
   const validPreviewUrls = (images || [])
-    .map((img) => img.imageUrl)
+    .filter(Boolean)
+    .map((img) => img?.imageUrl)
     .filter((url): url is string => Boolean(url && typeof url === "string" && url.trim().length > 0));
 
   const currentImage =
@@ -152,8 +153,8 @@ export const ProductHeroSection = ({
 
     const currentOpt = options.find((o) => o.id === optionId);
     const isColorOpt =
-      currentOpt?.name.toLowerCase().includes("màu") ||
-      currentOpt?.values.some((v) => Boolean(v.colorHexCode));
+      Boolean(currentOpt?.name?.toLowerCase().includes("màu")) ||
+      Boolean((currentOpt?.values || []).some((v) => Boolean(v?.colorHexCode)));
 
     if (isColorOpt) {
       return {
@@ -165,7 +166,7 @@ export const ProductHeroSection = ({
 
     const matchingCombo = variantsWithValue.find((v) => {
       const vValIds = v.optionValueIds || [];
-      return Object.entries(selectedOptions).every(([otherOptIdStr, otherValId]) => {
+      return Object.entries(selectedOptions || {}).every(([otherOptIdStr, otherValId]) => {
         const otherOptId = Number(otherOptIdStr);
         if (otherOptId === optionId) return true;
         return vValIds.includes(otherValId);
@@ -250,7 +251,7 @@ export const ProductHeroSection = ({
                         preview={{
                           visible: previewVisible,
                           onVisibleChange: (vis) => setPreviewVisible(vis),
-                          current: Math.max(0, validPreviewUrls.indexOf(currentImage.imageUrl)),
+                          current: Math.max(0, validPreviewUrls.indexOf(currentImage?.imageUrl || "")),
                           onChange: (current) => onSelectImage(current),
                         }}
                         items={validPreviewUrls}
@@ -471,18 +472,19 @@ export const ProductHeroSection = ({
           {options && options.length > 0 && (
             <div className="space-y-4 pt-1">
               {options.map((option) => {
+                const optionValues = option.values || [];
                 const isColor =
-                  option.name.toLowerCase().includes("màu") ||
-                  option.values.some((v) => Boolean(v.colorHexCode));
-                const selectedValId = selectedOptions[option.id];
+                  Boolean(option.name?.toLowerCase().includes("màu")) ||
+                  optionValues.some((v) => Boolean(v?.colorHexCode));
+                const selectedValId = (selectedOptions || {})[option.id];
                 const selectedValName =
-                  option.values.find((v) => v.id === selectedValId)?.value || "Chưa chọn";
+                  optionValues.find((v) => v.id === selectedValId)?.value || "Chưa chọn";
 
                 const gridColsClass = isColor
                   ? "grid grid-cols-2 sm:grid-cols-3 gap-2.5"
-                  : option.values.length === 2
+                  : optionValues.length === 2
                   ? "grid grid-cols-2 gap-2.5"
-                  : option.values.length === 3
+                  : optionValues.length === 3
                   ? "grid grid-cols-3 gap-2.5"
                   : "grid grid-cols-2 sm:grid-cols-4 gap-2.5";
 
@@ -505,7 +507,7 @@ export const ProductHeroSection = ({
                       data-testid={isColor ? "color-options-group" : "storage-options-group"}
                       className={gridColsClass}
                     >
-                      {option.values.map((val) => {
+                      {optionValues.map((val) => {
                         const isSelected = val.id === selectedValId;
                         const status = getOptionValueStatus(option.id, val.id);
                         const isDisabled = status.disabled;

@@ -64,10 +64,10 @@ export const ProductImagesByColorManager = ({
 
   const { data: options = [] } = useProductOptions(productId);
   const colorOption = useMemo(() => {
-    return options.find(
+    return (options || []).find(
       (opt) =>
-        opt.name.toLowerCase().includes("màu") ||
-        opt.values.some((v) => Boolean(v.colorHexCode))
+        Boolean(opt.name?.toLowerCase().includes("màu")) ||
+        Boolean((opt.values || []).some((v) => Boolean(v?.colorHexCode)))
     );
   }, [options]);
 
@@ -94,13 +94,13 @@ export const ProductImagesByColorManager = ({
 
   const activeTargetColor = useMemo(() => {
     if (typeof selectedColorFilter === "number") {
-      return colorOption?.values.find((v) => v.id === selectedColorFilter);
+      return colorOption?.values?.find((v) => v.id === selectedColorFilter);
     }
     if (currentDefaultColorId) {
-      const match = colorOption?.values.find((v) => v.id === currentDefaultColorId);
+      const match = colorOption?.values?.find((v) => v.id === currentDefaultColorId);
       if (match) return match;
     }
-    return colorOption?.values[0];
+    return colorOption?.values?.[0];
   }, [selectedColorFilter, currentDefaultColorId, colorOption]);
 
   const createMutation = useCreateProductImage();

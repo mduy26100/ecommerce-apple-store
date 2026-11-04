@@ -276,8 +276,8 @@ const MyOrdersPage: React.FC = () => {
     }
   };
 
-  const getStepCurrent = (orderStatus: string) => {
-    switch (orderStatus.toLowerCase()) {
+  const getStepCurrent = (orderStatus?: string) => {
+    switch (orderStatus?.toLowerCase()) {
       case "pending":
         return 0;
       case "confirmed":
@@ -439,7 +439,7 @@ const MyOrdersPage: React.FC = () => {
                   <PaymentStatusBadge status={order.paymentStatus} />
                   <span className="text-xs text-slate-400 flex items-center gap-1">
                     <CalendarOutlined />
-                    {new Date(order.placedAt).toLocaleString("vi-VN")}
+                    {order.placedAt ? new Date(order.placedAt).toLocaleString("vi-VN") : ""}
                   </span>
                 </div>
                 <div className="text-xs text-slate-500">
@@ -486,7 +486,7 @@ const MyOrdersPage: React.FC = () => {
                       </Button>
                     )}
 
-                    {(order.canCancel ?? (order.status.toUpperCase() === "PENDING" && order.paymentStatus.toUpperCase() !== "PAID")) && (
+                    {(order.canCancel ?? ((order.status || "").toUpperCase() === "PENDING" && (order.paymentStatus || "").toUpperCase() !== "PAID")) && (
                       <Button
                         danger
                         size="middle"
@@ -498,7 +498,7 @@ const MyOrdersPage: React.FC = () => {
                       </Button>
                     )}
 
-                    {order.status.toUpperCase() === "DELIVERED" && (
+                    {(order.status || "").toUpperCase() === "DELIVERED" && (
                       <Popconfirm
                         title="Xác nhận đã nhận hàng"
                         description="Bạn xác nhận đã nhận được kiện hàng nguyên vẹn và đầy đủ sản phẩm?"
@@ -595,7 +595,7 @@ const MyOrdersPage: React.FC = () => {
               </div>
             </div>
 
-            {selectedOrder.status.toLowerCase() !== "cancelled" ? (
+            {selectedOrder.status?.toLowerCase() !== "cancelled" ? (
               <div className="py-3 px-1">
                 <Steps
                   current={getStepCurrent(selectedOrder.status)}
@@ -616,7 +616,7 @@ const MyOrdersPage: React.FC = () => {
               </div>
             )}
 
-            {(selectedOrder.status.toLowerCase() === "delivered" || selectedOrder.status.toLowerCase() === "completed") && (
+            {(selectedOrder.status?.toLowerCase() === "delivered" || selectedOrder.status?.toLowerCase() === "completed") && (
               <div className="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-xl text-xs text-amber-900 leading-relaxed">
                 <span className="font-bold text-amber-800 block mb-1">
                   Lưu ý nhận hàng & Chính sách đổi trả:
@@ -633,7 +633,7 @@ const MyOrdersPage: React.FC = () => {
                 <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100">
                   <Timeline
                     className="mt-1"
-                    items={selectedOrder.statusHistory.map((h) => ({
+                    items={(selectedOrder.statusHistory || []).map((h) => ({
                       children: (
                         <div className="text-xs">
                           <div className="font-semibold text-slate-800 flex items-center gap-2">
@@ -643,7 +643,7 @@ const MyOrdersPage: React.FC = () => {
                             </span>
                           </div>
                           <div className="text-slate-400 text-[11px] mt-0.5">
-                            {new Date(h.changedAt).toLocaleString("vi-VN")}
+                            {h.changedAt ? new Date(h.changedAt).toLocaleString("vi-VN") : ""}
                           </div>
                           {h.note && (
                             <div className="text-slate-600 mt-1 italic">
@@ -663,7 +663,7 @@ const MyOrdersPage: React.FC = () => {
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   Thông tin nhận hàng
                 </h3>
-                {selectedOrder.status.toLowerCase() === "pending" && (
+                {selectedOrder.status?.toLowerCase() === "pending" && (
                   (selectedOrder.shippingAddressUpdateCount ?? 0) === 0 ? (
                     <Button
                       type="link"
@@ -702,7 +702,7 @@ const MyOrdersPage: React.FC = () => {
                     {selectedOrder.shippingAddressLine}
                     {selectedOrder.shippingWard ? `, ${selectedOrder.shippingWard}` : ""}
                     {selectedOrder.shippingDistrict ? `, ${selectedOrder.shippingDistrict}` : ""}
-                    {`, ${selectedOrder.shippingProvince}`}
+                    {selectedOrder.shippingProvince ? `, ${selectedOrder.shippingProvince}` : ""}
                   </span>
                 </div>
                 {selectedOrder.customerNote && (
@@ -711,7 +711,7 @@ const MyOrdersPage: React.FC = () => {
                   </div>
                 )}
               </div>
-              {selectedOrder.status.toLowerCase() === "pending" && (selectedOrder.shippingAddressUpdateCount ?? 0) === 0 && (
+              {selectedOrder.status?.toLowerCase() === "pending" && (selectedOrder.shippingAddressUpdateCount ?? 0) === 0 && (
                 <div className="mt-1.5 text-[11px] text-amber-600 flex items-center gap-1 px-1">
                   <span>*</span>
                   <span>Quý khách được phép đổi thông tin địa chỉ, SĐT, email nhận hàng 1 lần duy nhất khi đơn đang chờ xử lý.</span>
@@ -724,7 +724,7 @@ const MyOrdersPage: React.FC = () => {
                 Danh sách sản phẩm ({selectedOrder.items?.length || 0})
               </h3>
               <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl p-3">
-                {selectedOrder.items?.map((item) => (
+                {(selectedOrder.items || []).map((item) => (
                   <div key={item.id} className="py-2.5 flex items-center gap-3 first:pt-0 last:pb-0">
                     <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center p-1 shrink-0 overflow-hidden">
                       {item.thumbnailUrl && !imageErrors[item.id] ? (
@@ -791,7 +791,7 @@ const MyOrdersPage: React.FC = () => {
                   </Button>
                 )}
 
-                {(selectedOrder.canCancel ?? (selectedOrder.status.toLowerCase() === "pending" && selectedOrder.paymentStatus.toLowerCase() !== "paid")) && (
+                {(selectedOrder.canCancel ?? (selectedOrder.status?.toLowerCase() === "pending" && selectedOrder.paymentStatus?.toLowerCase() !== "paid")) && (
                   <Button
                     danger
                     icon={<CloseCircleOutlined />}
@@ -802,7 +802,7 @@ const MyOrdersPage: React.FC = () => {
                   </Button>
                 )}
 
-                {selectedOrder.status.toLowerCase() === "delivered" && (
+                {selectedOrder.status?.toLowerCase() === "delivered" && (
                   <Popconfirm
                     title="Xác nhận đã nhận hàng"
                     description="Bạn xác nhận đã nhận được kiện hàng nguyên vẹn và đầy đủ sản phẩm?"

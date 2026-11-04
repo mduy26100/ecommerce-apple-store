@@ -232,7 +232,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                 </h4>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <Timeline
-                    items={order.statusHistory.map((h) => ({
+                    items={(order.statusHistory || []).map((h) => ({
                       children: (
                         <div className="text-xs">
                           <div className="font-semibold text-slate-800 flex items-center gap-2">
@@ -259,10 +259,10 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
 
             <div>
               <h4 className="text-base font-semibold text-slate-800 mb-3">
-                Snapshot sản phẩm khi đặt ({order.items.length} mặt hàng)
+                Snapshot sản phẩm khi đặt ({order.items?.length || 0} mặt hàng)
               </h4>
               <Table
-                dataSource={order.items}
+                dataSource={order.items || []}
                 columns={itemColumns}
                 rowKey="id"
                 pagination={false}

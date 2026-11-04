@@ -138,7 +138,7 @@ export const OrdersTable = ({
     <Table<OrderSummaryDto>
       rowKey="id"
       columns={columns}
-      dataSource={data}
+      dataSource={data || []}
       loading={loading}
       pagination={pagination}
       scroll={{ x: "max-content" }}
