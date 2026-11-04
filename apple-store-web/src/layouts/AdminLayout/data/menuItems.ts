@@ -26,16 +26,16 @@ export const menuItems: MenuItem[] = [
     icon: React.createElement(ClusterOutlined),
     children: [
       {
-        key: "categories",
-        label: "Danh mục",
-        path: "/admin/categories",
-        icon: React.createElement(FolderOutlined),
-      },
-      {
         key: "products",
         label: "Sản phẩm",
         path: "/admin/products",
         icon: React.createElement(ShoppingOutlined),
+      },
+      {
+        key: "categories",
+        label: "Danh mục",
+        path: "/admin/categories",
+        icon: React.createElement(FolderOutlined),
       },
       {
         key: "colors",

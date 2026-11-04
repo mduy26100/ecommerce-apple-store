@@ -102,7 +102,7 @@ export const OrdersPage = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageHeader
-          breadcrumbs={["BÁN HÀNG", "QUẢN TRỊ ĐƠN HÀNG"]}
+          breadcrumbs={["QUẢN TRỊ ĐƠN HÀNG"]}
           title="Quản Lý Đơn Hàng"
         />
       </div>

@@ -275,7 +275,7 @@ export const UsersPage = () => {
     <div className="space-y-6 select-none">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageHeader
-          breadcrumbs={["HỆ THỐNG", "QUẢN TRỊ TÀI KHOẢN", "NGƯỜI DÙNG"]}
+          breadcrumbs={["QUẢN TRỊ TÀI KHOẢN"]}
           title="Quản Lý Người Dùng"
         />
         <Button
@@ -289,8 +289,8 @@ export const UsersPage = () => {
       </div>
 
       <Card className="border-slate-100 shadow-xs rounded-2xl">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
-          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
             <Input.Search
               id="userSearchInput"
               placeholder="Tìm theo tên, email, SĐT, username..."
@@ -307,14 +307,14 @@ export const UsersPage = () => {
               }}
               onSearch={handleSearch}
               allowClear
-              className="w-full sm:w-72"
+              className="flex-1 sm:w-80"
             />
 
             <Select
               id="userStatusFilter"
               value={params.status}
               onChange={handleStatusChange}
-              className="w-36"
+              className="w-36 sm:w-40 shrink-0"
               options={[
                 { label: "Tất cả trạng thái", value: "all" },
                 { label: "Đang hoạt động", value: "active" },
@@ -326,7 +326,7 @@ export const UsersPage = () => {
           <Button
             icon={<ReloadOutlined spin={isFetching} />}
             onClick={() => refetch()}
-            className="rounded-lg text-xs"
+            className="rounded-lg text-xs self-end sm:self-auto shrink-0"
           >
             Làm mới
           </Button>

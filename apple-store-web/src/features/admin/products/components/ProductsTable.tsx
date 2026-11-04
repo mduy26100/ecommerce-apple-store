@@ -1,9 +1,5 @@
-import { Table, Tag, Button, Space, Popconfirm } from "antd";
-import {
-  DeleteOutlined,
-  ShoppingOutlined,
-  SlidersOutlined,
-} from "@ant-design/icons";
+import { Table, Tag, Button, Popconfirm } from "antd";
+import { DeleteOutlined, ShoppingOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { ProductItem } from "../types/product.types";
 
@@ -11,11 +7,9 @@ export interface ProductsTableProps {
   data: ProductItem[];
   loading?: boolean;
   pagination?: TablePaginationConfig;
-  onEdit?: (product: ProductItem) => void;
   onDelete: (id: number) => void;
   onSelectProduct?: (product: ProductItem) => void;
   onManageVariants?: (product: ProductItem) => void;
-  onManageSpecifications?: (product: ProductItem) => void;
   isDeleting?: boolean;
 }
 
@@ -34,7 +28,6 @@ export const ProductsTable = ({
   onDelete,
   onSelectProduct,
   onManageVariants,
-  onManageSpecifications,
   isDeleting,
 }: ProductsTableProps) => {
   const columns: ColumnsType<ProductItem> = [
@@ -97,13 +90,13 @@ export const ProductsTable = ({
       render: (count: number, record) => (
         <Tag
           color={count > 0 ? "geekblue" : "default"}
-          className="cursor-pointer hover:opacity-80"
+          className="cursor-pointer hover:opacity-80 font-medium"
           onClick={(e) => {
             e.stopPropagation();
-            if (onSelectProduct) {
-              onSelectProduct(record);
-            } else if (onManageVariants) {
+            if (onManageVariants) {
               onManageVariants(record);
+            } else if (onSelectProduct) {
+              onSelectProduct(record);
             }
           }}
         >
@@ -146,19 +139,10 @@ export const ProductsTable = ({
     {
       title: "Thao tác",
       key: "actions",
-      width: 110,
+      width: 90,
       align: "center",
       render: (_, record) => (
-        <Space size="small" onClick={(e) => e.stopPropagation()}>
-          {onManageSpecifications && (
-            <Button
-              type="text"
-              icon={<SlidersOutlined />}
-              onClick={() => onManageSpecifications(record)}
-              title="Thông số kỹ thuật"
-              aria-label="Quản lý thông số"
-            />
-          )}
+        <div onClick={(e) => e.stopPropagation()}>
           <Popconfirm
             title="Xác nhận xóa"
             description="Bạn có chắc chắn muốn xóa sản phẩm này?"
@@ -176,7 +160,7 @@ export const ProductsTable = ({
               aria-label="Xóa sản phẩm"
             />
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ];

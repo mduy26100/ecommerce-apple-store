@@ -21,6 +21,7 @@ import ColorsPage from "@pages/admin/Colors/ColorsPage";
 import StorageOptionsPage from "@pages/admin/StorageOptions/StorageOptionsPage";
 import CategoriesPage from "@pages/admin/Categories/CategoriesPage";
 import ProductsPage from "@pages/admin/Products/ProductsPage";
+import AdminProductDetailPage from "@pages/admin/Products/ProductDetailPage";
 import OrdersPage from "@pages/admin/Orders/OrdersPage";
 import ReportsPage from "@pages/admin/Reports/ReportsPage";
 import UsersPage from "@pages/admin/Users/UsersPage";
@@ -159,6 +160,14 @@ const router = createBrowserRouter([
           {
             path: "products",
             element: <ProductsPage />,
+          },
+          {
+            path: "products/new",
+            element: <AdminProductDetailPage />,
+          },
+          {
+            path: "products/:id",
+            element: <AdminProductDetailPage />,
           },
           {
             path: "orders",

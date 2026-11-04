@@ -1,26 +1,21 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button, Card, Input, Select } from "antd";
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import PageHeader from "@shared/components/page-header/PageHeader";
 import {
   ProductsTable,
-  ProductFormModal,
-  ProductVariantsDrawer,
-  ProductSpecificationsDrawer,
   useProductsPaged,
-  useCreateProduct,
-  useUpdateProduct,
   useDeleteProduct,
   useCategoriesAll,
 } from "@features/admin";
 import type {
   ProductItem,
   ProductPagedParams,
-  CreateProductPayload,
-  UpdateProductPayload,
 } from "@features/admin";
 
 export const ProductsPage = () => {
+  const navigate = useNavigate();
   const [params, setParams] = useState<ProductPagedParams>({
     pageNumber: 1,
     pageSize: 10,
@@ -29,17 +24,8 @@ export const ProductsPage = () => {
     isActive: undefined,
   });
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
-  const [variantDrawerOpen, setVariantDrawerOpen] = useState(false);
-  const [selectedProductForVariants, setSelectedProductForVariants] = useState<ProductItem | null>(null);
-  const [specDrawerOpen, setSpecDrawerOpen] = useState(false);
-  const [selectedProductForSpecs, setSelectedProductForSpecs] = useState<ProductItem | null>(null);
-
   const { data, isLoading } = useProductsPaged(params);
   const { data: categories = [] } = useCategoriesAll();
-  const createMutation = useCreateProduct();
-  const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,33 +53,15 @@ export const ProductsPage = () => {
   };
 
   const handleOpenCreate = () => {
-    setEditingProduct(null);
-    setModalOpen(true);
+    navigate("/admin/products/new");
   };
 
-  const handleOpenEdit = (product: ProductItem) => {
-    setEditingProduct(product);
-    setModalOpen(true);
+  const handleOpenDetail = (product: ProductItem) => {
+    navigate(`/admin/products/${product.id}`);
   };
 
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setEditingProduct(null);
-  };
-
-  const handleSubmit = async (values: CreateProductPayload | UpdateProductPayload) => {
-    if (editingProduct) {
-      await updateMutation.mutateAsync(
-        { id: editingProduct.id, payload: values },
-        {
-          onSuccess: () => handleCloseModal(),
-        }
-      );
-    } else {
-      await createMutation.mutateAsync(values as CreateProductPayload, {
-        onSuccess: () => handleCloseModal(),
-      });
-    }
+  const handleManageVariants = (product: ProductItem) => {
+    navigate(`/admin/products/${product.id}?tab=variants`);
   };
 
   const handleDelete = async (id: number) => {
@@ -118,26 +86,6 @@ export const ProductsPage = () => {
       },
     };
   }, [data, params]);
-
-  const handleManageVariants = (product: ProductItem) => {
-    setSelectedProductForVariants(product);
-    setVariantDrawerOpen(true);
-  };
-
-  const handleCloseVariantDrawer = () => {
-    setVariantDrawerOpen(false);
-    setSelectedProductForVariants(null);
-  };
-
-  const handleManageSpecifications = (product: ProductItem) => {
-    setSelectedProductForSpecs(product);
-    setSpecDrawerOpen(true);
-  };
-
-  const handleCloseSpecDrawer = () => {
-    setSpecDrawerOpen(false);
-    setSelectedProductForSpecs(null);
-  };
 
   return (
     <div className="space-y-6">
@@ -196,35 +144,12 @@ export const ProductsPage = () => {
           data={data || []}
           loading={isLoading}
           pagination={paginationConfig}
-          onSelectProduct={handleManageVariants}
-          onEdit={handleOpenEdit}
+          onSelectProduct={handleOpenDetail}
           onDelete={handleDelete}
           onManageVariants={handleManageVariants}
-          onManageSpecifications={handleManageSpecifications}
           isDeleting={deleteMutation.isPending}
         />
       </Card>
-
-      <ProductFormModal
-        open={modalOpen}
-        initialData={editingProduct}
-        confirmLoading={createMutation.isPending || updateMutation.isPending}
-        onCancel={handleCloseModal}
-        onSubmit={handleSubmit}
-      />
-
-      <ProductVariantsDrawer
-        open={variantDrawerOpen}
-        product={selectedProductForVariants}
-        onClose={handleCloseVariantDrawer}
-        onEditProduct={handleOpenEdit}
-      />
-
-      <ProductSpecificationsDrawer
-        open={specDrawerOpen}
-        product={selectedProductForSpecs}
-        onClose={handleCloseSpecDrawer}
-      />
     </div>
   );
 };
