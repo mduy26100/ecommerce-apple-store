@@ -115,13 +115,14 @@ ecommerce-apple-store/
 │       ├── main.tsx                              # Điểm nhập React DOM (mount root element)
 │       └── index.css                             # Cấu hình TailwindCSS v4 và typography toàn cục
 │
-├── docs/                                         # Bộ Hồ Sơ Tài Liệu Kỹ Thuật & Nghiệp Vụ Báo Cáo Đồ Án
-│   ├── README.md                                 # Tổng quan hệ thống & mục lục điều hướng tài liệu
-│   ├── DATABASE_DESIGN.md                        # Thiết kế CSDL 27 bảng, 3 Schemas, Hybrid EAV, Khóa lạc quan
-│   ├── SYSTEM_ARCHITECTURE.md                    # Kiến trúc Clean Architecture, Concurrency 3 tầng, VNPay IPN
-│   ├── FEATURES_SPECIFICATION.md                 # Đặc tả chi tiết 11 phân hệ nghiệp vụ người dùng & Admin
-│   ├── API_SPECIFICATION.md                      # Đặc tả hợp đồng RESTful API, Webhook IPN & mã lỗi RFC 7807
-│   └── PROJECT_PROGRESS.md                       # Báo cáo tiến độ nghiệm thu hoàn thành 100% các phân hệ [x]
+├── docs/                                         # Bộ Hồ Sơ Tài Liệu Kỹ Thuật & Nghiệp Vụ Báo Cáo Bài Tập Lớn
+│   ├── 0. README.md                              # Tổng quan hệ thống & mục lục điều hướng tài liệu theo thứ tự đọc
+│   ├── 1. DATABASE_DESIGN.md                     # Thiết kế CSDL 27 bảng, 3 Schemas, Hybrid EAV, Khóa lạc quan
+│   ├── 2. SYSTEM_ARCHITECTURE.md                 # Kiến trúc Clean Architecture, Concurrency 3 tầng, VNPay IPN
+│   ├── 3. FEATURES_SPECIFICATION.md              # Đặc tả chi tiết 11 phân hệ nghiệp vụ người dùng & Admin
+│   ├── 4. API_SPECIFICATION.md                   # Đặc tả hợp đồng RESTful API, Webhook IPN & mã lỗi RFC 7807
+│   ├── 5. PROJECT_PROGRESS.md                    # Báo cáo tiến độ nghiệm thu hoàn thành 100% các phân hệ [x]
+│   └── 6. PRESENTATION_AND_DEFENSE_GUIDE.md      # Cẩm nang thuyết trình & kịch bản 15 câu hỏi vấn đáp bảo vệ
 │
 ├── .env                                          # Biến môi trường tập trung (Cổng port, Database, JWT, VNPay)
 ├── docker-compose.yml                            # Điều phối khởi chạy tuần tự các container Docker
@@ -183,13 +184,14 @@ Dùng để thực hiện giao dịch thanh toán thử nghiệm khi đặt hàn
 
 ---
 
-## 8. Bộ Hồ Sơ Tài Liệu Chi Tiết Trong Thư Mục `./docs`
+## 8. Bộ Hồ Sơ Tài Liệu Chi Tiết Trong Thư Mục `./docs` (Đọc Theo Thứ Tự 0 -> 6)
 
-Để phục vụ tốt nhất cho việc nghiên cứu, viết báo cáo đồ án và thuyết trình trước hội đồng chấm thi, toàn bộ tài liệu chuyên sâu được sắp xếp chi tiết trong thư mục `./docs`:
+Để phục vụ tốt nhất cho việc nghiên cứu, viết báo cáo bài tập lớn và thuyết trình trước hội đồng chấm thi, toàn bộ tài liệu chuyên sâu được sắp xếp chi tiết theo đúng thứ tự đọc chuẩn trong thư mục `./docs`:
 
-- 📊 **[DATABASE_DESIGN.md](./docs/DATABASE_DESIGN.md):** Bản đặc tả chi tiết 27 bảng dữ liệu, phân vùng 3 Schemas, giải trình kiến trúc Hybrid EAV, nhóm thông số phân cấp, snapshot bất biến đơn hàng và khóa lạc quan.
-- 🏛️ **[SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md):** Kiến trúc kỹ thuật Clean Architecture, Concurrency Defense 3 tầng, quy trình Webhook IPN VNPay thực tế và cơ chế Retry thanh toán vô hạn.
-- 📱 **[FEATURES_SPECIFICATION.md](./docs/FEATURES_SPECIFICATION.md):** Bản đặc tả chức năng (FSD) toàn diện 11 phân hệ nghiệp vụ người dùng và quản trị viên.
-- 📑 **[API_SPECIFICATION.md](./docs/API_SPECIFICATION.md):** Bản đặc tả chi tiết danh mục RESTful API endpoints, request/response schemas, mã lỗi RFC 7807 và hợp đồng Webhook IPN.
-- 📈 **[PROJECT_PROGRESS.md](./docs/PROJECT_PROGRESS.md):** Báo cáo tiến độ nghiệm thu hoàn thiện 100% tất cả các phân hệ và tính năng của dự án.
-- 📖 **[README.md (Tài liệu tổng quan)](./docs/README.md):** Mục lục điều hướng tổng thể hồ sơ kỹ thuật.
+- 📖 **[0. README.md (Tài liệu tổng quan)](./docs/0.%20README.md):** Mục lục điều hướng tổng thể hồ sơ kỹ thuật theo thứ tự đọc.
+- 📊 **[1. DATABASE_DESIGN.md](./docs/1.%20DATABASE_DESIGN.md):** Bản đặc tả chi tiết 27 bảng dữ liệu, phân vùng 3 Schemas, giải trình kiến trúc Hybrid EAV, nhóm thông số phân cấp, snapshot bất biến đơn hàng và khóa lạc quan.
+- 🏛️ **[2. SYSTEM_ARCHITECTURE.md](./docs/2.%20SYSTEM_ARCHITECTURE.md):** Kiến trúc kỹ thuật Clean Architecture, Concurrency Defense 3 tầng, quy trình Webhook IPN VNPay thực tế và cơ chế Retry thanh toán vô hạn.
+- 📱 **[3. FEATURES_SPECIFICATION.md](./docs/3.%20FEATURES_SPECIFICATION.md):** Bản đặc tả chức năng (FSD) toàn diện 11 phân hệ nghiệp vụ người dùng và quản trị viên.
+- 📑 **[4. API_SPECIFICATION.md](./docs/4.%20API_SPECIFICATION.md):** Bản đặc tả chi tiết danh mục RESTful API endpoints, request/response schemas, mã lỗi RFC 7807 và hợp đồng Webhook IPN.
+- 📈 **[5. PROJECT_PROGRESS.md](./docs/5.%20PROJECT_PROGRESS.md):** Báo cáo tiến độ nghiệm thu hoàn thiện 100% tất cả các phân hệ và tính năng của dự án.
+- 🎓 **[6. PRESENTATION_AND_DEFENSE_GUIDE.md](./docs/6.%20PRESENTATION_AND_DEFENSE_GUIDE.md):** Hướng dẫn phân chia thuyết trình nhóm 4 người, luồng chi tiết Order 7 bước và kịch bản 15 câu hỏi vấn đáp bảo vệ bài tập lớn chuẩn Senior.
