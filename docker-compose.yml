@@ -18,6 +18,43 @@ services:
       retries: 10
       start_period: 10s
 
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: apple-store-db-init
+    restart: "no"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+      DB_NAME: "${DB_NAME:-AppleStoreDb}"
+    volumes:
+      - ./seed-data.sql:/seed-data.sql:ro
+    entrypoint: >
+      /bin/bash -c "
+      echo '[INIT] Kiểm tra kết nối SQL Server...';
+      /opt/mssql-tools18/bin/sqlcmd -S sqlserver,1433 -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -I -Q \"SELECT 1\" > /dev/null 2>&1;
+      echo '[INIT] Kiểm tra cơ sở dữ liệu $${DB_NAME}...';
+      /opt/mssql-tools18/bin/sqlcmd -S sqlserver,1433 -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -I -Q \"
+      IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'$${DB_NAME}')
+      BEGIN
+          PRINT '[INIT] Chưa có database $${DB_NAME}. Đang tạo database...';
+          CREATE DATABASE [$${DB_NAME}];
+      END
+      \";
+      echo '[INIT] Kiểm tra dữ liệu sản phẩm trong database $${DB_NAME}...';
+      HAS_DATA=\$(/opt/mssql-tools18/bin/sqlcmd -S sqlserver,1433 -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -I -d \"$${DB_NAME}\" -h -1 -W -Q \"SET NOCOUNT ON; IF OBJECT_ID(N'[catalog].[Products]', N'U') IS NOT NULL SELECT COUNT(1) FROM [catalog].[Products]; ELSE SELECT 0;\");
+      echo \"[INIT] Số sản phẩm hiện có: \$$HAS_DATA\";
+      if [ \"\$$HAS_DATA\" = \"0\" ] || [ -z \"\$$HAS_DATA\" ]; then
+          echo '[INIT] Cơ sở dữ liệu chưa có dữ liệu. Bắt đầu nạp seed-data.sql vào database $${DB_NAME}...';
+          /opt/mssql-tools18/bin/sqlcmd -S sqlserver,1433 -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -I -d \"$${DB_NAME}\" -i /seed-data.sql;
+          echo '[INIT] Nạp seed-data.sql hoàn tất!';
+      else
+          echo \"[INIT] Database $${DB_NAME} đã có dữ liệu (\$$HAS_DATA sản phẩm). Bỏ qua nạp seed-data.sql để bảo toàn dữ liệu.\";
+      fi;
+      echo '[INIT] Hoàn tất khởi tạo cơ sở dữ liệu. Sẵn sàng khởi động Backend.';
+      "
+
   backend:
     container_name: apple-store-backend
     restart: unless-stopped
@@ -46,11 +83,11 @@ services:
       VnPay__FrontendReturnUrl: "${VNPAY_FRONTEND_RETURN_URL:-http://localhost:${FRONTEND_PORT}/payment/vnpay-return}"
     ports:
       - "${BACKEND_PORT}:8080"
-    volumes:
-      - ./data-test.sql:/app/data-test.sql:ro
     depends_on:
       sqlserver:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 5s

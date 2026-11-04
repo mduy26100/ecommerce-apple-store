@@ -1,337 +1,424 @@
 # Thiết Kế Cơ Sở Dữ Liệu (Database Design)
 
-> **Ghi chú quan trọng:** Schema hiện tại phục vụ cho giai đoạn ban đầu (MVP), có thể bổ sung thêm index và bảng quan hệ phụ trong các đợt phát triển tiếp theo.
+> **Tài liệu thiết kế cơ sở dữ liệu nền tảng thương mại điện tử Urban Stitch (Apple Store Ecosystem).**  
+> Bản đặc tả chuẩn hóa toàn bộ 27 bảng dữ liệu, phân vùng Schema, cấu trúc thuộc tính sản phẩm đa năng (Hybrid EAV), nhóm thông số kỹ thuật phân cấp, quản lý kho hàng với kiểm soát tương tranh khóa lạc quan (Optimistic Concurrency Control) và hệ thống khuyến mãi - thanh toán bảo mật.
 
 ---
 
-## 1. Tổng quan kiến trúc dữ liệu
+## 1. Tổng quan Kiến trúc Dữ liệu
 
-Cơ sở dữ liệu của hệ thống Urban Stitch được xây dựng trên nền tảng **SQL Server**, phân tách thành 3 Schemas độc lập theo từng miền nghiệp vụ (Bounded Contexts):
-- `catalog`: Quản lý toàn bộ cấu trúc sản phẩm, thuộc tính động, biến thể, hình ảnh và nhóm thông số kỹ thuật.
-- `sales`: Quản lý giỏ hàng, thông tin thanh toán, chi tiết đơn đặt hàng và trạng thái đơn hàng.
-- `identity`: Quản lý danh tính người dùng, phân quyền truy cập (RBAC) và phiên xác thực JWT/RefreshToken.
+Cơ sở dữ liệu của hệ thống Urban Stitch được xây dựng trên nền tảng **Microsoft SQL Server 2022**, phân tách rạch ròi thành 3 Schemas độc lập theo từng miền nghiệp vụ (Bounded Contexts):
 
----
-
-## 2. Chuẩn hóa Thực thể Cơ sở (BaseEntity Pattern)
-
-Để đảm bảo tính nhất quán và loại bỏ việc lặp lại mã nguồn, **toàn bộ các bảng nghiệp vụ trong 2 schema `catalog` và `sales` đều kế thừa từ lớp thực thể cơ sở `BaseEntity<int>`**.
-
-### Các trường Auditing & Soft Delete tự động (Áp dụng chung):
-
-| Tên trường | Kiểu dữ liệu | Nullable | Mô tả chức năng |
+| Tên Schema | Phạm vi nghiệp vụ | Bảng trực thuộc | Trách nhiệm chính |
 | :--- | :--- | :---: | :--- |
-| `Id` | `int` | Không | Khóa chính (Primary Key), tự tăng (IDENTITY). |
-| `IsActive` | `bit` | Không | Trạng thái kích hoạt bản ghi (Mặc định: `1` - Hoạt động). |
-| `CreatedOn` | `datetimeoffset` | Không | Mốc thời gian UTC tạo bản ghi (Tự động gán khi INSERT). |
-| `CreatedBy` | `nvarchar(max)` | Có | Tên tài khoản hoặc định danh người tạo. |
-| `LastModifiedOn` | `datetimeoffset` | Có | Mốc thời gian UTC cập nhật bản ghi gần nhất. |
-| `LastModifiedBy` | `nvarchar(max)` | Có | Tên tài khoản hoặc định danh người chỉnh sửa. |
-| `IsDeleted` | `bit` | Không | Cờ đánh dấu xóa mềm (Mặc định: `0` - Chưa xóa). |
-| `DeletedOn` | `datetimeoffset` | Có | Mốc thời gian UTC khi bản ghi bị xóa mềm. |
-| `DeletedBy` | `nvarchar(max)` | Có | Tên tài khoản hoặc định danh người thực hiện xóa. |
+| **`catalog`** | Quản lý Hàng hóa & Cấu hình | 11 bảng | Lưu trữ cấu trúc ngành hàng Apple, bảng màu thương mại, tùy chọn dung lượng, sản phẩm cha, biến thể thương mại, ma trận thuộc tính động (EAV), thư viện ảnh theo màu và nhóm thông số kỹ thuật phân cấp. |
+| **`sales`** | Bán hàng, Giỏ hàng & Dòng tiền | 7 bảng | Lưu trữ giỏ hàng (khách vãng lai và thành viên), chi tiết giỏ, đơn đặt hàng, snapshot mặt hàng đã mua, voucher khuyến mãi đa đối tượng, ví voucher cá nhân hóa và nhật ký áp dụng voucher. |
+| **`identity`** | Xác thực, Phân quyền & Phiên | 8 bảng | Lưu trữ tài khoản người dùng, vai trò phân quyền (RBAC), liên kết vai trò, thông tin bảo mật mật khẩu, khóa đăng nhập và các phiên Refresh Token hoạt động. |
+| **`dbo`** | Lịch sử Hạ tầng & Migration | 1 bảng | Bảng `__EFMigrationsHistory` kiểm soát các phiên bản migration tự động của Entity Framework Core. |
 
-> **Quy ước:** 
-> - Mọi truy vấn đọc trong hệ thống đều được Entity Framework Core áp dụng **Global Query Filter** (`WHERE IsDeleted = 0`) tự động.
-> - Riêng schema **`identity`** sử dụng cấu trúc bảng chuẩn của framework ASP.NET Core Identity nên không kế thừa lớp `BaseEntity` này.
-> - Trong danh sách chi tiết các bảng dưới đây, **chỉ liệt kê các cột nghiệp vụ đặc thù**, không lặp lại các cột dùng chung trên.
+---
+
+## 2. Chuẩn hóa Thực thể Cơ sở (BaseEntity Pattern & Global Query Filter)
+
+Toàn bộ các bảng nghiệp vụ trong 2 schema `catalog` và `sales` đều kế thừa từ lớp thực thể cơ sở `BaseEntity<int>`, đảm bảo tính toàn vẹn và đồng nhất 100% trong toàn bộ hệ thống:
+
+### Các trường Auditing & Xóa mềm (Soft Delete) tự động
+
+| Tên cột | Kiểu dữ liệu | Nullable | Ràng buộc / Mặc định | Ý nghĩa nghiệp vụ |
+| :--- | :--- | :---: | :---: | :--- |
+| `Id` | `int` | Không | `PRIMARY KEY IDENTITY(1,1)` | Khóa chính duy nhất của bản ghi. |
+| `IsActive` | `bit` | Không | Mặc định `1` | Trạng thái hiển thị / kích hoạt bản ghi trong hệ thống. |
+| `CreatedOn` | `datetimeoffset` | Không | `UtcNow` | Mốc thời gian tạo bản ghi chuẩn quốc tế kèm múi giờ. |
+| `CreatedBy` | `nvarchar(max)` | Có | `NULL` | Định danh tài khoản người dùng tạo bản ghi. |
+| `LastModifiedOn` | `datetimeoffset` | Có | `NULL` | Mốc thời gian chỉnh sửa thông tin bản ghi gần nhất. |
+| `LastModifiedBy` | `nvarchar(max)` | Có | `NULL` | Định danh tài khoản người dùng sửa bản ghi. |
+| `IsDeleted` | `bit` | Không | Mặc định `0` | Cờ xóa mềm (0: Khả dụng, 1: Đã xóa mềm). |
+| `DeletedOn` | `datetimeoffset` | Có | `NULL` | Mốc thời gian khi bản ghi bị xóa mềm. |
+| `DeletedBy` | `nvarchar(max)` | Có | `NULL` | Định danh tài khoản thực hiện thao tác xóa mềm. |
+
+> **Quy tắc vận hành:**
+>
+> - **Global Query Filter:** Mọi truy vấn đọc (`SELECT`) qua Entity Framework Core đều được tự động gắn bộ lọc ngầm `WHERE IsDeleted = 0`. Dữ liệu xóa mềm không bao giờ bị mất vĩnh viễn và không làm gãy các ràng buộc khóa ngoại lịch sử.
+> - **Tối ưu bảng danh mục:** Riêng schema `identity` tuân thủ chuẩn Microsoft ASP.NET Core Identity nên quản lý trường kiểm soát riêng (`LockoutEnabled`, `AccessFailedCount`, `ConcurrencyStamp`).
 
 ---
 
 ## 3. Bản đồ Quan hệ giữa các Bảng (Relationship Mapping)
 
-Thay vì biểu đồ đồ họa khó hiển thị trên một số trình đọc markdown, mối quan hệ thực thể được chuẩn hóa qua bảng quan hệ trực quan dưới đây:
+Mối quan hệ thực thể toàn hệ thống được mô tả bằng bảng quan hệ tường minh:
 
-| Bảng nguồn | Quan hệ | Bảng đích | Khóa ngoại (Foreign Key) | Ý nghĩa nghiệp vụ |
-| :--- | :---: | :--- | :--- | :--- |
-| `catalog.Categories` | **1 - N** | `catalog.Products` | `Products.CategoryId` | Một danh mục chứa nhiều sản phẩm (iPhone, Mac, iPad...). |
-| `catalog.Products` | **1 - N** | `catalog.ProductVariants` | `ProductVariants.ProductId` | Một dòng máy có nhiều cấu hình biến thể (màu sắc, dung lượng). |
-| `catalog.Colors` | **1 - N** | `catalog.ProductVariants` | `ProductVariants.ColorId` | Màu sắc áp dụng cho biến thể sản phẩm cụ thể. |
-| `catalog.StorageOptions` | **1 - N** | `catalog.ProductVariants` | `ProductVariants.StorageOptionId` | Dung lượng bộ nhớ áp dụng cho biến thể sản phẩm cụ thể. |
-| `catalog.Products` | **1 - N** | `catalog.ProductImages` | `ProductImages.ProductId` | Thư viện hình ảnh thuộc về sản phẩm. |
-| `catalog.Colors` | **1 - N** | `catalog.ProductImages` | `ProductImages.ColorId` | Hình ảnh sản phẩm được gắn với màu sắc cụ thể để chuyển ảnh. |
-| `catalog.Products` | **1 - N** | `catalog.ProductOptions` | `ProductOptions.ProductId` | Tùy chọn thuộc tính động mở rộng của sản phẩm (RAM, Kết nối). |
-| `catalog.ProductOptions` | **1 - N** | `catalog.ProductOptionValues`| `ProductOptionValues.OptionId` | Giá trị cụ thể của tùy chọn động (16GB, Wi-Fi + 5G). |
-| `catalog.ProductVariants`| **N - N** | `catalog.ProductOptionValues`| Qua bảng `ProductVariantValues` | Ánh xạ biến thể mang những tùy chọn động mở rộng nào. |
-| `catalog.Products` | **1 - N** | `catalog.ProductSpecificationGroups` | `ProductSpecificationGroups.ProductId` | Sản phẩm có nhiều nhóm thông số (Màn hình, Camera...). |
-| `catalog.ProductSpecificationGroups` | **1 - N** | `catalog.ProductSpecifications` | `ProductSpecifications.GroupId` | Một nhóm thông số chứa nhiều mục kỹ thuật chi tiết. |
-| `identity.Users` | **1 - N** | `sales.Carts` | `Carts.UserId` | Mỗi người dùng sở hữu giỏ hàng cá nhân. |
-| `sales.Carts` | **1 - N** | `sales.CartItems` | `CartItems.CartId` | Giỏ hàng chứa nhiều mặt hàng chọn mua. |
-| `catalog.ProductVariants`| **1 - N** | `sales.CartItems` | `CartItems.ProductVariantId` | Mặt hàng trong giỏ liên kết trực tiếp tới biến thể cụ thể. |
-| `identity.Users` | **1 - N** | `sales.Orders` | `Orders.UserId` | Người dùng đặt một hoặc nhiều đơn hàng. |
-| `sales.Orders` | **1 - N** | `sales.OrderItems` | `OrderItems.OrderId` | Một đơn hàng gồm nhiều dòng sản phẩm đã mua. |
-| `catalog.ProductVariants`| **1 - N** | `sales.OrderItems` | `OrderItems.ProductVariantId` | Mặt hàng đã đặt tham chiếu tới biến thể gốc trong kho. |
-| `identity.Users` | **1 - N** | `identity.RefreshTokens` | `RefreshTokens.UserId` | Người dùng có các phiên Refresh Token đang hoạt động. |
-| `identity.Users` | **N - N** | `identity.Roles` | Qua bảng `identity.UserRoles` | Phân quyền vai trò người dùng (Admin, Customer). |
+| Bảng nguồn | Loại quan hệ | Bảng đích | Khóa ngoại (Foreign Key) | Hành vi ràng buộc (Cascade Action) | Ý nghĩa nghiệp vụ thực tế |
+| :--- | :---: | :--- | :--- | :---: | :--- |
+| `catalog.Categories` | **1 - N** | `catalog.Products` | `Products.CategoryId` | `RESTRICT` | Một danh mục (iPhone, Mac, iPad) chứa nhiều dòng máy. |
+| `catalog.Products` | **1 - N** | `catalog.ProductVariants` | `ProductVariants.ProductId` | `CASCADE` | Một dòng máy có nhiều phiên bản màu sắc, dung lượng cụ thể. |
+| `catalog.Colors` | **1 - N** | `catalog.ProductVariants` | `ProductVariants.ColorId` | `RESTRICT` | Biến thể liên kết tới màu sắc thương mại của Apple. |
+| `catalog.StorageOptions` | **1 - N** | `catalog.ProductVariants` | `ProductVariants.StorageOptionId` | `RESTRICT` | Biến thể liên kết tới tùy chọn dung lượng lưu trữ. |
+| `catalog.Products` | **1 - N** | `catalog.ProductOptions` | `ProductOptions.ProductId` | `CASCADE` | Sản phẩm có các nhóm tùy chọn cấu hình động (Màu sắc, Dung lượng, RAM). |
+| `catalog.ProductOptions` | **1 - N** | `catalog.ProductOptionValues` | `ProductOptionValues.OptionId` | `CASCADE` | Mỗi tùy chọn động có nhiều giá trị cụ thể (Titan Sa Mạc, 1TB, 16GB). |
+| `catalog.ProductVariants` | **N - N** | `catalog.ProductOptionValues` | Bảng nối `ProductVariantValues` | `CASCADE` | Biến thể cấu hình được tổ hợp từ các giá trị tùy chọn động. |
+| `catalog.Products` | **1 - N** | `catalog.ProductImages` | `ProductImages.ProductId` | `CASCADE` | Thư viện hình ảnh thuộc về sản phẩm cha. |
+| `catalog.ProductOptionValues` | **1 - N** | `catalog.ProductImages` | `ProductImages.OptionValueId` | `SET NULL` | Hình ảnh gắn chặt với một màu sắc cụ thể để chuyển đổi ảnh khi chọn màu. |
+| `catalog.Products` | **1 - N** | `catalog.ProductSpecificationGroups` | `ProductSpecificationGroups.ProductId` | `CASCADE` | Sản phẩm phân chia thông số thành các nhóm (Màn hình, Chip, Camera). |
+| `catalog.ProductSpecificationGroups` | **1 - N** | `catalog.ProductSpecifications` | `ProductSpecifications.GroupId` | `CASCADE` | Mỗi nhóm thông số chứa các tiêu chí kỹ thuật chi tiết. |
+| `identity.Users` | **1 - N** | `sales.Carts` | `Carts.UserId` | `CASCADE` | Mỗi tài khoản thành viên sở hữu một giỏ hàng chính thức. |
+| `sales.Carts` | **1 - N** | `sales.CartItems` | `CartItems.CartId` | `CASCADE` | Giỏ hàng chứa nhiều sản phẩm chọn mua. |
+| `catalog.ProductVariants` | **1 - N** | `sales.CartItems` | `CartItems.ProductVariantId` | `CASCADE` | Mặt hàng trong giỏ tham chiếu tới cấu hình biến thể cụ thể. |
+| `identity.Users` | **1 - N** | `sales.Orders` | `Orders.UserId` | `SET NULL` | Đơn hàng thuộc về tài khoản khách hàng (hoặc `NULL` nếu là khách vãng lai). |
+| `sales.Vouchers` | **1 - N** | `sales.Orders` | `Orders.VoucherId` | `SET NULL` | Đơn hàng được áp dụng mã voucher giảm giá nào. |
+| `sales.Orders` | **1 - N** | `sales.OrderItems` | `OrderItems.OrderId` | `CASCADE` | Đơn hàng chứa nhiều dòng sản phẩm đã chốt giá snapshot. |
+| `catalog.ProductVariants` | **1 - N** | `sales.OrderItems` | `OrderItems.ProductVariantId` | `SET NULL` | Mặt hàng đã mua liên kết tới biến thể kho (giữ nguyên khi biến thể bị xóa). |
+| `sales.Vouchers` | **1 - N** | `sales.UserVouchers` | `UserVouchers.VoucherId` | `CASCADE` | Ví voucher cá nhân hóa cho từng khách hàng thành viên. |
+| `identity.Users` | **1 - N** | `sales.UserVouchers` | `UserVouchers.UserId` | `CASCADE` | Tài khoản thành viên nhận voucher quà tặng tri ân hoặc bồi thường. |
+| `sales.Vouchers` | **1 - N** | `sales.VoucherUsages` | `VoucherUsages.VoucherId` | `CASCADE` | Nhật ký ghi nhận chi tiết mỗi lượt áp dụng voucher. |
 
 ---
 
-## 4. Chi tiết các Bảng Dữ liệu Nghiệp vụ
+## 4. Thiết Kế Cơ Sở Dữ Liệu Thuộc Tính Đa Năng & Linh Hoạt (Dynamic Hybrid EAV)
 
-### 4.1. Phân hệ Danh mục & Sản phẩm (`catalog`)
+### 4.1. Bài toán Thách thức của Ngành hàng Apple
+
+Hệ sinh thái sản phẩm công nghệ Apple sở hữu ma trận cấu hình vô cùng phức tạp và thay đổi liên tục theo từng năm:
+
+- **iPhone:** Phân hóa theo Màu sắc thương mại (Titan Sa Mạc, Titan Tự Nhiên, Titan Đen, Titan Trắng) và Bộ nhớ trong (128GB, 256GB, 512GB, 1TB, 2TB).
+- **MacBook:** Phân hóa theo Dòng chip (M3, M4, M4 Pro, M4 Max, M5, M6 Ultra), RAM thống nhất (16GB, 24GB, 36GB, 48GB, 64GB, 128GB), Dung lượng SSD (512GB đến 8TB) và Màu sắc vỏ nhôm (Space Black, Silver, Sky Blue).
+- **iPad:** Phân hóa theo Kích thước màn hình (11 inch, 13 inch), Kết nối mạng (Wi-Fi đơn thuần hoặc Wi-Fi + 5G Cellular), và Kính phủ (Kính tiêu chuẩn hoặc Kính phủ cấu trúc Nano-texture).
+- **Apple Watch:** Phân hóa theo Chất liệu vỏ (Nhôm Jet Black, Titanium hàng không vũ trụ), Kích thước mặt (42mm, 46mm, 49mm Ultra), và Loại dây đeo kèm theo.
+
+> **Nếu thiết kế CSDL theo cách truyền thống (cột cố định vào bảng Product):** Khi Apple ra mắt thuộc tính mới (ví dụ: *Nút Điều Khiển Camera, Mặt kính Nano-texture, Kết nối Vệ tinh hai chiều*), hệ thống buộc phải chạy script ALTER TABLE, sửa đổi entity code, compile lại backend và đối mặt nguy cơ downtime hệ thống.
+
+### 4.2. Giải pháp Kiến trúc Hybrid EAV Độc quyền của Urban Stitch
+
+Hệ thống kết hợp sức mạnh giữa **Cố định hóa các thuộc tính cốt lõi thường dùng** và **Mô hình Entity-Attribute-Value (EAV) động**:
+
+1. **Thuộc tính Cố định Tối ưu Tốc độ (`Colors` & `StorageOptions`):**
+   - Bảng `catalog.Colors`: Lưu trữ mã định danh thương mại (`Code`), tên tiếng Việt hiển thị (`Name`) và mã màu chuẩn HEX (`HexCode`, ví dụ `#C4A482`) để render ngay vòng tròn swatch màu trên giao diện mà không cần tính toán lại.
+   - Bảng `catalog.StorageOptions`: Lưu trữ nhãn (`128GB`, `1TB`) và giá trị số học nguyên thủy `CapacityValue` (`1024`) cùng đơn vị `Unit` (`GB`) để sắp xếp thứ tự dung lượng tăng dần chính xác 100% bằng câu lệnh SQL số học.
+   - Khóa ngoại trực tiếp trên `catalog.ProductVariants`: Cho phép truy vấn siêu tốc 90% trường hợp lọc hàng phổ thông trên Storefront.
+
+2. **Ma trận Thuộc tính Động Không Giới Hạn (`ProductOptions`, `ProductOptionValues`, `ProductVariantValues`):**
+   - Cho phép Quản trị viên khởi tạo bất kỳ nhóm tùy chọn cấu hình nào (`ProductOptions.Name` = *Phiên bản kết nối*, *Chất liệu kính màn hình*, *Dung lượng RAM Unified*).
+   - Mỗi tùy chọn có tập giá trị động `ProductOptionValues` (ví dụ: *Wi-Fi*, *Wi-Fi + 5G Cellular*, *Nano-texture Glass*).
+   - Biến thể thương mại thực tế (`catalog.ProductVariants`) được ánh xạ với tổ hợp giá trị qua bảng liên kết `catalog.ProductVariantValues`.
+   - **Lợi ích vượt trội:** Bổ sung dải sản phẩm mới (ví dụ: Apple Glass, Robot gia đình 2026) mà không cần can thiệp bất kỳ dòng lệnh SQL ALTER TABLE nào.
+
+3. **Nhóm Thông Số Kỹ Thuật Đa Tầng Phân Cấp (`ProductSpecificationGroups` & `ProductSpecifications`):**
+   - Thay vì lưu một chuỗi JSON vô cấu trúc khó tra cứu, hệ thống chuẩn hóa thông số thành 2 cấp:
+     - **Cấp 1 - Nhóm thông số (`ProductSpecificationGroups`):** *Hiệu năng & Vi xử lý*, *Màn hình & Hiển thị*, *Camera & Quay phim*, *Pin & Sạc*, *Thiết kế & Trọng lượng*, *Tiện ích & Kết nối*.
+     - **Cấp 2 - Mục kỹ thuật chi tiết (`ProductSpecifications`):** Tên tiêu chí, giá trị và đơn vị tính (ví dụ: *Độ sáng tối đa: 3000 nits*, *Chuẩn kháng nước: IP68*, *Tần số quét: 120Hz ProMotion*).
+   - Render tự động bảng thông số kỹ thuật chuyên nghiệp, đồng bộ chuẩn mực như trang chủ chính hãng của Apple.
+
+4. **Thư viện Hình Ảnh Đa Chiều Liên Kết Màu (`catalog.ProductImages`):**
+   - Mỗi sản phẩm có bộ sưu tập ảnh phong phú.
+   - Mỗi ảnh được liên kết với `OptionValueId` (đại diện cho màu sắc cụ thể) và cờ `IsPrimary`.
+   - Khi người dùng bấm đổi màu sắc trên giao diện trang chi tiết sản phẩm, toàn bộ slider ảnh chính và carousel thumbnail lập tức đồng bộ chuyển sang màu tương ứng mà không cần reload trang.
+
+---
+
+## 5. Chi Tiết Danh Mục 27 Bảng Dữ Liệu Hệ Thống
+
+### 5.1. Bảng Dữ liệu Phân hệ Hàng hóa (`catalog`)
 
 #### 1. Bảng `catalog.Categories` (Danh mục sản phẩm)
-- **Mục đích:** Quản lý các nhóm ngành hàng chính của Apple (iPhone, MacBook, iPad, Apple Watch, AirPods, iMac, Phụ kiện).
 
-| Cột nghiệp vụ | Kiểu dữ liệu | Nullable | Ràng buộc / Index | Mô tả |
-| :--- | :--- | :---: | :---: | :--- |
-| `Name` | `nvarchar(150)` | Không | | Tên danh mục hiển thị |
-| `Slug` | `nvarchar(150)` | Không | Unique Index | Đường dẫn URL thân thiện (ví dụ: `iphone`, `macbook`) |
-| `Description` | `nvarchar(max)` | Có | | Đoạn văn bản giới thiệu danh mục |
-| `ImageUrl` | `nvarchar(1000)` | Có | | Đường dẫn ảnh đại diện/banner danh mục |
-| `DisplayOrder` | `int` | Không | Default 0 | Thứ tự sắp xếp hiển thị trên thanh điều hướng |
+Quản lý các nhóm ngành hàng thiết bị công nghệ Apple chính hãng:
 
----
+- `Id` (`int`, PK IDENTITY)
+- `Name` (`nvarchar(150)`, NOT NULL): Tên danh mục (iPhone, MacBook, iPad, Apple Watch, AirPods & Âm thanh, iMac & Mac Desktop, Phụ kiện Apple).
+- `Slug` (`varchar(100)`, NOT NULL, UNIQUE INDEX): Đường dẫn URL thân thiện SEO (`iphone`, `macbook`, `ipad`...).
+- `Description` (`nvarchar(500)`, NULL): Mô tả giới thiệu ngành hàng.
+- `ImageUrl` (`nvarchar(1000)`, NULL): Đường dẫn ảnh banner đại diện danh mục.
+- `DisplayOrder` (`int`, NOT NULL, DEFAULT 0): Thứ tự ưu tiên sắp xếp trên thanh điều hướng.
+- Các trường BaseEntity: `IsActive`, `CreatedOn`, `CreatedBy`, `LastModifiedOn`, `LastModifiedBy`, `IsDeleted`, `DeletedOn`, `DeletedBy`.
 
-#### 2. Bảng `catalog.Products` (Sản phẩm gốc / Parent Product)
-- **Mục đích:** Đại diện cho dòng sản phẩm chung (ví dụ: iPhone 16 Pro Max, MacBook Pro 14" M4).
+#### 2. Bảng `catalog.Colors` (Bảng màu thương mại Apple)
 
-| Cột nghiệp vụ | Kiểu dữ liệu | Nullable | Ràng buộc / Index | Mô tả |
-| :--- | :--- | :---: | :---: | :--- |
-| `CategoryId` | `int` | Không | FK $\rightarrow$ `Categories(Id)` | Danh mục sản phẩm trực thuộc |
-| `Name` | `nvarchar(200)` | Không | | Tên sản phẩm chính thức |
-| `Slug` | `nvarchar(200)` | Không | Unique Index | Đường dẫn URL chi tiết sản phẩm |
-| `ChipName` | `nvarchar(100)` | Có | | Tên chip xử lý Apple Silicon (A18 Pro, M4 Pro) |
-| `BadgeText` | `nvarchar(50)` | Có | | Huy hiệu nổi bật (BÁN CHẠY, HÀNG MỚI, SẴN HÀNG) |
-| `ShortDescription` | `nvarchar(500)` | Có | | Tóm tắt cấu hình nổi bật |
-| `Description` | `nvarchar(max)` | Có | | Bài viết đánh giá chi tiết sản phẩm |
-| `Price` | `decimal(18,2)` | Không | Check $\ge 0$ | Giá hiển thị cơ sở (giá khởi điểm) |
-| `CompareAtPrice` | `decimal(18,2)` | Có | | Giá niêm yết cũ để hiển thị % giảm giá |
+Quản lý danh mục màu sắc chính hãng theo từng thế hệ sản phẩm:
 
----
+- `Id` (`int`, PK IDENTITY)
+- `Name` (`nvarchar(100)`, NOT NULL): Tên màu sắc hiển thị (Titan Sa Mạc, Titan Tự Nhiên, Titan Đen, Titan Trắng, Midnight, Starlight...).
+- `Code` (`varchar(50)`, NOT NULL): Mã định danh màu (`DESERT_TITAN`, `NATURAL_TITAN`, `MIDNIGHT`).
+- `HexCode` (`varchar(20)`, NOT NULL): Mã màu HEX hiển thị trực quan (`#C4A482`, `#9E9A95`, `#1F2937`).
+- Các trường BaseEntity chuẩn.
 
-#### 3. Bảng `catalog.Colors` (Bảng Màu sắc)
-- **Mục đích:** Chuẩn hóa bảng màu thương mại đặc trưng của Apple.
+#### 3. Bảng `catalog.StorageOptions` (Dung lượng bộ nhớ lưu trữ)
 
-| Cột nghiệp vụ | Kiểu dữ liệu | Nullable | Ràng buộc / Index | Mô tả |
-| :--- | :--- | :---: | :---: | :--- |
-| `Name` | `nvarchar(100)` | Không | | Tên màu sắc (Titan Sa Mạc, Titan Tự Nhiên, Đen Không Gian) |
-| `HexCode` | `nvarchar(10)` | Không | | Mã màu HEX (ví dụ: `#C7B5A7`) hiển thị vòng tròn màu |
-| `DisplayOrder` | `int` | Không | Default 0 | Thứ tự hiển thị lựa chọn màu |
+Quản lý các định mức dung lượng bộ nhớ:
 
----
+- `Id` (`int`, PK IDENTITY)
+- `Name` (`nvarchar(50)`, NOT NULL): Tên nhãn hiển thị (`128GB`, `256GB`, `512GB`, `1TB`, `2TB`).
+- `CapacityValue` (`bigint`, NULL): Giá trị số quy đổi theo GB (`128`, `256`, `512`, `1024`, `2048`) phục vụ sắp xếp tăng dần.
+- `Unit` (`varchar(10)`, NULL): Đơn vị tính (`GB`, `TB`).
+- Các trường BaseEntity chuẩn.
 
-#### 4. Bảng `catalog.StorageOptions` (Dung lượng bộ nhớ)
-- **Mục đích:** Chuẩn hóa các nấc dung lượng bộ nhớ trong/ổ cứng.
+#### 4. Bảng `catalog.Products` (Sản phẩm cha / Dòng máy chung)
 
-| Cột nghiệp vụ | Kiểu dữ liệu | Nullable | Ràng buộc / Index | Mô tả |
-| :--- | :--- | :---: | :---: | :--- |
-| `Capacity` | `nvarchar(50)` | Không | | Nhãn hiển thị dung lượng (`128GB`, `256GB`, `1TB`) |
-| `CapacityInGB` | `int` | Không | Check $> 0$ | Giá trị quy đổi ra GB phục vụ sắp xếp tăng dần |
-| `DisplayOrder` | `int` | Không | Default 0 | Thứ tự hiển thị nút chọn |
+Đại diện cho dòng sản phẩm chung của Apple:
 
----
+- `Id` (`int`, PK IDENTITY)
+- `CategoryId` (`int`, NOT NULL, FK $\rightarrow$ `Categories.Id`): Danh mục ngành hàng trực thuộc.
+- `Name` (`nvarchar(250)`, NOT NULL): Tên sản phẩm chính thức (ví dụ: *iPhone 16 Pro Max*, *MacBook Pro 16 inch M4 Max*).
+- `Slug` (`varchar(250)`, NOT NULL, UNIQUE INDEX): Đường dẫn URL thân thiện cho chi tiết sản phẩm.
+- `ModelCode` (`varchar(50)`, NULL): Mã dòng máy Apple (ví dụ: `A3296`, `A3185`).
+- `ShortDescription` (`nvarchar(500)`, NULL): Mô tả tóm tắt nổi bật cấu hình.
+- `Description` (`nvarchar(max)`, NULL): Bài viết đánh giá chuyên sâu và hình ảnh chi tiết.
+- `WarrantyMonths` (`int`, NOT NULL, DEFAULT 12): Thời gian bảo hành chính hãng Apple VN/A (tháng).
+- Các trường BaseEntity chuẩn.
 
-#### 5. Bảng `catalog.ProductVariants` (Biến thể sản phẩm cụ thể / SKU)
-- **Mục đích:** Đại diện cho một sản phẩm vật lý cụ thể trong kho có thể bán và giao nhận.
+#### 5. Bảng `catalog.ProductOptions` (Tùy chọn cấu hình động)
 
-| Cột nghiệp vụ | Kiểu dữ liệu | Nullable | Ràng buộc / Index | Mô tả |
-| :--- | :--- | :---: | :---: | :--- |
-| `ProductId` | `int` | Không | FK $\rightarrow$ `Products(Id)` | Dòng sản phẩm cha trực thuộc |
-| `ColorId` | `int` | Có | FK $\rightarrow$ `Colors(Id)` | Màu sắc tương ứng (nếu có) |
-| `StorageOptionId` | `int` | Có | FK $\rightarrow$ `StorageOptions(Id)` | Dung lượng tương ứng (nếu có) |
-| `SKU` | `nvarchar(100)` | Không | Unique Index | Mã định danh quản lý kho độc nhất |
-| `VariantName` | `nvarchar(250)` | Không | | Tên gọi đầy đủ của biến thể cấu hình |
-| `Price` | `decimal(18,2)` | Không | Check $\ge 0$ | Giá bán thực tế của cấu hình |
-| `CompareAtPrice` | `decimal(18,2)` | Có | | Giá gốc ban đầu của cấu hình |
-| `QuantityInStock` | `int` | Không | Check $\ge 0$, Default 0 | Số lượng tồn kho sẵn sàng bán |
-| `RowVersion` | `rowversion` | Không | Concurrency Token | Khóa lạc quan chống race condition khi mua hàng |
+Khai báo các nhóm thuộc tính tùy biến cho từng sản phẩm:
 
----
+- `Id` (`int`, PK IDENTITY)
+- `ProductId` (`int`, NOT NULL, FK $\rightarrow$ `Products.Id`): Thuộc sản phẩm nào.
+- `Name` (`nvarchar(100)`, NOT NULL): Tên nhóm tùy chọn (*Màu sắc*, *Dung lượng*, *RAM Unified*, *Mặt kính*).
+- `DisplayOrder` (`int`, NOT NULL, DEFAULT 0): Thứ tự hiển thị trên bộ chọn cấu hình.
+- Các trường BaseEntity chuẩn.
 
-#### 6. Bảng `catalog.ProductOptions` & `catalog.ProductOptionValues` (Thuộc tính biến thể động)
-- **Mục đích:** Khai báo các trục thuộc tính mở rộng không cố định (Kích cỡ mặt đồng hồ, RAM, Phiên bản kết nối).
+#### 6. Bảng `catalog.ProductOptionValues` (Giá trị tùy chọn cấu hình)
 
-| Bảng | Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
-| :--- | :--- | :--- | :--- | :--- |
-| `ProductOptions` | `ProductId`, `Name`, `DisplayOrder` | `int`, `nvarchar(100)`, `int` | FK $\rightarrow$ `Products(Id)` | Tên trục tùy chọn (ví dụ: "Kết nối", "RAM") |
-| `ProductOptionValues`| `OptionId`, `Value`, `DisplayOrder` | `int`, `nvarchar(100)`, `int` | FK $\rightarrow$ `ProductOptions(Id)` | Giá trị chi tiết (ví dụ: "Wi-Fi + 5G", "16GB") |
+Các giá trị chi tiết thuộc về nhóm tùy chọn:
 
----
+- `Id` (`int`, PK IDENTITY)
+- `OptionId` (`int`, NOT NULL, FK $\rightarrow$ `ProductOptions.Id`): Thuộc nhóm tùy chọn nào.
+- `Value` (`nvarchar(150)`, NOT NULL): Giá trị hiển thị (*Titan Sa Mạc*, *256GB*, *32GB RAM*, *Kính Nano-texture*).
+- `ColorHexCode` (`varchar(20)`, NULL): Mã màu HEX bổ trợ nếu tùy chọn là bảng màu.
+- `DisplayOrder` (`int`, NOT NULL, DEFAULT 0): Thứ tự ưu tiên sắp xếp giá trị.
+- Các trường BaseEntity chuẩn.
 
-#### 7. Bảng `catalog.ProductVariantValues` (Bảng nối Biến thể - Tùy chọn động)
-- **Mục đích:** Xác định biến thể cụ thể đang mang những giá trị tùy chọn động mở rộng nào.
+#### 7. Bảng `catalog.ProductVariants` (Biến thể thương mại bán ra & Quản lý Kho)
 
-| Cột | Kiểu dữ liệu | Nullable | Ràng buộc | Mô tả |
-| :--- | :--- | :---: | :---: | :--- |
-| `VariantId` | `int` | Không | PK, FK $\rightarrow$ `ProductVariants(Id)` | Biến thể sản phẩm |
-| `OptionValueId` | `int` | Không | PK, FK $\rightarrow$ `ProductOptionValues(Id)` | Giá trị tùy chọn động tương ứng |
+Đại diện cho mặt hàng vật lý cụ thể trong kho:
 
----
+- `Id` (`int`, PK IDENTITY)
+- `ProductId` (`int`, NOT NULL, FK $\rightarrow$ `Products.Id`): Dòng sản phẩm cha.
+- `SKU` (`varchar(100)`, NOT NULL, UNIQUE INDEX): Mã định danh lưu kho độc nhất (ví dụ: `VN-001-1-2`).
+- `VariantName` (`nvarchar(200)`, NOT NULL): Tên cấu hình chi tiết (ví dụ: *Titan Sa Mạc / 256GB*).
+- `ColorId` (`int`, NULL, FK $\rightarrow$ `Colors.Id`): Khóa ngoại màu sắc cố định.
+- `StorageOptionId` (`int`, NULL, FK $\rightarrow$ `StorageOptions.Id`): Khóa ngoại dung lượng cố định.
+- `Price` (`decimal(18,2)`, NOT NULL): Giá bán thực tế hiện hành.
+- `CompareAtPrice` (`decimal(18,2)`, NULL): Giá niêm yết ban đầu (phục vụ hiển thị % giảm giá).
+- `QuantityInStock` (`int`, NOT NULL, DEFAULT 0): **Số lượng tồn kho khả dụng thời gian thực**.
+- `CostPrice` (`decimal(18,2)`, NOT NULL, DEFAULT 0): Giá vốn nhập khẩu (phục vụ báo cáo lợi nhuận gộp).
+- `RowVersion` (`rowversion`, NOT NULL): **Con dấu thời gian nhị phân kiểm soát khóa lạc quan (Optimistic Concurrency Control)**.
+- Các trường BaseEntity chuẩn.
 
-#### 8. Bảng `catalog.ProductImages` (Bộ sưu tập hình ảnh sản phẩm)
-- **Mục đích:** Quản lý đa ảnh sản phẩm, liên kết theo màu sắc để đổi ảnh động trên giao diện Storefront.
+#### 8. Bảng `catalog.ProductVariantValues` (Bảng nối Biến thể - Tùy chọn động)
 
-| Cột nghiệp vụ | Kiểu dữ liệu | Nullable | Ràng buộc / Index | Mô tả |
-| :--- | :--- | :---: | :---: | :--- |
-| `ProductId` | `int` | Không | FK $\rightarrow$ `Products(Id)` | Sản phẩm cha |
-| `ColorId` | `int` | Có | FK $\rightarrow$ `Colors(Id)` | Màu sắc tương ứng của ảnh (nếu là ảnh theo màu) |
-| `ImageUrl` | `nvarchar(1000)` | Có | | Đường dẫn ảnh CDN (Cloudinary) |
-| `AltText` | `nvarchar(255)` | Có | | Mô tả ảnh phục vụ SEO & Accessibility |
-| `DisplayOrder` | `int` | Không | Default 0 | Thứ tự hiển thị trong slider ảnh |
-| `IsPrimary` | `bit` | Không | Default 0 | Đánh dấu ảnh đại diện chính của sản phẩm |
+Ánh xạ biến thể cấu hình với tổ hợp các giá trị thuộc tính động:
 
----
+- `VariantId` (`int`, NOT NULL, FK $\rightarrow$ `ProductVariants.Id`): Mã biến thể.
+- `OptionValueId` (`int`, NOT NULL, FK $\rightarrow$ `ProductOptionValues.Id`): Mã giá trị tùy chọn.
+- Khóa chính kết hợp: `PRIMARY KEY ([VariantId], [OptionValueId])`.
 
-#### 9. Bảng `catalog.ProductSpecificationGroups` & `catalog.ProductSpecifications` (Thông số kỹ thuật phân cấp)
-- **Mục đích:** Xử lý danh mục thông số kỹ thuật đồ sộ của thiết bị công nghệ Apple theo từng nhóm chủ đề.
+#### 9. Bảng `catalog.ProductImages` (Thư viện hình ảnh theo màu)
 
-| Bảng | Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
-| :--- | :--- | :--- | :--- | :--- |
-| `ProductSpecificationGroups` | `ProductId`, `Name`, `DisplayOrder` | `int`, `nvarchar(150)`, `int` | FK $\rightarrow$ `Products(Id)` | Nhóm thông số (Màn hình, Camera, Vi xử lý...) |
-| `ProductSpecifications` | `GroupId`, `Name`, `Value`, `Unit`, `DisplayOrder` | `int`, `nvarchar(150)`, `nvarchar(max)`, `nvarchar(50)`, `int` | FK $\rightarrow$ `ProductSpecificationGroups(Id)` | Thông số chi tiết (Độ sáng 2000 nits, Khẩu độ f/1.78) |
+Quản lý bộ sưu tập ảnh sản phẩm:
 
----
+- `Id` (`int`, PK IDENTITY)
+- `ProductId` (`int`, NOT NULL, FK $\rightarrow$ `Products.Id`): Thuộc sản phẩm nào.
+- `OptionValueId` (`int`, NULL, FK $\rightarrow$ `ProductOptionValues.Id`): Liên kết với giá trị màu sắc cụ thể.
+- `ImageUrl` (`nvarchar(1000)`, NULL): Đường dẫn ảnh tải lên máy chủ Cloudinary CDN (chấp nhận NULL an toàn cho fallback).
+- `AltText` (`nvarchar(255)`, NULL): Văn bản mô tả ảnh cho trợ năng và SEO.
+- `DisplayOrder` (`int`, NOT NULL, DEFAULT 0): Thứ tự hiển thị trong bộ sưu tập ảnh.
+- `IsPrimary` (`bit`, NOT NULL, DEFAULT 0): Cờ đánh dấu ảnh đại diện chính của màu sắc đó.
+- Các trường BaseEntity chuẩn.
 
-### 4.2. Phân hệ Bán hàng & Giỏ hàng (`sales`)
+#### 10. Bảng `catalog.ProductSpecificationGroups` (Nhóm thông số kỹ thuật)
 
-#### 1. Bảng `sales.Carts` & `sales.CartItems` (Giỏ hàng trực tuyến)
-- **Mục đích:** Lưu trữ giỏ hàng và danh sách sản phẩm tạm tính, hỗ trợ liền mạch cho cả khách thành viên đã đăng nhập và khách vãng lai (Guest Cart).
+- `Id` (`int`, PK IDENTITY)
+- `ProductId` (`int`, NOT NULL, FK $\rightarrow$ `Products.Id`): Thuộc sản phẩm nào.
+- `Name` (`nvarchar(150)`, NOT NULL): Tên nhóm (*Hiệu năng & Vi xử lý*, *Màn hình & Hiển thị*...).
+- `DisplayOrder` (`int`, NOT NULL, DEFAULT 0): Thứ tự ưu tiên hiển thị nhóm.
+- Các trường BaseEntity chuẩn.
 
-| Bảng | Cột nghiệp vụ | Kiểu dữ liệu | Ràng buộc | Mô tả |
-| :--- | :--- | :--- | :--- | :--- |
-| `Carts` | `UserId` | `int` (Nullable) | FK $\rightarrow$ `identity.Users(Id)`, Filtered Unique Index `[UserId] IS NOT NULL AND [IsDeleted] = 0` | ID tài khoản nếu đã đăng nhập |
-| `Carts` | `GuestId` | `varchar(100)` (Nullable) | Filtered Unique Index `[GuestId] IS NOT NULL AND [IsDeleted] = 0` | UUID định danh phiên khách vãng lai (lưu tại Cookie/LocalStorage) |
-| `Carts` | `ExpiresOn` | `datetimeoffset` (Nullable) | | Thời điểm hết hạn của giỏ hàng phục vụ dọn dẹp giỏ rác định kỳ |
-| `CartItems` | `CartId` | `int` | FK $\rightarrow$ `Carts(Id)` (Cascade Delete) | Mã giỏ hàng trực thuộc |
-| `CartItems` | `ProductVariantId` | `int` | FK $\rightarrow$ `ProductVariants(Id)` (Cascade Delete) | Biến thể sản phẩm được chọn mua |
-| `CartItems` | `Quantity` | `int` | Check `[Quantity] > 0` | Số lượng chọn mua (bắt buộc > 0) |
-| `CartItems` | `UnitPrice` | `decimal(18,2)` | Precision 18, Scale 2 | Đơn giá sản phẩm tại thời điểm bỏ giỏ (hỗ trợ phát hiện đổi giá) |
-| `CartItems` | `IsSelected` | `bit` | Default `1` | Đánh dấu chọn sản phẩm để thanh toán (Selective Checkout) |
+#### 11. Bảng `catalog.ProductSpecifications` (Chi tiết thông số kỹ thuật)
 
-> **Ràng buộc duy nhất (Unique Constraint chống trùng lặp):**
-> Bảng `CartItems` áp dụng Filtered Unique Index trên cặp `(CartId, ProductVariantId)` kèm điều kiện `WHERE [IsDeleted] = 0`. Điều này triệt tiêu hoàn toàn lỗi vỡ index khi phục hồi sản phẩm đã xóa mềm hoặc cộng dồn số lượng.
->
-> **Cơ chế Tự phục hồi Số lượng Tồn kho (Self-Healing Cart Inventory Safeguard):**
-> Trong trường hợp người dùng thêm số lượng lớn nhưng chưa thanh toán, sau đó tồn kho thực tế bị giảm hoặc hết hàng rồi nhập lại với số lượng nhỏ hơn số lượng trong giỏ (ví dụ: giỏ lưu 14 máy nhưng cửa hàng chỉ còn 5 máy):
-> Khi người dùng truy cập giỏ hàng, hệ thống Backend (`CartService.cs`) tự động phát hiện `Quantity > QuantityInStock`, ép số lượng về `1` và gọi `SaveChangesAsync()` để cập nhật vĩnh viễn xuống database. Đồng thời, các chỉ số `LineTotal`, `TotalItems`, `SelectedItemsCount` và `Subtotal` chỉ tính toán dựa trên các mặt hàng sẵn có (`IsAvailable && QuantityInStock > 0`).
+- `Id` (`int`, PK IDENTITY)
+- `GroupId` (`int`, NOT NULL, FK $\rightarrow$ `ProductSpecificationGroups.Id`): Thuộc nhóm thông số nào.
+- `Name` (`nvarchar(150)`, NOT NULL): Tên tiêu chuẩn kỹ thuật (Chipset, Công nghệ màn hình, Độ phân giải).
+- `Value` (`nvarchar(max)`, NOT NULL): Giá trị thông số (*Apple A18 Pro 3nm*, *Super Retina XDR 120Hz*).
+- `Unit` (`nvarchar(50)`, NULL): Đơn vị đo lường (nits, inch, giờ, mAh).
+- `DisplayOrder` (`int`, NOT NULL, DEFAULT 0): Thứ tự hiển thị trong nhóm.
+- Các trường BaseEntity chuẩn.
 
 ---
 
-#### 2. Bảng `sales.Orders` & `sales.OrderItems` (Đơn đặt hàng & Chi tiết mặt hàng)
-- **Mục đích:** Lưu trữ đơn hàng hoàn tất sau khi checkout và snapshot bất biến toàn diện của sản phẩm tại thời điểm mua (hỗ trợ Dynamic Options, khách vãng lai, voucher và lợi nhuận gộp).
+### 5.2. Bảng Dữ liệu Phân hệ Bán hàng & Dòng tiền (`sales`)
 
-| Bảng | Cột nghiệp vụ | Kiểu dữ liệu | Ràng buộc | Mô tả |
-| :--- | :--- | :--- | :--- | :--- |
-| `Orders` | `OrderNumber` | `varchar(40)` | Unique Index, Not Null | Mã đơn hàng định danh (Ví dụ: `ORD-20261026-A1B2C3`) |
-| `Orders` | `UserId` | `int` (Nullable) | FK $\rightarrow$ `identity.Users(Id)` (Restrict) | ID người dùng nếu là thành viên đăng nhập |
-| `Orders` | `GuestId` | `varchar(100)` (Nullable) | Index | Mã phiên định danh khách vãng lai (Guest Checkout) |
-| `Orders` | `Status` | `varchar(30)` | HasConversion Enum `OrderStatus` | Trạng thái: `Pending` (Chờ xử lý), `Confirmed` (Đã xác nhận), `Processing` (Đang đóng gói), `Shipping` (Đang giao hàng), `Delivered` (Đã giao hàng), `Completed` (Đã nhận hàng), `Cancelled` (Đã hủy), `Returned` (Trả hàng) |
-| `Orders` | `StatusHistoryJson` | `nvarchar(max)` (Nullable) | | Chuỗi JSON lưu trữ mốc thời gian, trạng thái, người thực hiện (`Customer`/`Manager`) và lý do/ghi chú tiến trình |
-| `Orders` | `PaymentMethod` | `varchar(30)` | HasConversion Enum `PaymentMethod` | Phương thức: `COD`, `VNPAY`, `MOMO`, `BankTransfer` |
-| `Orders` | `PaymentStatus` | `varchar(30)` | HasConversion Enum `PaymentStatus` | Trạng thái TT: `Pending`, `Paid`, `Failed`, `Refunded` |
-| `Orders` | `RecipientName` | `nvarchar(150)` | Not Null | Họ tên người nhận hàng |
-| `Orders` | `RecipientPhone` | `varchar(20)` | Not Null | Số điện thoại liên hệ giao hàng |
-| `Orders` | `RecipientEmail` | `varchar(150)` (Nullable) | | Email nhận thông báo và link tra cứu đơn hàng |
-| `Orders` | `ShippingAddressLine` | `nvarchar(250)` | Not Null | Địa chỉ số nhà / tên đường |
-| `Orders` | `ShippingWard` / `District` / `Province` | `nvarchar(100)` | Ward/District Nullable, Province Not Null | Thông tin hành chính giao vận |
-| `Orders` | `Subtotal` | `decimal(18,2)` | Check `>= 0` | Tổng tiền hàng trước chiết khấu và phí vận chuyển |
-| `Orders` | `ShippingFee` | `decimal(18,2)` | Check `>= 0`, Default `0` | Phí giao hàng |
-| `Orders` | `VoucherId` | `int` (Nullable) | FK $\rightarrow$ `sales.Vouchers(Id)` (SetNull) | Mã ID voucher khuyến mãi đã áp dụng |
-| `Orders` | `VoucherCode` | `varchar(50)` (Nullable) | | Snapshot mã voucher tại thời điểm đặt |
-| `Orders` | `DiscountAmount` | `decimal(18,2)` | Check `>= 0`, Default `0` | Số tiền thực tế được giảm giá |
-| `Orders` | `TotalAmount` | `decimal(18,2)` | Check `>= 0` | Tổng thanh toán cuối cùng (`Subtotal + ShippingFee - DiscountAmount`) |
-| `Orders` | `ShippingAddressUpdateCount` | `int` | Default `0`, Not Null | Số lần khách hàng đã chỉnh sửa thông tin giao nhận (giới hạn tối đa 1 lần duy nhất khi đơn đang Chờ xử lý) |
-| `Orders` | `RowVersion` | `rowversion` | Concurrency Token | Khóa lạc quan chống race condition khi cập nhật đơn |
-| `OrderItems` | `OrderId` | `int` | FK $\rightarrow$ `Orders(Id)` (Cascade Delete) | Đơn hàng trực thuộc |
-| `OrderItems` | `ProductVariantId` | `int` (Nullable) | FK $\rightarrow$ `ProductVariants(Id)` (SetNull) | Biến thể gốc (giữ nguyên đơn nếu xóa biến thể) |
-| `OrderItems` | `ProductName` | `nvarchar(250)` | Not Null | Snapshot tên sản phẩm lúc mua |
-| `OrderItems` | `SKU` | `varchar(100)` | Not Null | Snapshot SKU lúc mua |
-| `OrderItems` | `VariantName` | `nvarchar(250)` (Nullable) | | Snapshot tên phân loại (Ví dụ: "Titan Tự Nhiên - 512GB") |
-| `OrderItems` | `ThumbnailUrl` | `nvarchar(500)` (Nullable) | | Snapshot ảnh đại diện biến thể lúc mua |
-| `OrderItems` | `SelectedAttributesJson` | `nvarchar(1000)` (Nullable) | | Snapshot Dynamic Options: `[{"OptionName":"Màu sắc","Value":"Titan Tự Nhiên"},{"OptionName":"Dung lượng","Value":"512GB"}]` |
-| `OrderItems` | `CostPrice` | `decimal(18,2)` | Check `>= 0`, Default `0` | Snapshot giá vốn tại thời điểm bán (tính lợi nhuận gộp) |
-| `OrderItems` | `UnitPrice` | `decimal(18,2)` | Check `>= 0` | Đơn giá bán thực tế |
-| `OrderItems` | `Quantity` | `int` | Check `> 0` | Số lượng mua |
-| `OrderItems` | `LineTotal` | `decimal(18,2)` | Check `>= 0` | Thành tiền từng dòng (`UnitPrice * Quantity`) |
+#### 12. Bảng `sales.Carts` (Giỏ hàng)
+
+Quản lý phiên giỏ hàng của khách hàng:
+
+- `Id` (`int`, PK IDENTITY)
+- `UserId` (`int`, NULL, FK $\rightarrow$ `identity.Users.Id`): Mã tài khoản thành viên (NULL nếu là khách vãng lai).
+- `GuestId` (`varchar(100)`, NULL, INDEX): Mã định danh lưu trữ trong LocalStorage/Cookie của khách vãng lai.
+- Các trường BaseEntity chuẩn.
+
+#### 13. Bảng `sales.CartItems` (Chi tiết mặt hàng trong giỏ)
+
+- `Id` (`int`, PK IDENTITY)
+- `CartId` (`int`, NOT NULL, FK $\rightarrow$ `Carts.Id`): Thuộc giỏ hàng nào.
+- `ProductVariantId` (`int`, NOT NULL, FK $\rightarrow$ `ProductVariants.Id`): Biến thể được chọn mua.
+- `Quantity` (`int`, NOT NULL, CHECK `Quantity > 0`): Số lượng đặt mua.
+- `IsSelected` (`bit`, NOT NULL, DEFAULT 1): Cờ tích chọn thanh toán hay chưa (Selective Checkout).
+- Các trường BaseEntity chuẩn.
+
+#### 14. Bảng `sales.Vouchers` (Chính sách Khuyến mãi & Mã giảm giá)
+
+Quản lý các chương trình ưu đãi đa đối tượng:
+
+- `Id` (`int`, PK IDENTITY)
+- `Code` (`varchar(50)`, NOT NULL, UNIQUE INDEX): Mã voucher viết hoa không dấu (`APPLE2026`, `CHAOBANMOI`).
+- `Name` (`nvarchar(150)`, NOT NULL): Tên chương trình ưu đãi hiển thị.
+- `Description` (`nvarchar(500)`, NULL): Mô tả điều kiện sử dụng mã.
+- `DiscountType` (`varchar(30)`, NOT NULL): Loại chiết khấu (`Percentage` - theo %, hoặc `FixedAmount` - tiền cố định).
+- `DiscountValue` (`decimal(18,2)`, NOT NULL, CHECK `DiscountValue > 0`): Giá trị chiết khấu (10% hoặc 500.000đ).
+- `MinOrderAmount` (`decimal(18,2)`, NULL): Giá trị đơn hàng tối thiểu để được áp dụng.
+- `MaxDiscountAmount` (`decimal(18,2)`, NULL): Mức giảm giá tối đa (dành cho voucher dạng %).
+- `StartDate` (`datetimeoffset`, NOT NULL): Mốc bắt đầu có hiệu lực.
+- `EndDate` (`datetimeoffset`, NOT NULL): Mốc kết thúc hiệu lực.
+- `UsageLimit` (`int`, NULL): Tổng lượt áp dụng tối đa trên toàn hệ thống.
+- `UsageCount` (`int`, NOT NULL, DEFAULT 0): Số lượt đã sử dụng thực tế.
+- `PerUserLimit` (`int`, NOT NULL, DEFAULT 1): Giới hạn số lần dùng tối đa trên mỗi khách hàng.
+- `TargetType` (`varchar(30)`, NOT NULL, DEFAULT 'Public'): Đối tượng thụ hưởng (`Public`, `RegisteredOnly`, `AssignedOnly`).
+- `RowVersion` (`rowversion`, NOT NULL): Khóa lạc quan chống sử dụng vượt quá ngân sách khuyến mãi.
+- Các trường BaseEntity chuẩn.
+
+#### 15. Bảng `sales.UserVouchers` (Ví Voucher Cá nhân hóa)
+
+Lưu trữ các mã ưu đãi được cấp phát riêng cho từng thành viên (Quà sinh nhật, Khách VIP, Bồi thường đơn hàng):
+
+- `Id` (`int`, PK IDENTITY)
+- `UserId` (`int`, NOT NULL, FK $\rightarrow$ `identity.Users.Id`): Khách hàng sở hữu.
+- `VoucherId` (`int`, NOT NULL, FK $\rightarrow$ `Vouchers.Id`): Mã voucher được cấp.
+- `AssignedUsageLimit` (`int`, NOT NULL, DEFAULT 1): Số lượt dùng được cấp riêng cho user này.
+- `UsedCount` (`int`, NOT NULL, DEFAULT 0): Số lượt khách hàng này đã dùng.
+- `AssignedAt` (`datetimeoffset`, NOT NULL): Thời điểm hệ thống cấp tặng vào ví.
+- `ExpiresAt` (`datetimeoffset`, NULL): Hạn dùng riêng cho tài khoản này.
+- Các trường BaseEntity chuẩn.
+
+#### 16. Bảng `sales.VoucherUsages` (Nhật ký áp dụng Voucher)
+
+- `Id` (`int`, PK IDENTITY)
+- `VoucherId` (`int`, NOT NULL, FK $\rightarrow$ `Vouchers.Id`): Mã voucher đã áp dụng.
+- `OrderId` (`int`, NOT NULL, FK $\rightarrow$ `Orders.Id`): Đơn hàng đã hưởng ưu đãi.
+- `UserId` (`int`, NULL, FK $\rightarrow$ `identity.Users.Id`): Khách hàng áp dụng.
+- `DiscountAmount` (`decimal(18,2)`, NOT NULL): Số tiền thực tế được trừ vào đơn.
+- `UsedAt` (`datetimeoffset`, NOT NULL): Mốc thời gian giao dịch ghi nhận.
+
+#### 17. Bảng `sales.Orders` (Đơn đặt hàng)
+
+Bảng trung tâm của toàn bộ chu trình bán hàng và báo cáo doanh thu:
+
+- `Id` (`int`, PK IDENTITY)
+- `OrderNumber` (`varchar(40)`, NOT NULL, UNIQUE INDEX): Mã đơn hàng giao dịch (ví dụ: `US2600001`).
+- `UserId` (`int`, NULL, FK $\rightarrow$ `identity.Users.Id`): Mã khách hàng thành viên (hoặc NULL nếu là khách vãng lai).
+- `GuestId` (`varchar(100)`, NULL, INDEX): Mã định danh khách vãng lai để liên kết và tra cứu.
+- `Status` (`varchar(30)`, NOT NULL): Trạng thái vòng đời (`Pending`, `Confirmed`, `Shipping`, `Delivered`, `Completed`, `Cancelled`).
+- `PaymentMethod` (`varchar(30)`, NOT NULL): Phương thức thanh toán (`COD` - Tiền mặt khi nhận, hoặc `VNPAY` - Trực tuyến).
+- `PaymentStatus` (`varchar(30)`, NOT NULL): Trạng thái dòng tiền (`Pending`, `Paid`, `Failed`, `Refunded`).
+- `RecipientName` (`nvarchar(150)`, NOT NULL): Tên người nhận hàng.
+- `RecipientPhone` (`varchar(20)`, NOT NULL): Số điện thoại liên hệ giao hàng.
+- `RecipientEmail` (`varchar(150)`, NULL): Email nhận hóa đơn điện tử.
+- `ShippingAddressLine` (`nvarchar(250)`, NOT NULL): Địa chỉ số nhà, tên đường.
+- `ShippingWard` (`nvarchar(100)`, NULL): Phường / Xã.
+- `ShippingDistrict` (`nvarchar(100)`, NULL): Quận / Huyện.
+- `ShippingProvince` (`nvarchar(100)`, NOT NULL): Tỉnh / Thành phố.
+- `CustomerNote` (`nvarchar(500)`, NULL): Lời nhắn gửi nhân viên giao hàng.
+- `Subtotal` (`decimal(18,2)`, NOT NULL, CHECK $\ge 0$): Tổng tiền hàng nguyên giá.
+- `ShippingFee` (`decimal(18,2)`, NOT NULL, DEFAULT 0, CHECK $\ge 0$): Phí vận chuyển hỏa tốc.
+- `DiscountAmount` (`decimal(18,2)`, NOT NULL, DEFAULT 0, CHECK $\ge 0$): Số tiền được giảm trừ qua Voucher.
+- `TotalAmount` (`decimal(18,2)`, NOT NULL, CHECK $\ge 0$): **Tổng số tiền thanh toán thực tế** (`Subtotal - DiscountAmount + ShippingFee`).
+- `VoucherId` (`int`, NULL, FK $\rightarrow$ `Vouchers.Id`): Mã voucher đã dùng.
+- `VoucherCode` (`varchar(50)`, NULL): Tên mã voucher ghi nhận.
+- `PlacedAt` (`datetimeoffset`, NOT NULL): Thời điểm đặt hàng chính thức.
+- `StatusHistoryJson` (`nvarchar(max)`, NULL): **Nhật ký chuyển đổi trạng thái dạng JSON kèm mốc thời gian và ghi chú kiểm toán**.
+- `ShippingAddressUpdateCount` (`int`, NOT NULL, DEFAULT 0): Số lần khách đã cập nhật địa chỉ giao hàng (khóa cứng tối đa 1 lần).
+- `RowVersion` (`rowversion`, NOT NULL): Khóa lạc quan chống cập nhật trạng thái đơn đồng thời.
+- Các trường BaseEntity chuẩn.
+
+#### 18. Bảng `sales.OrderItems` (Snapshot Bất Biến Mặt Hàng Đã Mua)
+
+Lưu lại bản sao snapshot chính xác 100% của mặt hàng tại thời điểm mua:
+
+- `Id` (`int`, PK IDENTITY)
+- `OrderId` (`int`, NOT NULL, FK $\rightarrow$ `Orders.Id` ON DELETE CASCADE): Thuộc đơn hàng nào.
+- `ProductVariantId` (`int`, NULL, FK $\rightarrow$ `ProductVariants.Id` ON DELETE SET NULL): Biến thể kho tham chiếu.
+- `ProductName` (`nvarchar(250)`, NOT NULL): Tên sản phẩm tại thời điểm mua (*iPhone 16 Pro Max*).
+- `VariantName` (`nvarchar(200)`, NOT NULL): Tên cấu hình chi tiết (*Titan Sa Mạc / 256GB*).
+- `SKU` (`varchar(100)`, NOT NULL): Mã SKU sản phẩm lúc mua.
+- `ColorName` (`nvarchar(100)`, NULL): Tên màu sắc snapshot.
+- `StorageName` (`nvarchar(50)`, NULL): Dung lượng snapshot.
+- `UnitPrice` (`decimal(18,2)`, NOT NULL): **Đơn giá bán chốt tại thời điểm đặt hàng** (bất biến dù sau này giá kho tăng giảm).
+- `Quantity` (`int`, NOT NULL, CHECK `Quantity > 0`): Số lượng đã mua.
+- `LineTotal` (`decimal(18,2)`, NOT NULL): Thành tiền dòng hàng (`UnitPrice * Quantity`).
+- `CostPrice` (`decimal(18,2)`, NOT NULL, DEFAULT 0): Giá vốn tại thời điểm mua (phục vụ tính lợi nhuận gộp chuẩn xác).
+- `SelectedAttributesJson` (`nvarchar(max)`, NULL): JSON snapshot toàn bộ thuộc tính động đã chọn.
+- `ThumbnailUrl` (`nvarchar(1000)`, NULL): Đường dẫn ảnh thumbnail sản phẩm tại thời điểm mua.
+- Các trường BaseEntity chuẩn.
 
 ---
 
-#### 3. Bảng `sales.Vouchers`, `sales.UserVouchers` & `sales.VoucherUsages` (Khuyến mãi, Ví voucher cá nhân & Lịch sử sử dụng)
-- **Mục đích:** Quản lý toàn diện chiến dịch khuyến mãi đa đối tượng (Public, Bắt buộc đăng nhập, Cấp riêng cho User cụ thể), quản lý ví voucher cá nhân của khách hàng và ghi nhận nhật ký sử dụng mã chống gian lận.
+### 5.3. Bảng Dữ liệu Phân hệ Xác thực & Định danh (`identity`)
 
-| Bảng | Cột nghiệp vụ | Kiểu dữ liệu | Ràng buộc | Mô tả |
-| :--- | :--- | :--- | :--- | :--- |
-| `Vouchers` | `Code` | `varchar(50)` | Unique Index, Not Null | Mã voucher (Ví dụ: `TET2026`, `APPLE100K`, `VIPMEMBER`) |
-| `Vouchers` | `Name` | `nvarchar(150)` | Not Null | Tên chương trình ưu đãi |
-| `Vouchers` | `Description` | `nvarchar(500)` (Nullable) | | Điều khoản và mô tả áp dụng |
-| `Vouchers` | `TargetType` | `varchar(30)` | HasConversion Enum `VoucherTargetType` | Đối tượng: `Public` (Công khai ai cũng dùng được), `RegisteredOnly` (Bắt buộc tài khoản đăng nhập), `AssignedOnly` (Chỉ cấp riêng cho User cụ thể) |
-| `Vouchers` | `DiscountType` | `varchar(30)` | HasConversion Enum `VoucherDiscountType` | `Percentage` (% giảm) hoặc `FixedAmount` (Số tiền cố định) |
-| `Vouchers` | `DiscountValue` | `decimal(18,2)` | Check `> 0` | Giá trị giảm (% từ 1-100 hoặc số tiền VNĐ) |
-| `Vouchers` | `MinOrderAmount` | `decimal(18,2)` (Nullable) | | Giá trị đơn hàng tối thiểu để được áp dụng mã |
-| `Vouchers` | `MaxDiscountAmount` | `decimal(18,2)` (Nullable) | | Mức giảm tối đa cho voucher loại `%` |
-| `Vouchers` | `StartDate` / `EndDate` | `datetimeoffset` | Not Null, Index | Khoảng thời gian chiến dịch có hiệu lực |
-| `Vouchers` | `UsageLimit` | `int` (Nullable) | | Tổng lượt sử dụng tối đa toàn hệ thống |
-| `Vouchers` | `UsageCount` | `int` | Check `>= 0`, Default `0` | Số lượt thực tế đã được áp dụng |
-| `Vouchers` | `PerUserLimit` | `int` | Check `> 0`, Default `1` | Số lần tối đa một người được phép sử dụng (cho Public/Registered) |
-| `Vouchers` | `RowVersion` | `rowversion` | Concurrency Token | Khóa lạc quan chống race condition khi nhận voucher |
-| `UserVouchers` | `UserId` | `int` | FK $\rightarrow$ `identity.Users(Id)` (Cascade) | Tài khoản người dùng được cấp riêng voucher |
-| `UserVouchers` | `VoucherId` | `int` | FK $\rightarrow$ `sales.Vouchers(Id)` (Cascade) | Mã voucher được cấp |
-| `UserVouchers` | `AssignedUsageLimit` | `int` | Check `> 0`, Default `1` | Số lượt sử dụng cấp riêng cho User này (Ví dụ: VIP được 3 lần) |
-| `UserVouchers` | `UsedCount` | `int` | Check `>= 0`, Default `0` | Số lượt User này đã sử dụng thực tế |
-| `UserVouchers` | `AssignedAt` | `datetimeoffset` | Not Null | Thời điểm cấp voucher vào ví |
-| `UserVouchers` | `ExpiresAt` | `datetimeoffset` (Nullable) | Index | Hạn dùng riêng của User (nếu null lấy theo `Vouchers.EndDate`) |
-| `UserVouchers` | `AssignedBy` | `nvarchar(150)` (Nullable) | | Username Admin cấp tay hoặc sự kiện tự động (`SYSTEM_BIRTHDAY`) |
-| `UserVouchers` | `Note` | `nvarchar(250)` (Nullable) | | Lý do cấp ("Tặng voucher sinh nhật tháng 10", "Bồi thường đơn hàng") |
-| `VoucherUsages` | `VoucherId` | `int` | FK $\rightarrow$ `Vouchers(Id)` (Cascade Delete) | Voucher được sử dụng |
-| `VoucherUsages` | `OrderId` | `int` | FK $\rightarrow$ `Orders(Id)` (Cascade Delete) | Đơn hàng áp dụng mã |
-| `VoucherUsages` | `UserId` | `int` (Nullable) | FK $\rightarrow$ `identity.Users(Id)` (Restrict) | Tài khoản sử dụng nếu đã đăng nhập |
-| `VoucherUsages` | `GuestId` | `varchar(100)` (Nullable) | Index | Mã phiên nếu là khách vãng lai |
-| `VoucherUsages` | `CustomerPhone` / `Email` | `varchar` (Nullable) | | Thông tin người dùng chống gian lận lặp lại mã |
-| `VoucherUsages` | `DiscountAmount` | `decimal(18,2)` | Check `>= 0` | Số tiền thực tế được giảm cho đơn đó |
-| `VoucherUsages` | `UsedAt` | `datetimeoffset` | Not Null | Thời điểm áp dụng mã |
+Các bảng được xây dựng trên nền tảng Microsoft ASP.NET Core Identity kết hợp phân quyền RBAC và Refresh Token bảo mật cao:
 
-> **Ràng buộc duy nhất trên `UserVouchers`:**
-> Áp dụng Filtered Unique Index trên cặp `(UserId, VoucherId) WHERE [IsDeleted] = 0`. Điều này ngăn chặn việc cấp trùng lặp cùng một voucher cho một người dùng; khi cần tăng số lượt sử dụng thì cập nhật trực tiếp `AssignedUsageLimit`.
+| Tên bảng | Khóa chính | Khóa ngoại | Mục đích & Trách nhiệm |
+| :--- | :---: | :--- | :--- |
+| **`identity.Users`** | `Id` (int) | | Lưu trữ tài khoản người dùng, email, mật khẩu đã mã hóa bằng PBKDF2 (`PasswordHash`), họ tên, số điện thoại, trạng thái khóa tài khoản (`LockoutEnd`, `IsActive`). |
+| **`identity.Roles`** | `Id` (int) | | Danh mục các vai trò trong hệ thống (`SuperAdmin`, `User`). |
+| **`identity.UserRoles`** | `UserId`, `RoleId` | FK $\rightarrow$ `Users`, FK $\rightarrow$ `Roles` | Ánh xạ người dùng nào mang những vai trò gì. |
+| **`identity.RefreshTokens`** | `Id` (int) | FK $\rightarrow$ `Users.Id` | Quản lý chuỗi Refresh Token ngẫu nhiên 256-bit bảo mật, ngày hết hạn (`ExpiresAt`), trạng thái thu hồi (`IsRevoked`), IP tạo (`CreatedByIp`), IP thu hồi (`RevokedByIp`). Phục vụ cơ chế Silent Refresh Token an toàn. |
+| **`identity.UserClaims`** | `Id` (int) | FK $\rightarrow$ `Users.Id` | Lưu trữ các đặc quyền claim chi tiết của người dùng. |
+| **`identity.RoleClaims`** | `Id` (int) | FK $\rightarrow$ `Roles.Id` | Lưu trữ các quyền hạn gắn theo từng vai trò. |
+| **`identity.UserLogins`** | `LoginProvider`, `ProviderKey` | FK $\rightarrow$ `Users.Id` | Hỗ trợ mở rộng đăng nhập mạng xã hội (Google, Apple ID). |
+| **`identity.UserTokens`** | `UserId`, `LoginProvider`, `Name` | FK $\rightarrow$ `Users.Id` | Lưu các token hệ thống tạo ra (xác thực email, đặt lại mật khẩu). |
 
 ---
 
-### 4.3. Phân hệ Xác thực & Định danh (`identity`)
+## 6. Kiểm Soát Tương Tranh Đa Tầng & Bảo Vệ Kho Hàng (3-Tier Concurrency Defense)
 
-Sử dụng cấu trúc chuẩn của **ASP.NET Core Identity** đặt trong schema `identity`, bổ sung cơ chế quản lý Refresh Token:
+### 6.1. Rủi ro Bán vượt tồn kho (Overselling) trong Mở bán Apple
 
-| Bảng | Các cột chính | Ràng buộc | Mô tả |
-| :--- | :--- | :--- | :--- |
-| `identity.Users` | `Id`, `Email`, `UserName`, `PasswordHash`, `FirstName`, `LastName`, `AvatarUrl`, `IsActive` | PK `Id`, Unique `Email` | Lưu trữ tài khoản và thông tin người dùng |
-| `identity.Roles` | `Id`, `Name`, `NormalizedName`, `Description` | PK `Id`, Unique `NormalizedName` | Danh mục vai trò (`Administrator`, `Customer`) |
-| `identity.UserRoles` | `UserId`, `RoleId` | PK kép (`UserId`, `RoleId`) | Phân quyền vai trò cho tài khoản người dùng |
-| `identity.RefreshTokens` | `Id`, `UserId`, `Token`, `ExpiresOn`, `RevokedOn`, `CreatedOn` | PK `Id`, FK $\rightarrow$ `Users(Id)` | Quản lý vòng đời Refresh Token cấp cho trình duyệt |
+Khi một dòng máy cực "hot" như *iPhone 16 Pro Max Titan Sa Mạc 256GB* mở bán đợt đầu, hàng nghìn khách hàng có thể cùng nhấn nút "Đặt hàng" trong cùng một giây. Nếu chỉ kiểm tra bằng câu lệnh `if (stock >= quantity)` thông thường, các luồng chạy song song sẽ cùng đọc thấy còn hàng, cùng chấp nhận đơn và dẫn tới thảm họa bán vượt quá số lượng hàng có trong kho.
+
+### 6.2. Cơ chế Phòng thủ 3 Lớp Bất Khả Xâm Phạm
+
+Hệ thống Urban Stitch thiết lập hàng rào phòng thủ 3 tầng khép kín:
+
+| Tầng kiểm soát | Cơ chế công nghệ | Vị trí áp dụng | Nguyên lý hoạt động chi tiết |
+| :---: | :--- | :--- | :--- |
+| **Tầng 1** | **In-Memory Lock với SemaphoreSlim & Lock Ordering** | Tầng Application (Bộ nhớ RAM máy chủ) | - Sử dụng `ConcurrentDictionary<int, SemaphoreSlim>` cấp phát một khóa độc quyền cho từng mã biến thể `ProductVariantId`.<br>- **Nguyên tắc Lock Ordering chống Deadlock:** Khi một đơn hàng chứa nhiều sản phẩm (ví dụ vừa mua iPhone vừa mua Củ sạc 35W), hệ thống **bắt buộc sắp xếp danh sách mã biến thể theo thứ tự ID tăng dần (`OrderBy(x => x.VariantId)`) trước khi xin khóa**. Quy tắc này triệt tiêu hoàn toàn khả năng xảy ra Deadlock chéo giữa các luồng. |
+| **Tầng 2** | **ACID Database Transaction với Cấp độ Cô lập Tuyệt đối** | Tầng Infrastructure (SQL Server Engine) | - Đóng gói toàn bộ chuỗi hành động: `Đọc tồn kho` $\rightarrow$ `Kiểm tra số lượng` $\rightarrow$ `Trừ tồn kho ProductVariants` $\rightarrow$ `Tạo Order` $\rightarrow$ `Tạo OrderItems` $\rightarrow$ `Xóa giỏ hàng` $\rightarrow$ `Ghi nhận Voucher` trong một **`IDatabaseTransaction`** duy nhất.<br>- Nếu bất kỳ bước nào gặp sự cố, SQL Server tự động **ROLLBACK 100%**, hoàn trả dữ liệu về nguyên trạng ban đầu. |
+| **Tầng 3** | **Khóa Lạc Quan Cơ sở Dữ liệu (`RowVersion`)** | Tầng Database (Cột `RowVersion` kiểu `timestamp`) | - Cột `RowVersion` trên bảng `catalog.ProductVariants` tự động thay đổi giá trị nhị phân mỗi khi có lệnh UPDATE.<br>- Khi cập nhật tồn kho, Entity Framework Core sinh ra câu lệnh `WHERE Id = @Id AND RowVersion = @OriginalRowVersion`.<br>- Nếu có bất kỳ tiến trình nào đã nhanh chân sửa đổi bản ghi trước đó, SQL Server trả về 0 dòng bị ảnh hưởng và EF Core lập tức ném ra ngoại lệ `DbUpdateConcurrencyException`. Giao dịch tự động hủy bỏ an toàn, báo lỗi tồn kho đã thay đổi tới người mua. |
 
 ---
 
-## 5. Giải trình Thiết kế: Tối ưu cho Ngành Bán Lẻ Điện Thoại & Thiết Bị Công Nghệ
+## 7. Khả Năng Lưu Trữ & Truy Vấn Báo Cáo Doanh Thu Phân Tích Chuyên Sâu
 
-Hệ thống bán lẻ thiết bị công nghệ Apple đòi hỏi sự kết hợp hài hòa giữa tốc độ truy vấn cao, khả năng biến đổi cấu hình linh hoạt và tính toàn vẹn dữ liệu tài chính - kho hàng tuyệt đối:
+Cấu trúc cơ sở dữ liệu được thiết kế tối ưu hóa cho các câu lệnh tổng hợp báo cáo kinh doanh tại `/admin/reports` và `/admin/dashboard`:
 
-1. **Mô hình Hybrid EAV (Cố định kết hợp Động):**  
-   - 95% dòng máy iPhone phân hóa theo Màu sắc và Dung lượng $\rightarrow$ Đặt trực tiếp khóa ngoại `ColorId` và `StorageOptionId` trong `ProductVariants` có đánh Index giúp các thao tác lọc danh mục, tìm kiếm trên Storefront đạt tốc độ tối đa không cần qua bảng nối.
-   - Các dòng sản phẩm khác (Apple Watch có size mặt 41mm/45mm; MacBook có RAM 16GB/24GB/32GB; iPad có Wi-Fi/Cellular) $\rightarrow$ Sử dụng hệ thống `ProductOptions` và `ProductOptionValues` để mở rộng tùy ý trong Admin mà **không cần can thiệp mã nguồn hay chạy lại migration**.
-2. **Nhóm thông số kỹ thuật phân cấp (Grouped Specifications):**  
-   - Gom hàng chục thông số phức tạp của thiết bị di động thành các nhóm chuyên môn (Màn hình, Camera, Vi xử lý, Pin & Sạc), phục vụ hiển thị accordion trực quan và dễ dàng phát triển tính năng so sánh cấu hình sau này.
-3. **Quản lý ảnh đa chiều theo màu sắc (Color-specific Media):**  
-   - Bảng `ProductImages` liên kết trực tiếp với `ColorId`, giúp giao diện Storefront tự động cập nhật đúng bộ ảnh chụp khi người dùng bấm đổi màu sắc máy.
-4. **Kiểm soát Tồn kho Tức thì & Tính Nhất quán (Immediate Inventory Reservation):**  
-   - Ngay tại thời điểm người dùng hoàn tất đặt hàng (dù chọn COD hay VNPay), số lượng tồn kho `QuantityInStock` trên bảng `catalog.ProductVariants` được trừ ngay lập tức khi đơn ở trạng thái `Pending` (Chờ xử lý).
-   - Thiết kế này bảo vệ người mua thanh toán trực tuyến: Khách hàng không bao giờ bị rơi vào tình cảnh đã thanh toán tiền qua cổng VNPay nhưng sau đó nhận thông báo "hết hàng" vì bị người khác mua mất trong thời gian nhập thẻ.
-   - Khi đơn hàng bị hủy (`Cancelled`), hệ thống tự động cộng hoàn trả chính xác số lượng biến thể về lại kho hàng trong cùng một giao dịch.
-5. **Cơ chế Khóa Tương tranh Đa Cấp Chống Bán Vượt Tồn Kho (Multi-level Concurrency Protection):**  
-   - Kết hợp nhịp nhàng giữa 3 lớp phòng vệ: **Semaphore khóa bộ nhớ** theo thứ tự ID biến thể tăng dần (Lock Ordering triệt tiêu Deadlock) $\rightarrow$ **Giao dịch toàn vẹn ACID** thông qua `IDatabaseTransaction` $\rightarrow$ **Khóa lạc quan cấp dữ liệu** với cột `RowVersion` kiểu `rowversion/timestamp` trên bảng `catalog.ProductVariants`.
-   - Ngăn chặn triệt để tình trạng 2 khách hàng đồng thời đặt mua chiếc máy cuối cùng trong kho.
-6. **Snapshot Dữ liệu Đơn hàng Bất biến (Order Immutability):**  
-   - Bảng `sales.OrderItems` lưu trữ độc lập giá bán (`UnitPrice`), giá vốn (`CostPrice`), tên sản phẩm (`ProductName`), tên biến thể (`VariantName`), ảnh đại diện (`ThumbnailUrl`) và chuỗi thuộc tính tùy chọn (`SelectedAttributesJson`) tại đúng thời điểm giao dịch.
-   - Bảo vệ lịch sử đơn hàng không bao giờ bị sai lệch khi giá niêm yết trong kho thay đổi hoặc sản phẩm bị sửa đổi cấu hình sau này.
-7. **Tính Bất biến của Đơn hàng đã Thanh toán (Paid Order Immutability & Anti-Cancellation):**  
-   - Khi đơn hàng ghi nhận `PaymentStatus = 'Paid'` (qua IPN Webhook hoặc Return URL đối soát thành công), trạng thái thanh toán được bảo vệ tuyệt đối.
-   - Hệ thống khóa chặt quyền hủy đơn ở cả tầng Domain, tầng Application (`DomainException`) và giao diện Storefront / Admin. Không cho phép bất kỳ hành vi hủy đơn tự do nào đối với các đơn đã nhận tiền, loại bỏ hoàn toàn các rủi ro gian lận hoàn kho khi tiền đã vào tài khoản doanh nghiệp.
-8. **Mô hình Dữ liệu và Truy vấn Thống kê Báo cáo Đa Chiều (Dashboard & Reporting Analytics Data Model):**
-   - **Nguồn dữ liệu đối soát tài chính:** Tích hợp trực tiếp từ 2 bảng cốt lõi `sales.Orders` và `sales.OrderItems`, kết hợp các trường định lượng tài chính bất biến: `Subtotal`, `DiscountAmount`, `ShippingFee`, `TotalAmount` và `LineTotal` của từng dòng sản phẩm.
-   - **Quy chuẩn ghi nhận Doanh thu thực thu (`NetRevenue`):** Loại bỏ hoàn toàn việc tính toán doanh thu trên các đơn hàng ảo hoặc chưa hoàn tất vận chuyển. Đơn hàng chỉ được ghi nhận vào Doanh thu thực thu khi thỏa mãn đồng thời: `OrderStatus IN (Delivered, Completed)` VÀ `PaymentStatus != Refunded`.
-   - **Tách bạch Doanh số gộp danh nghĩa và hiệu dụng:**
-     - *Tổng phát sinh gộp danh nghĩa (`TotalGrossAmount`):* Tổng tiền phát sinh của 100% đơn hàng tạo ra trong kỳ nhằm phản ánh tổng nhu cầu thị trường.
-     - *Doanh số gộp hiệu dụng (`NetGrossAmount`):* Tổng phát sinh gộp sau khi loại trừ triệt để các đơn hàng bị Hủy (`Cancelled`) hoặc Hoàn tiền (`Refunded`).
-   - **Mô hình Phân loại 3 Luồng Dòng Tiền Độc Lập:**
-     - *Dòng tiền an toàn (`SafeCashflow`):* Tập hợp đơn hàng có trạng thái vận chuyển `Delivered` hoặc `Completed` (đã giao hoặc đã nhận hàng thành công).
-     - *Dòng tiền đang luân chuyển (`OperatingCashflow`):* Tập hợp đơn hàng đang xử lý hoặc đang vận chuyển (`Pending`, `Confirmed`, `Shipping`) chưa bị hủy/hoàn, bao gồm cả đơn đã thanh toán VNPAY nhưng hàng chưa giao đến tay khách.
-     - *Dòng tiền tổn thất (`LostCashflow`):* Tập hợp đơn hàng rơi vào trạng thái hủy hoặc hoàn tiền (`Cancelled`, `Refunded`).
-   - **Mô hình Trích xuất Báo cáo Phẳng cấp độ Mục hàng (Item-level Flat Structure):**
-     - Cấu trúc truy vấn liên kết `sales.Orders` JOIN `sales.OrderItems` để bóc tách dữ liệu theo từng dòng sản phẩm (mỗi sản phẩm là một bản ghi độc lập), làm cơ sở dữ liệu nền cho module xuất file Excel OpenXML (.xlsx) phục vụ bộ phận kế toán và kiểm toán đối soát dòng tiền chi tiết.
+1. **Chỉ số Doanh thu Thực tế Không Chứa Ảo:**
+   - Trường `sales.Orders.Status` kết hợp với `sales.Orders.PaymentStatus` cho phép lọc chuẩn xác doanh thu thực thu:
+
+     ```sql
+     SELECT SUM(TotalAmount) FROM [sales].[Orders] 
+     WHERE Status IN ('Completed', 'Delivered') AND PaymentStatus = 'Paid';
+     ```
+
+   - Tách biệt hoàn toàn doanh thu thực nhận với các đơn hủy (`Cancelled`), đơn hoàn tiền (`Refunded`) hoặc đơn COD chưa thanh toán.
+
+2. **Lợi Nhuận Gộp Tức Thời (Gross Margin):**
+   - Nhờ lưu trữ `CostPrice` tại thời điểm mua trên từng dòng `sales.OrderItems`:
+
+     ```sql
+     SELECT SUM(LineTotal - (CostPrice * Quantity)) AS GrossProfit 
+     FROM [sales].[OrderItems] oi 
+     JOIN [sales].[Orders] o ON oi.OrderId = o.Id 
+     WHERE o.Status IN ('Completed', 'Delivered') AND o.PaymentStatus = 'Paid';
+     ```
+
+   - Ban giám đốc tính toán được chính xác biên lợi nhuận ròng của từng dòng máy Apple theo từng tháng mà không bị sai lệch khi giá nhập hàng sau này biến động.
+
+3. **Phân Tích Xu Hướng Thời Gian Không Bị Trễ:**
+   - Cột `PlacedAt` lưu trữ kiểu `datetimeoffset` cho phép gom nhóm theo ngày (`CAST(PlacedAt AS date)`), theo tuần, theo tháng hoặc theo năm chuẩn múi giờ Việt Nam (`+07:00`) mà không bị lỗi lệch ngày do múi giờ UTC.

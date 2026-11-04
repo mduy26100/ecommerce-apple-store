@@ -14,50 +14,46 @@ test.describe("Admin - Quản lý Biến thể & Thuộc tính Động (Dynamic 
     await page.waitForLoadState("networkidle");
   });
 
-  test("1. Mở ngăn kéo quản lý sản phẩm, hiển thị tab Phiên bản và tab Thuộc tính & Tùy chọn", async ({ page }) => {
-    await page.fill("input[placeholder*='Tìm theo tên']", "iPhone 16 Pro Max");
+  test("1. Mở trang quản lý sản phẩm, hiển thị tab Phiên bản và tab Thuộc tính", async ({ page }) => {
+    await page.goto("/admin/products/1");
     await page.waitForLoadState("networkidle");
 
-    const row = page.locator(".ant-table-row:has-text('iPhone 16 Pro Max')").first();
-    await expect(row).toBeVisible();
-    await row.click();
-
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-    await expect(drawer).toContainText("iPhone 16 Pro Max");
-    await expect(drawer).toContainText("Phiên bản & Tồn kho");
-    await expect(drawer).toContainText("Thuộc tính & Tùy chọn");
+    await expect(page.locator("body")).toContainText("iPhone 16 Pro Max");
+    await expect(page.locator("button[role='tab']:has-text('Phiên bản'), [role='tab']:has-text('Phiên bản')")).toBeVisible();
+    await expect(page.locator("button[role='tab']:has-text('Thuộc tính'), [role='tab']:has-text('Thuộc tính')")).toBeVisible();
   });
 
   test("2. Kiểm tra tab Thuộc tính & Tùy chọn hiển thị các nhóm động (Màu sắc, Dung lượng)", async ({ page }) => {
-    await page.fill("input[placeholder*='Tìm theo tên']", "iPhone 16 Pro Max");
+    await page.goto("/admin/products/1?tab=options");
     await page.waitForLoadState("networkidle");
 
-    const row = page.locator(".ant-table-row:has-text('iPhone 16 Pro Max')").first();
-    await row.click();
-
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-
-    await drawer.locator(".ant-tabs-tab:has-text('Thuộc tính & Tùy chọn')").click();
-    await expect(drawer).toContainText("Cấu hình nhóm thuộc tính động");
-    await expect(drawer).toContainText("Màu sắc");
-    await expect(drawer).toContainText("Dung lượng");
+    await expect(page.locator("body")).toContainText("Cấu hình nhóm thuộc tính động");
+    await expect(page.locator("body")).toContainText("Màu sắc");
+    await expect(page.locator("body")).toContainText("Dung lượng");
   });
 
   test("3. Tạo mới biến thể với thuộc tính động, kiểm tra hiển thị trong bảng", async ({ page }) => {
-    const testSku = `TEST-IP16PM-${Date.now()}`;
+    const uniqueId = Date.now();
+    const testSku = `TEST-IP16PM-${uniqueId}`;
+    const testValName = `Titan_${uniqueId}`;
 
-    await page.fill("input[placeholder*='Tìm theo tên']", "iPhone 16 Pro Max");
+    // 1. Tạo một giá trị màu sắc mới để đảm bảo tổ hợp biến thể là duy nhất không trùng lặp
+    await page.goto("/admin/products/1?tab=options");
     await page.waitForLoadState("networkidle");
 
-    const row = page.locator(".ant-table-row:has-text('iPhone 16 Pro Max')").first();
-    await row.click();
+    const addValueBtn = page.locator("button:has-text('Thêm giá trị')").first();
+    await addValueBtn.click();
+    await page.locator("input[placeholder*='Giá trị']").first().fill(testValName);
+    await Promise.all([
+      page.waitForResponse((res) => res.url().includes("/api/manager/product-options/values") && res.request().method() === "POST"),
+      page.locator("button:has-text('Lưu')").first().click(),
+    ]);
 
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
+    // 2. Chuyển sang tab Biến thể và tạo biến thể mới với giá trị thuộc tính vừa thêm
+    await page.goto("/admin/products/1?tab=variants");
+    await page.waitForLoadState("networkidle");
 
-    await drawer.locator("button:has-text('Thêm phiên bản')").click();
+    await page.locator("button:has-text('Thêm phiên bản')").click();
     const modal = page.locator(".ant-modal");
     await expect(modal).toBeVisible();
 
@@ -68,12 +64,18 @@ test.describe("Admin - Quản lý Biến thể & Thuộc tính Động (Dynamic 
 
     const optionSelects = modal.locator(".ant-select");
     const optionCount = await optionSelects.count();
-    for (let i = 0; i < optionCount; i++) {
-      await optionSelects.nth(i).click();
-      const option = page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").first();
-      await option.waitFor({ state: "visible" });
-      await option.click();
-      await page.waitForTimeout(400);
+    if (optionCount > 0) {
+      await optionSelects.first().click();
+      await page.waitForSelector(".ant-select-dropdown:not(.ant-select-dropdown-hidden)");
+      await page.locator(`.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text('${testValName}')`).click();
+      await page.waitForTimeout(300);
+
+      if (optionCount > 1) {
+        await optionSelects.nth(1).click();
+        await page.waitForSelector(".ant-select-dropdown:not(.ant-select-dropdown-hidden)");
+        await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").first().click();
+        await page.waitForTimeout(300);
+      }
     }
 
     const [response] = await Promise.all([
@@ -85,9 +87,9 @@ test.describe("Admin - Quản lý Biến thể & Thuộc tính Động (Dynamic 
 
     expect(response.status()).toBeLessThan(400);
     await expect(modal).not.toBeVisible();
-    await expect(drawer.locator(".ant-table")).toContainText(testSku);
+    await expect(page.locator(".ant-table")).toContainText(testSku);
 
-    const createdRow = drawer.locator(`.ant-table-row:has-text('${testSku}')`);
+    const createdRow = page.locator(`.ant-table-row:has-text('${testSku}')`);
     await createdRow.locator("button[title='Chỉnh sửa'], button:has(.anticon-edit)").click();
     await expect(modal).toBeVisible();
     await expect(page.locator("input#sku")).toHaveValue(testSku);
@@ -104,9 +106,9 @@ test.describe("Admin - Quản lý Biến thể & Thuộc tính Động (Dynamic 
 
     expect(updateResponse.status()).toBeLessThan(400);
     await expect(modal).not.toBeVisible();
-    await expect(drawer.locator(".ant-table")).toContainText(updatedSku);
+    await expect(page.locator(".ant-table")).toContainText(updatedSku);
 
-    const updatedRow = drawer.locator(`.ant-table-row:has-text('${updatedSku}')`);
+    const updatedRow = page.locator(`.ant-table-row:has-text('${updatedSku}')`);
     await updatedRow.locator("button[title='Xóa'], button:has(.anticon-delete)").click();
 
     const popconfirm = page.locator(".ant-popconfirm, .ant-popover");
@@ -120,63 +122,56 @@ test.describe("Admin - Quản lý Biến thể & Thuộc tính Động (Dynamic 
     ]);
 
     expect(deleteResponse.status()).toBeLessThan(400);
-    await expect(drawer.locator(".ant-table")).not.toContainText(updatedSku);
+    await expect(page.locator(".ant-table")).not.toContainText(updatedSku);
   });
 
   test("4. Chỉnh sửa nhóm thuộc tính và giá trị thuộc tính với ColorPicker & mã hex", async ({ page }) => {
-    await page.fill("input[placeholder*='Tìm theo tên']", "iPhone 16 Pro Max");
+    await page.goto("/admin/products/1?tab=options");
     await page.waitForLoadState("networkidle");
 
-    const row = page.locator(".ant-table-row:has-text('iPhone 16 Pro Max')").first();
-    await row.click();
+    await expect(page.locator("body")).toContainText("Cấu hình nhóm thuộc tính động");
 
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-
-    await drawer.locator(".ant-tabs-tab:has-text('Thuộc tính & Tùy chọn')").click();
-    await expect(drawer).toContainText("Cấu hình nhóm thuộc tính động");
-
-    const editOptionBtn = drawer.locator("button[title='Đổi tên nhóm thuộc tính']").first();
+    const editOptionBtn = page.locator("button[title='Đổi tên nhóm thuộc tính']").first();
     await expect(editOptionBtn).toBeVisible();
 
-    const addValueBtn = drawer.locator("button:has-text('Thêm giá trị')").first();
+    const addValueBtn = page.locator("button:has-text('Thêm giá trị')").first();
     await addValueBtn.click();
 
     const testValName = `TestColor-${Date.now()}`;
-    await drawer.locator("input[placeholder*='Giá trị']").first().fill(testValName);
+    await page.locator("input[placeholder*='Giá trị']").first().fill(testValName);
 
-    const colorPickerTrigger = drawer.locator(".ant-color-picker-trigger").first();
+    const colorPickerTrigger = page.locator(".ant-color-picker-trigger").first();
     await expect(colorPickerTrigger).toBeVisible();
 
-    await drawer.locator("input[placeholder*='Mã màu']").first().fill("#22c55e");
+    await page.locator("input[placeholder*='Mã màu']").first().fill("#22c55e");
 
     const [createValRes] = await Promise.all([
       page.waitForResponse(
         (res) => res.url().includes("/api/manager/product-options/values") && res.request().method() === "POST"
       ),
-      drawer.locator("button:has-text('Lưu')").first().click(),
+      page.locator("button:has-text('Lưu')").first().click(),
     ]);
     expect(createValRes.status()).toBeLessThan(400);
 
-    const valTag = drawer.locator(`.group:has-text('${testValName}')`);
+    const valTag = page.locator(`.group:has-text('${testValName}')`);
     await expect(valTag).toBeVisible();
 
     const editValBtn = valTag.locator("button[title='Chỉnh sửa giá trị']");
     await editValBtn.click();
 
     const updatedValName = `${testValName}-Edited`;
-    const editInput = drawer.locator("input[placeholder='Giá trị']").first();
+    const editInput = page.locator("input[placeholder='Giá trị']").first();
     await editInput.fill(updatedValName);
 
     const [updateValRes] = await Promise.all([
       page.waitForResponse(
         (res) => res.url().includes("/api/manager/product-options/values") && res.request().method() === "PUT"
       ),
-      drawer.locator("button[title='Lưu']").first().click(),
+      page.locator("button[title='Lưu']").first().click(),
     ]);
     expect(updateValRes.status()).toBeLessThan(400);
 
-    const updatedTag = drawer.locator(`.group:has-text('${updatedValName}')`);
+    const updatedTag = page.locator(`.group:has-text('${updatedValName}')`);
     await expect(updatedTag).toBeVisible();
 
     const deleteValBtn = updatedTag.locator("button[title='Xóa giá trị']");
@@ -192,6 +187,6 @@ test.describe("Admin - Quản lý Biến thể & Thuộc tính Động (Dynamic 
       popconfirm.locator("button:has-text('Xóa')").click(),
     ]);
     expect(deleteValRes.status()).toBeLessThan(400);
-    await expect(drawer).not.toContainText(updatedValName);
+    await expect(page.locator("body")).not.toContainText(updatedValName);
   });
 });

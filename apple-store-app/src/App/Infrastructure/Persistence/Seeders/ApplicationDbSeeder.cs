@@ -2,7 +2,6 @@ using Domain.Constants;
 using Domain.Entities.Sales;
 using Domain.Enums.Sales;
 using Infrastructure.Identity.Models;
-using Infrastructure.Persistence;
 
 namespace Infrastructure.Persistence.Seeders
 {

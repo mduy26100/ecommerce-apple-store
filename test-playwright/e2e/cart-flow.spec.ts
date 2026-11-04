@@ -150,7 +150,7 @@ test.describe("Storefront - Nghiệp vụ Giỏ hàng Trực tuyến (Guest & Us
     await page.locator("[data-testid='add-to-cart-button']").click();
     await page.waitForTimeout(500);
 
-    await page.route("http://localhost:5288/api/cart*", async (route) => {
+    await page.route("**/api/cart*", async (route) => {
       const response = await route.fetch();
       const json = await response.json();
       if (json && json.data && json.data.items && json.data.items.length > 0) {

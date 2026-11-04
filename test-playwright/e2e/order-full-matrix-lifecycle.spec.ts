@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Toàn diện Vòng đời Đơn hàng & Ma trận Bảo mật Đa vai trò (Guest - Member - Admin - Adversary)", () => {
-  const BACKEND_URL = "http://localhost:5288";
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8088";
 
   test("1. Khách vãng lai: Đặt hàng COD, tra cứu Readonly, Admin duyệt tiến trình (Pending -> Confirmed -> Shipping -> Delivered), kiểm tra mốc lịch sử", async ({ page, request }) => {
     const productRes = await request.get(`${BACKEND_URL}/api/products/iphone-16-pro-max`);

@@ -1,249 +1,192 @@
 # Kiến Trúc Hệ Thống (System Architecture)
 
-> Tài liệu mô tả nguyên lý thiết kế kiến trúc tổng thể của hệ thống thương mại điện tử Urban Stitch, tập trung vào mô hình phân tầng hướng tâm **Onion Architecture** cho Backend, mô hình **Feature-based Architecture** cho Frontend và luồng xử lý dữ liệu khép kín xuyên suốt hệ thống.
+> **Tài liệu đặc tả kiến trúc kỹ thuật tổng thể của nền tảng thương mại điện tử Urban Stitch.**  
+> Tập trung vào mô hình phân tầng hướng tâm **Onion Architecture** cho Backend .NET 8, kiến trúc **Feature-based Architecture** cho Frontend React 19, chuyên đề **Kiến trúc Thanh toán Trực tuyến VNPay với Webhook IPN Thực & Khả năng Retry Thanh toán Vô hạn**, và **Cơ chế Kiểm soát Tương tranh Đa tầng (3-Tier Concurrency Defense)** xử lý hàng nghìn đơn hàng đồng thời mà không bị bán vượt tồn kho.
 
 ---
 
-## 1. Danh sách Công nghệ Sử dụng Cốt lõi
+## 1. Danh Sách Công Nghệ Sử Dụng Cốt Lõi (Tech Stack)
 
-Hệ thống được xây dựng tinh gọn dựa trên 3 công nghệ trụ cột:
+Hệ thống được xây dựng tinh gọn dựa trên 3 trụ cột công nghệ cấp doanh nghiệp:
 
-| Nền tảng | Công nghệ | Vai trò & Đặc điểm |
+| Nền tảng | Công nghệ cốt lõi | Vai trò & Đặc điểm kiến trúc |
 | :--- | :--- | :--- |
-| **Cơ sở dữ liệu** | **SQL Server** | Hệ quản trị cơ sở dữ liệu quan hệ mạnh mẽ, lưu trữ toàn bộ dữ liệu nghiệp vụ, hỗ trợ transaction ACID, khóa lạc quan (`rowversion`) và phân tách schema độc lập. |
-| **Backend** | **.NET 8** | Nền tảng phát triển ứng dụng Web API hiệu năng cao của Microsoft, xây dựng theo nguyên lý Clean Architecture / Onion Architecture với cơ chế Dependency Injection nguyên bản. |
-| **Frontend** | **ReactJS** | Thư viện xây dựng giao diện người dùng theo mô hình Single Page Application (SPA), tổ chức mã nguồn theo kiến trúc Feature-based hỗ trợ mở rộng quy mô linh hoạt. |
+| **Cơ sở dữ liệu** | **Microsoft SQL Server 2022** | Hệ quản trị cơ sở dữ liệu quan hệ mạnh mẽ, lưu trữ toàn bộ dữ liệu nghiệp vụ, hỗ trợ transaction ACID, khóa lạc quan (`rowversion`), chỉ mục lọc (Filtered Indexes) và phân tách 3 Schemas độc lập (`catalog`, `sales`, `identity`). |
+| **Backend** | **.NET 8 (ASP.NET Core Web API)** | Nền tảng phát triển ứng dụng Web API hiệu năng cao của Microsoft, xây dựng theo nguyên lý Clean Architecture / Onion Architecture với cơ chế Dependency Injection nguyên bản, middleware xử lý lỗi tập trung và bộ lọc chuẩn hóa phản hồi `ApiResponse<T>`. |
+| **Frontend** | **React 19 + TypeScript + Vite** | Thư viện xây dựng giao diện người dùng theo mô hình Single Page Application (SPA), tổ chức mã nguồn theo kiến trúc Feature-based; phân định rạch ròi giữa Server State (TanStack React Query) và Client State (Zustand); tối ưu giao diện với TailwindCSS v4 và Ant Design 6. |
 
 ---
 
-## 2. Kiến trúc Backend: Mô hình Onion Architecture
+## 2. Kiến Trúc Backend: Mô Hình Phân Tầng Onion Architecture
 
 Backend của dự án được triển khai dựa trên nguyên lý **Clean Architecture**, cụ thể hóa qua mô hình **Onion Architecture** (Kiến trúc củ hành). Đặc điểm cốt lõi của mô hình này là **chiều phụ thuộc một chiều nghiêm ngặt hướng vào tâm** (Dependency Inversion Principle).
 
 ### Bảng Mô Hình Phân Tầng Onion Architecture (Từ Ngoài Vào Trong)
 
-| Vị trí tầng | Tên tầng (Layer) | Thành phần chính bên trong | Chiều phụ thuộc (Dependency) |
-| :---: | :--- | :--- | :--- |
-| **Lớp 4 (Cổng ngoài)** | **Host** | ASP.NET Core Web API, Controllers (Public & Manager), Middleware xử lý lỗi, Action Filters chuẩn hóa ApiResponse, Cấu hình Dependency Injection. | Phụ thuộc vào Application, Infrastructure và Domain. |
-| **Lớp 3 (Hạ tầng)** | **Infrastructure** | Entity Framework Core, DbContext, Fluent API configurations, SQL Server Provider, ASP.NET Core Identity, Dịch vụ VNPay, Cloudinary Media. | Triển khai các Interface của tầng Application, phụ thuộc vào Domain. |
-| **Lớp 2 (Ứng dụng)** | **Application** | Use Cases, Features nghiệp vụ, DTOs (Request / Response), Specifications truy vấn, Service Interfaces (IVnPayService, IRepository, IDatabaseTransaction). | Chỉ phụ thuộc duy nhất vào Domain. Tuyệt đối không phụ thuộc Infrastructure hay Host. |
-| **Lớp 1 (Tâm lõi)** | **Domain** | Các thực thể cốt lõi (Entities: Category, Product, ProductVariant, Order...), Value Objects, Domain Exceptions, BaseEntity. | Độc lập tuyệt đối. Không phụ thuộc vào bất kỳ thư viện hay framework bên ngoài nào. |
+| Vị trí tầng | Tên tầng (Layer) | Dự án (Project) | Thành phần chính bên trong | Chiều phụ thuộc (Dependency) |
+| :---: | :--- | :--- | :--- | :--- |
+| **Lớp 4 (Cổng ngoài)** | **Host** | `Host.csproj` | ASP.NET Core Web API, Controllers (`Manager` và `Public`), Middleware xử lý ngoại lệ tập trung (`ExceptionHandlingMiddleware`), Action Filters chuẩn hóa `ApiResponseFilterAttribute`, Cấu hình Swagger OpenAPI, Healthchecks, Cấu hình Dependency Injection. | Phụ thuộc vào `Application`, `Infrastructure` và `Domain`. |
+| **Lớp 3 (Hạ tầng)** | **Infrastructure** | `Infrastructure.csproj` | Entity Framework Core `AppDbContext`, Fluent API Entity Type Configurations, SQL Server Provider, ASP.NET Core Identity (`UserManager`, `RoleManager`), Dịch vụ thanh toán VNPay (`VnPayService`), Dịch vụ tải ảnh Cloudinary (`CloudinaryService`), Quản lý phiên Refresh Token. | Triển khai các Interface của tầng `Application`, phụ thuộc vào `Domain`. |
+| **Lớp 2 (Ứng dụng)** | **Application** | `Application.csproj` | Use Cases nghiệp vụ, Features phân hệ (`Catalog`, `Cart`, `Ordering`, `Identity`, `Vouchers`), DTOs (Request / Response), Specifications truy vấn phân trang, Service Interfaces (`IVnPayService`, `IRepository<T>`, `IDatabaseTransaction`). | **Chỉ phụ thuộc duy nhất vào Domain**. Tuyệt đối không phụ thuộc Infrastructure hay Host. |
+| **Lớp 1 (Tâm lõi)** | **Domain** | `Domain.csproj` | Các thực thể nghiệp vụ cốt lõi (`Category`, `Product`, `ProductVariant`, `Order`, `Voucher`...), Value Objects, Domain Exceptions, Hằng số phân quyền `RoleConstants`, Lớp cơ sở `BaseEntity<int>`. | **Độc lập tuyệt đối**. Không phụ thuộc vào bất kỳ framework hoặc thư viện bên ngoài nào. |
 
 ---
 
-### 2.1. Vì sao chọn Kiến trúc Onion trên nguyên lý Clean Architecture?
+### 2.1. Ưu Điểm Quyết Định Của Kiến Trúc Onion
 
-Kiến trúc Onion được lựa chọn để giải quyết triệt để các bài toán sống còn của một hệ thống thương mại điện tử quy mô lớn:
-
-#### 1. Cô lập Nghiệp vụ Cốt lõi khỏi Công nghệ (Domain Isolation)
-- **Bản chất:** Quy tắc nghiệp vụ (Business Rules - cách tính giá biến thể, điều kiện giảm giá, trừ tồn kho, quy chuẩn danh mục Apple) là tài sản quan trọng nhất của doanh nghiệp, không bao giờ được phép phụ thuộc vào công cụ bên ngoài.
-- **Thực thi:** Tầng `Domain` nằm ở trung tâm và độc lập hoàn toàn. Mã nguồn trong Domain là C# thuần túy (POCO), **không chứa bất kỳ dòng code nào của EF Core, SQL Server, Web framework hay thư viện bên thứ ba**. Công nghệ có thể lỗi thời hoặc thay đổi, nhưng nghiệp vụ kinh doanh thì bất biến.
-
-#### 2. Dễ dàng Thay đổi & Mở rộng Công nghệ (Pluggable Infrastructure)
-- **Tính linh hoạt cao:** Hạ tầng công nghệ (Cơ sở dữ liệu, ORM, dịch vụ lưu trữ file, mailer) chỉ được xem là các "chi tiết kỹ thuật bên ngoài" (External Details / Plugins) và phải cắm vào hệ thống thông qua các giao diện trừu tượng (`Interfaces`) do tầng `Application` định nghĩa.
-- **Ví dụ thực tế:** Hôm nay dự án đang dùng **SQL Server** làm database lưu trữ thông qua `Infrastructure`. Nếu trong tương lai doanh nghiệp quyết định chuyển sang **MySQL**, **PostgreSQL** để tiết kiệm chi phí bản quyền, hoặc bổ sung **MongoDB** để lưu log sự kiện:
-  - Lập trình viên chỉ cần tạo một project hạ tầng mới (ví dụ `Infrastructure.MySql`), triển khai lại các interface `IAppDbContext` và `IRepository<T>`.
-  - Sau đó, chỉ cần đổi **duy nhất một dòng đăng ký Dependency Injection (DI)** trong file khởi tạo `Program.cs`.
-  - **Toàn bộ 100% mã nguồn nghiệp vụ tại tầng Domain và Application được giữ nguyên vẹn**, không phải sửa đổi, viết lại hay kiểm thử lại từ đầu.
-
-#### 3. Dễ dàng Mở rộng Quy mô (Scalability & Maintainability)
-- Việc phân tách ranh giới rõ ràng ngăn chặn tình trạng "code spaghetti" (phụ thuộc vòng chằng chịt).
-- Khi có thành viên mới tham gia dự án, họ có thể phát triển thêm tính năng mới trong `Application/Features` theo đúng khuôn mẫu (DTOs $\rightarrow$ Specifications $\rightarrow$ Service) mà không lo làm ảnh hưởng hay phá vỡ các tính năng khác đã hoàn thiện.
-
-#### 4. Khả năng Kiểm thử Độc lập Cực cao (High Testability)
-- Tầng Application chỉ tương tác với cơ sở dữ liệu thông qua interface `IRepository<T>`. 
-- Khi viết Unit Test cho luồng tạo đơn hàng, tính tiền hay trừ tồn kho, lập trình viên có thể dễ dàng giả lập (Mock) dữ liệu bộ nhớ mà **không cần phải khởi động database SQL Server thật, không cần mở kết nối mạng**. Nhờ đó, kịch bản test chạy siêu tốc và ổn định tuyệt đối.
+1. **Cô lập Nghiệp vụ Cốt lõi khỏi Biến động Công nghệ (Domain Isolation):**
+   - Quy tắc tính giá biến thể, điều kiện voucher, trừ tồn kho và quy chuẩn sản phẩm Apple là tài sản vô giá của doanh nghiệp. Tầng `Domain` nằm ở trung tâm và độc lập hoàn toàn, không chứa bất kỳ dòng code nào của EF Core, SQL Server hay Web framework.
+2. **Khả năng Cắm Rút Hạ tầng Linh hoạt (Pluggable Infrastructure):**
+   - Cơ sở dữ liệu, ORM, thư viện gửi mail hay cổng thanh toán chỉ là các "chi tiết kỹ thuật bên ngoài" (External Plugins) được kết nối qua các Interface trừu tượng. Nếu sau này hệ thống chuyển từ SQL Server sang PostgreSQL hay bổ sung thêm cổng Stripe/Momo, toàn bộ 100% mã nguồn nghiệp vụ tại tầng Domain và Application được giữ nguyên vẹn.
+3. **Khả năng Kiểm thử Tự động Cực Cao (High Testability):**
+   - Tầng Application chỉ tương tác với cơ sở dữ liệu thông qua interface `IRepository<T>`. Khi viết Unit Test cho luồng tính tiền hay trừ kho, lập trình viên có thể mock dữ liệu trong bộ nhớ mà không cần bật cơ sở dữ liệu SQL Server thật.
 
 ---
 
-### 2.2. Trách nhiệm của từng Phân tầng
+## 3. Kiến Trúc Frontend: Feature-based Architecture & Phân Định State
 
-| Phân tầng | Vị trí | Trách nhiệm chính | Chiều phụ thuộc (References) |
+Giao diện người dùng sử dụng **React 19 + TypeScript** được tổ chức theo kiến trúc **Feature-based Architecture** (Kiến trúc theo tính năng) kết hợp phân tầng trách nhiệm nội bộ.
+
+### 3.1. Phân Tách Phân Hệ Rõ Ràng
+
+| Phân hệ Frontend | Đường dẫn thư mục | Layout đảm nhiệm | Trách nhiệm giao diện |
 | :--- | :--- | :--- | :--- |
-| **Domain** | Tâm điểm | Lưu trữ các thực thể nghiệp vụ (`Category`, `Product`, `ProductVariant`, `Order`...), các exception nghiệp vụ, hằng số và base entity. | **Độc lập tuyệt đối**. Không reference bất kỳ project nào. |
-| **Application** | Lớp giữa | Định nghĩa các ca sử dụng (Use Cases), DTOs request/response, Specifications truy vấn phân trang, Services xử lý luồng logic và Interfaces trừu tượng (`IRepository`, `IAppDbContext`). | **Chỉ reference Domain**. Cấm reference Infrastructure hay Host. |
-| **Infrastructure** | Lớp ngoài | Hiện thực hóa kỹ thuật các interface: EF Core DbContext, cấu hình bảng Fluent API, kết nối SQL Server, ASP.NET Core Identity, Refresh Token, Cloudinary. | **Reference Application và Domain**. |
-| **Host** | Cổng vào | Khởi chạy Web API, cấu hình Dependency Injection, Controllers (`Manager` và `Public`), Filters chuẩn hóa `ApiResponse`, Middleware xử lý lỗi toàn cục. | **Reference cả 3 tầng** để lắp ráp thành ứng dụng hoàn chỉnh. |
+| **Storefront (Bán lẻ)** | `src/features/storefront/`<br>`src/pages/storefront/` | `StorefrontLayout.tsx` | Trải nghiệm mua sắm đẳng cấp Apple: duyệt sản phẩm, xem thông số kỹ thuật phân cấp, đổi biến thể màu/dung lượng tức thì, tìm kiếm nhanh Realtime trên Header, giỏ hàng trực tuyến thông minh, thanh toán đơn hàng và tra cứu đơn bảo mật. |
+| **Admin Portal (Quản trị)** | `src/features/admin/`<br>`src/pages/admin/` | `AdminLayout.tsx` | Cổng quản trị tập trung: Dashboard số liệu thời gian thực, Báo cáo thống kê đơn hàng đa chiều và xuất Excel, quản lý sản phẩm chuyên sâu toàn trang (`/admin/products/:id`), quản lý danh mục, màu sắc, dung lượng, người dùng và phân quyền. |
+| **Auth Module (Xác thực)** | `src/features/auth/`<br>`src/pages/auth/` | `AuthLayout.tsx` | Biểu mẫu đăng nhập, đăng ký tài khoản khách hàng, đổi mật khẩu và quản lý phiên làm việc bảo mật cho cả hai phân hệ. |
 
----
+### 3.2. Cấu Trúc Đóng Gói Bên Trong Mỗi Feature
 
-## 3. Kiến trúc Frontend: Feature-based Architecture
+Mỗi module nghiệp vụ (ví dụ: `catalog`, `cart`, `orders`, `vouchers`) được tổ chức thành 6 lớp khép kín:
 
-Giao diện người dùng sử dụng **ReactJS** được tổ chức theo kiến trúc **Feature-based Architecture** (Kiến trúc theo tính năng) kết hợp phân tầng trách nhiệm nội bộ.
-
-### 3.1. Phân tách Phân hệ Độc lập
-Hệ thống chia tách độc lập 2 phân hệ lớn:
-1. **Storefront (`src/features/storefront`, `src/pages/storefront`):** Giao diện bán hàng cao cấp cho người tiêu dùng (`StorefrontLayout`), phục vụ xem sản phẩm, đổi biến thể màu/dung lượng tức thì, tìm kiếm gần đúng Realtime trên thanh Header đa nền tảng (`StorefrontHeader.tsx`), giỏ hàng trực tuyến (`src/features/storefront/cart`) hỗ trợ khách vãng lai, tự động gộp giỏ hàng khi đăng nhập, đổi phân loại trong giỏ và tự phục hồi số lượng tồn kho.
-2. **Admin Portal (`src/features/admin`, `src/pages/admin`):** Cổng quản trị tập trung (`AdminLayout`), sidebar điều hướng đa cấp, dashboard số liệu, quản lý danh mục, sản phẩm, biến thể, màu sắc, cấu hình hệ thống.
-3. **Module Xác thực dùng chung (`src/features/auth`):** Cung cấp các biểu mẫu đăng nhập, đăng ký và cơ chế lưu trữ phiên làm việc an toàn cho cả hai phân hệ.
-
-### 3.2. Cấu trúc Phân tầng Nội bộ Feature
-Mỗi module nghiệp vụ (ví dụ: `catalog`, `cart`, `auth`) được đóng gói khép kín thành các tầng:
-- `types/`: Định nghĩa kiểu tĩnh TypeScript cho DTOs, payload và models.
-- `constants/`: Hằng số nội bộ và query keys phục vụ việc định danh bộ nhớ đệm cache.
-- `api/`: Các hàm gọi HTTP thô tới backend, sử dụng cấu hình Axios instance dùng chung.
+- `types/`: Định nghĩa kiểu tĩnh TypeScript cho DTOs, request payloads và models.
+- `constants/`: Hằng số nội bộ và React Query Keys phục vụ định danh bộ nhớ đệm cache.
+- `api/`: Các hàm gọi HTTP thô tới backend thông qua Axios instance dùng chung.
 - `hooks/`: **Nơi duy nhất chứa business logic** của tính năng. Sử dụng React Query (`useQuery` cho thao tác đọc và `useMutation` cho thao tác ghi/cập nhật).
 - `components/`: Các Pure UI Components nhận dữ liệu qua props, hoàn toàn không gọi API trực tiếp.
 - `pages/`: Đóng vai trò **Orchestrator** (Điều phối viên), kết nối dữ liệu từ custom hooks và truyền xuống các components hiển thị.
 
-### 3.3. Phân định Ranh giới Quản lý Trạng thái (State Management)
-Hệ thống phân tách rạch ròi 2 dạng trạng thái:
-- **Server State (Dữ liệu máy chủ):** Được quản lý toàn diện bởi React Query. Phụ trách tự động fetch, lưu cache theo thời gian sống (`staleTime`), đồng bộ hóa dữ liệu ngầm và cập nhật giao diện lạc quan (Optimistic Update).
-- **Client State (Trạng thái nội bộ ứng dụng):** Được quản lý bởi Zustand. Chỉ lưu trữ các dữ liệu thuần túy phía client như phiên đăng nhập (thông tin user hiện tại), trạng thái đóng/mở sidebar. **Tuyệt đối không lưu cache danh sách API vào Zustand**.
+### 3.3. Phân Định Ranh Giới Quản Lý Trạng Thái (State Management)
 
-### 3.4. Kỹ thuật React Portal Tách Lớp Giao diện Di động (Mobile Fullscreen Overlay Pattern)
-- **Vấn đề W3C Containing Block:** Khi một phần tử cha (cụ thể là thẻ `<header>`) sở hữu thuộc tính `backdrop-filter` (ví dụ class Tailwind `backdrop-blur-sm`), theo tiêu chuẩn W3C trình duyệt sẽ coi phần tử đó là containing block cho toàn bộ các phần tử con có `position: fixed`. Hệ quả là một overlay toàn màn hình `fixed inset-0` đặt bên trong header sẽ bị giới hạn chiều cao nghiêm trọng (chỉ bằng đúng chiều cao 64px của header).
-- **Giải pháp Kiến trúc:** Tách lớp hiển thị bằng React Portal (`createPortal(children, document.body)`). Giao diện tìm kiếm trên thiết bị di động được kết xuất trực tiếp vào nút gốc của DOM (`document.body`), giải phóng hoàn toàn khỏi context CSS của header, cho phép overlay mở rộng 100% toàn màn hình thiết bị với thanh điều hướng top bar chuẩn mực và danh sách kết quả cuộn mượt mà.
-
----
-
-## 4. Luồng Xử lý Dữ liệu Toàn diện (End-to-End Data Flow)
-
-Thay vì biểu đồ sequence đồ họa dễ lỗi định dạng trên markdown, quy trình xử lý dữ liệu khép kín được thể hiện chi tiết theo từng bước dưới đây:
-
-| Bước | Thành phần | Hành vi & Xử lý | Dữ liệu đầu vào / đầu ra |
-| :---: | :--- | :--- | :--- |
-| **1** | **Người dùng (Client)** | Tương tác trên giao diện Storefront / Admin (nhấn xem sản phẩm, gửi form thêm biến thể, đặt hàng). | Sự kiện click, input form. |
-| **2** | **React Page (Orchestrator)** | Tiếp nhận sự kiện, điều phối và kích hoạt Custom Hook tương ứng trong thư mục `hooks/`. | Gọi hook nghiệp vụ (ví dụ `useCatalog`). |
-| **3** | **Custom Hook (React Query)** | Kích hoạt `useQuery` hoặc `useMutation`, gọi hàm API trong thư mục `api/`. | Payload request. |
-| **4** | **Axios Client Interceptor** | Tự động đính kèm Bearer Token (nếu có trong RAM), thiết lập header JSON và gửi HTTP Request. | Gửi HTTP POST/GET/PUT/DELETE qua mạng. |
-| **5** | **ASP.NET Core Web API (Host)** | Middleware kiểm tra JWT xác thực phiên làm việc; Controller tiếp nhận Request DTO. | Giải mã Token, kiểm tra quyền hạn (Role). |
-| **6** | **Application Service** | Thực thi quy tắc nghiệp vụ, kiểm tra ràng buộc duy nhất (Name/Slug), đóng gói Specification. | Chuyển Request DTO thành Specification. |
-| **7** | **Repository & DbContext (Infra)** | Áp dụng Global Query Filter (`IsDeleted = 0`), biên dịch Specification thành câu lệnh T-SQL. | Tạo truy vấn SQL thông qua EF Core. |
-| **8** | **SQL Server (Database)** | Thực thi câu lệnh SQL trên schema tương ứng, xử lý transaction và kiểm tra khóa lạc quan (`RowVersion`). | Đọc/Ghi dữ liệu vật lý trên ổ đĩa. |
-| **9** | **Application Service** | Nhận thực thể Domain từ EF Core, thực hiện ánh xạ (Mapping) dữ liệu sang Response DTO. | Chuyển Entity thành Response DTO. |
-| **10** | **ApiResponseFilter (Host)** | Tự động bọc kết quả vào khuôn mẫu chuẩn: `{ data, meta: { statusCode, timestamp, traceId }, error: null }`. | HTTP Response 200 OK kèm JSON chuẩn. |
-| **11** | **Axios Interceptor & Hook** | Axios unwrap response; React Query tự động cập nhật cache, làm mới query liên quan (`invalidateQueries`). | Dữ liệu mới được đồng bộ vào cache. |
-| **12** | **React UI Component** | Giao diện tự động re-render mượt mà hiển thị kết quả mới tới người dùng mà không cần tải lại toàn bộ trang. | UI cập nhật tức thì. |
-
----
-
-## 5. Kiến trúc Thanh toán Trực tuyến & Kiểm soát Tương tranh (Online Payment & Concurrency Control)
-
-> Phân hệ thanh toán trực tuyến và kiểm soát tồn kho là trọng tâm kỹ thuật quan trọng nhất của hệ thống thương mại điện tử Urban Stitch, bảo đảm tính toàn vẹn dữ liệu tài chính, chống bán vượt tồn kho (overselling) và duy trì trải nghiệm người dùng liền mạch ngay cả trong điều kiện chịu tải cao.
-
----
-
-### 5.1. Thiết kế Phân tầng theo Clean Architecture
-
-Dịch vụ tích hợp cổng thanh toán VNPay được thiết kế tuân thủ nghiêm ngặt nguyên lý đảo ngược phụ thuộc (Dependency Inversion Principle) của Clean Architecture:
-
-| Phân tầng | Tệp nguồn / Thành phần | Trách nhiệm kỹ thuật |
-| :--- | :--- | :--- |
-| **Application** | `Application/Common/Services/IVnPayService.cs` | Định nghĩa hợp đồng trừu tượng (Interface) cho cổng thanh toán: tạo URL thanh toán (`CreatePaymentUrl`), xử lý phản hồi trình duyệt (`ProcessCallback`) và xử lý Webhook (`ProcessIpn`). Định nghĩa các DTOs: `VnPayRequestDto`, `VnPayResponseDto`, `VnPayIpnResponseDto`. Tầng này hoàn toàn không phụ thuộc thư viện thanh toán cụ thể. |
-| **Infrastructure** | `Infrastructure/Payments/VnPayService.cs` | Triển khai chi tiết kỹ thuật của `IVnPayService`: cài đặt thư viện VNPAY.NET, cấu hình thuật toán mã hóa băm HMAC-SHA512, đóng gói tham số truy vấn, xác thực chữ ký kiểm tra tính hợp lệ và xử lý chuẩn hóa múi giờ Việt Nam (UTC+7). |
-| **Host** | `Host/Controllers/Public/OrdersController.cs` | Đăng ký dịch vụ vào DI Container (`builder.Services.AddScoped<IVnPayService, VnPayService>()`), tiếp nhận các yêu cầu thanh toán lại (`POST /api/orders/{id}/repay-vnpay`), đón nhận Return URL từ trình duyệt khách hàng và tiếp nhận IPN Webhook trực tiếp từ máy chủ VNPay. |
-
----
-
-### 5.2. Cơ chế Kiểm soát Tương tranh 3 Lớp Chống Bán Vượt Tồn Kho (Overselling Protection)
-
-#### 1. Bài toán Thực tế
-Trong các đợt mở bán sản phẩm "Hot" (ví dụ: iPhone 16 Pro Max phiên bản giới hạn chỉ còn 1 chiếc cuối cùng trong kho), hàng chục người dùng có thể cùng nhấn nút "Đặt hàng" vào cùng một mili-giây. Nếu hệ thống xử lý song song không được kiểm soát:
-- Cả 10 luồng cùng đọc số lượng tồn kho `QuantityInStock = 1` tại cùng một thời điểm.
-- Cả 10 luồng đều vượt qua điều kiện kiểm tra tồn kho (`1 >= 1`).
-- Cả 10 luồng cùng trừ tồn kho và tạo 10 đơn hàng thành công, dẫn đến tình trạng bán âm tồn kho (`QuantityInStock = -9`), gây thiệt hại nghiêm trọng về uy tín và chi phí đền bù của doanh nghiệp.
-
-#### 2. Giải pháp: Cơ chế Khóa 3 Lớp (3-Tier Concurrency Defense)
-
-| Lớp bảo vệ | Tầng thực thi | Cơ chế kỹ thuật | Vai trò & Cách thức hoạt động |
-| :---: | :--- | :--- | :--- |
-| **Lớp 1** | **Ứng dụng (.NET Memory)** | `ConcurrentDictionary<int, SemaphoreSlim>` kết hợp **Lock Ordering** | - Quản lý khóa tương tranh cấp độ hạt mịn (Fine-grained Lock) theo từng mã biến thể `ProductVariantId`.<br>- **Nguyên tắc Lock Ordering (Chống Deadlock):** Trước khi lấy khóa, danh sách `ProductVariantId` trong đơn hàng bắt buộc phải được sắp xếp theo thứ tự ID tăng dần (`items.Select(x => x.VariantId).Distinct().OrderBy(id => id)`). Nếu Đơn hàng A mua (món 1, món 2) và Đơn hàng B mua (món 2, món 1), cả 2 luồng đều buộc phải xin khóa món 1 trước, sau đó mới xin khóa món 2. Cơ chế này loại bỏ 100% rủi ro xảy ra Deadlock chéo (Lock Inversion).<br>- Tại một thời điểm, chỉ duy nhất 1 luồng được quyền kiểm tra và trừ tồn kho cho biến thể đó. |
-| **Lớp 2** | **Giao dịch (Database)** | `IDatabaseTransaction` (ACID Transaction) | - Toàn bộ chuỗi thao tác: Đọc tồn kho mới nhất $\rightarrow$ Kiểm tra đủ hàng $\rightarrow$ Trừ tồn kho $\rightarrow$ Tạo đơn `Orders` $\rightarrow$ Lưu chi tiết `OrderItems` $\rightarrow$ Ghi log `StatusHistoryJson` $\rightarrow$ Xóa giỏ hàng được đóng gói trong một Transaction duy nhất (`_appDbContext.BeginTransactionAsync()`).<br>- Nếu xảy ra bất kỳ lỗi ngoại lệ nào ở bất kỳ bước nào, toàn bộ giao dịch tự động `Rollback` nguyên trạng, tuyệt đối không để lại dữ liệu rác hay tình trạng trừ kho mà không có đơn. |
-| **Lớp 3** | **Cơ sở dữ liệu (SQL Server)** | Khóa lạc quan với `[Timestamp] byte[] RowVersion` | - Cột `RowVersion` trên bảng `catalog.ProductVariants` tự động thay đổi giá trị nhị phân sau mỗi câu lệnh UPDATE vật lý trên đĩa.<br>- Nếu có bất kỳ tiến trình nền nào khác can thiệp sửa đổi biến thể trong lúc giao dịch đang diễn ra, EF Core lập tức phát hiện xung đột phiên bản và ném `DbUpdateConcurrencyException`, chặn đứng hoàn toàn việc ghi đè sai lệch dữ liệu. |
-
----
-
-### 5.3. Quy tắc Nghiệp vụ Quản lý Tồn kho & Vòng đời Đơn hàng
-
-Hệ thống thiết lập các quy tắc nghiệp vụ chặt chẽ nhằm bảo đảm tính nhất quán giữa kho hàng thực tế và giao dịch tài chính:
-
-| Quy tắc nghiệp vụ | Thời điểm kích hoạt | Cách thức xử lý chi tiết | Ý nghĩa thực tiễn |
+| Loại trạng thái | Công nghệ quản lý | Phạm vi lưu trữ | Nguyên tắc vận hành |
 | :--- | :--- | :--- | :--- |
-| **Trừ tồn kho tức thì** | Ngay khi tạo đơn hàng thành công ở trạng thái `Pending` (Chờ xử lý) | - Áp dụng cho **cả phương thức COD lẫn VNPay**.<br>- Hệ thống lập tức trừ `QuantityInStock` của biến thể tương ứng ngay khi bấm Đặt hàng.<br>- Đơn hàng được khởi tạo với trạng thái `Status = Pending` và `PaymentStatus = Pending` (đối với VNPay) hoặc `PaymentStatus = Pending` (đối với COD). | - Giữ hàng công bằng cho người mua đã chốt đơn.<br>- Ngăn chặn tình trạng khách hàng đang thao tác nhập mã OTP thẻ trên cổng VNPay thì biến thể bị người khác mua mất. |
-| **Hoàn trả tồn kho tự động** | Khi đơn hàng chuyển sang trạng thái `Cancelled` (Đã hủy) | - Kích hoạt khi khách hàng hủy đơn hợp lệ hoặc Quản trị viên hủy đơn.<br>- Hệ thống duyệt qua từng mục hàng `OrderItems`, cộng trả lại chính xác số lượng `Quantity` vào `QuantityInStock` của từng biến thể.<br>- Đồng thời hoàn trả lượt sử dụng voucher nếu đơn hàng có áp dụng mã giảm giá. | - Phục hồi số lượng hàng hóa vào kho để những khách hàng khác có thể tiếp tục đặt mua. |
-| **Chặn tuyệt đối hủy đơn khi đã thanh toán** | Bất kỳ thời điểm nào sau khi đơn hàng đạt `PaymentStatus = Paid` | - **Phía Backend:** `PublicOrderService.CancelOrderAsync` và `OrderService.CancelOrderAsync` kiểm tra điều kiện `if (order.PaymentStatus == PaymentStatus.Paid) throw new DomainException(...)`. Ngoại lệ nghiệp vụ chặn đứng mọi request hủy đơn qua API.<br>- **Thuộc tính tính toán DTO:** `CanCancel => Status == "Pending" && PaymentStatus != "Paid"`.<br>- **Phía Frontend:** Giao diện Storefront ("Đơn hàng của tôi") ẩn hoàn toàn nút "Hủy đơn hàng". Giao diện Quản trị viên (Admin Drawer & Modal) vô hiệu hóa tùy chọn "Hủy đơn" đối với các đơn đã thanh toán. | - Loại bỏ triệt để rủi ro thất thoát tài chính và gian lận (khách hàng đã thanh toán xong nhấn hủy để đòi hoàn kho trong khi tiền đã vào tài khoản cửa hàng).<br>- Muốn can thiệp đơn đã thanh toán, phải thực hiện theo quy trình Hoàn tiền (Refund) và xử lý đổi trả có biên bản. |
+| **Server State (Dữ liệu máy chủ)** | **TanStack React Query** | Cache trong bộ nhớ theo query keys | Phụ trách fetch dữ liệu, lưu cache theo thời gian sống (`staleTime`), tự động làm mới ngầm (Refetch on window focus), và cập nhật giao diện lạc quan (Optimistic Updates). |
+| **Client State (Trạng thái nội bộ)** | **Zustand** | Bộ nhớ RAM trình duyệt | Chỉ lưu trữ các dữ liệu thuần túy phía client như phiên đăng nhập (thông tin user hiện tại), Access Token, trạng thái đóng/mở sidebar. **Tuyệt đối không lưu cache danh sách API vào Zustand**. |
+
+### 3.4. Kỹ Thuật React Portal Tách Lớp Giao Diện Di Động (Mobile Fullscreen Overlay Pattern)
+
+- **Vấn đề W3C Containing Block:** Khi thanh `<header>` sở hữu thuộc tính `backdrop-filter` (class `backdrop-blur-sm`), theo tiêu chuẩn W3C trình duyệt coi header là containing block cho toàn bộ các phần tử con có `position: fixed`. Hệ quả là overlay tìm kiếm toàn màn hình `fixed inset-0` đặt bên trong header sẽ bị giới hạn chiều cao nghiêm trọng (chỉ bằng đúng 64px của header).
+- **Giải pháp Kiến trúc:** Tách lớp hiển thị bằng React Portal (`createPortal(children, document.body)`). Giao diện tìm kiếm trên thiết bị di động được kết xuất trực tiếp vào nút gốc của DOM (`document.body`), giải phóng hoàn toàn khỏi context CSS của header, cho phép overlay mở rộng 100% toàn màn hình thiết bị với top bar chuẩn 64px và danh sách kết quả cuộn mượt mà.
 
 ---
 
-### 5.4. Cơ chế Thanh toán lại Linh hoạt Không Giới Hạn Thời Gian (Flexible Repayment)
+## 4. Kiến Trúc Thanh Toán Trực Tuyến VNPay & Webhook IPN Thực Tế
 
-Trước đây, một số hệ thống áp đặt thời hạn thanh toán lại 15 phút, gây khó khăn cho khách hàng khi gặp sự cố thẻ, tài khoản ngân hàng chưa kịp nạp tiền hoặc kết nối mạng bị gián đoạn. Urban Stitch đã tái cấu trúc cơ chế này:
+### 4.1. Điểm Khác Biệt Cốt Lõi: Webhook IPN Thật vs Cập Nhật Ảo
 
-| Đặc điểm | Giải pháp thiết kế |
-| :--- | :--- |
-| **Bỏ giới hạn thời gian** | Khách hàng sở hữu đơn hàng có phương thức `VNPAY`, trạng thái `Status = Pending` và chưa thanh toán (`PaymentStatus != Paid`) có thể truy cập vào mục "Đơn hàng của tôi" (`/orders`) và nhấn nút **"Thanh toán qua VNPay"** bất kỳ lúc nào mà không bị giới hạn thời gian. |
-| **Sinh URL thanh toán mới độc lập** | Endpoint `POST /api/orders/{id}/repay-vnpay` sinh ra URL thanh toán VNPay mới với mã tham chiếu giao dịch độc nhất và mốc thời gian UTC+7 hiện tại, cho phép giao dịch được gửi sang VNPay như một phiên thanh toán mới toanh. |
-| **Bảo lưu tồn kho an toàn** | Do tồn kho đã được trừ ngay khi tạo đơn ban đầu, sản phẩm của khách hàng luôn được giữ nguyên trong kho an toàn trong suốt thời gian khách cân nhắc hoặc chuẩn bị phương tiện thanh toán. |
+Đa số các dự án thương mại điện tử sinh viên hoặc ứng dụng kém hoàn thiện thường mắc lỗi bảo mật chết người: **vừa nhảy sang trang cổng thanh toán hoặc mới bấm nút thanh toán chưa nhập gì thì website đã vội vàng báo đơn hàng "Thanh toán thành công"**.
 
----
+Hệ thống Urban Stitch giải quyết triệt để bài toán này bằng kiến trúc **Xác thực Kép Phân Ly (Dual-Channel Verification)**:
 
-### 5.5. Quy trình Xác thực Kép: Return URL & IPN Webhook
-
-Để bảo đảm tính tin cậy tuyệt đối và chống gian lận dữ liệu từ phía máy trạm (Client Manipulation), hệ thống sử dụng cơ chế xác thực kép qua 2 kênh độc lập:
-
-| Tiêu chí | Kênh 1: Return URL (Client-side Redirect) | Kênh 2: IPN Webhook (Server-to-Server Callback) |
+| Tiêu chí so sánh | Thanh toán thông thường (Kém chất lượng) | Hệ thống Thanh toán Urban Stitch (Chuẩn Doanh Nghiệp) |
 | :--- | :--- | :--- |
-| **Kênh truyền tải** | Trình duyệt người dùng được cổng thanh toán VNPay chuyển hướng (HTTP GET 302) quay trở lại URL giao diện Storefront (`/checkout/success`). | Máy chủ của VNPay gọi trực tiếp bằng HTTP GET ngầm tới Webhook API của Backend Urban Stitch (`/api/orders/vnpay-ipn`). |
-| **Độ tin cậy** | Trung bình. Có thể bị can thiệp bởi người dùng sửa đổi tham số URL hoặc bị mất kết nối mạng khi chuyển hướng từ VNPay về web. | **Tuyệt đối an toàn**. Kết nối mạng máy chủ - máy chủ độc lập, không phụ thuộc vào trình duyệt của người dùng. |
-| **Vai trò chính** | Cập nhật giao diện người dùng tức thời, thông báo kết quả thanh toán thành công hoặc thất bại cho khách hàng ngay trên màn hình. | Là kênh **đối soát tài chính chính thức**. Đảm bảo đơn hàng luôn được cập nhật sang `Paid` ngay cả khi người dùng tắt trình duyệt ngay sau khi chuyển tiền. |
-| **Cơ chế Idempotency** | Kiểm tra trạng thái đơn: Nếu đơn đã được cập nhật thành `Paid` bởi IPN trước đó, Return URL chỉ hiển thị thông báo thành công mà không cập nhật lại trạng thái lần 2. | Kiểm tra trạng thái đơn: Nếu đơn đã là `Paid`, IPN trả về ngay mã phản hồi `{"RspCode":"02","Message":"Order already confirmed"}` cho VNPay, chống ghi nhận trùng lặp giao dịch. |
-| **Kiểm tra chữ ký (Checksum)** | Giải mã toàn bộ tham số URL, sắp xếp theo thứ tự bảng chữ cái và kiểm tra mã băm HMAC-SHA512 với `HashSecret`. | Tương tự, kiểm tra chữ ký HMAC-SHA512. Nếu chữ ký không khớp, lập tức từ chối và phản hồi `{"RspCode":"97","Message":"Invalid Checksum"}`. |
+| **Cơ chế xác nhận thanh toán** | Dựa vào việc người dùng chuyển hướng về trình duyệt (Client-side Redirect). | **Dựa vào Webhook IPN ngầm từ Server VNPay sang Server Backend** kết hợp kiểm tra mã phản hồi `vnp_ResponseCode == "00"`. |
+| **Hành vi khi người dùng tắt trình duyệt** | Gặp lỗi mất dấu giao dịch hoặc đơn hàng bị treo vĩnh viễn. | **Bảo toàn dữ liệu 100%**: Server VNPay tự động gọi ngầm webhook IPN tới backend Urban Stitch để cập nhật đơn hàng thành `Paid`, dù khách đã đóng trình duyệt. |
+| **Bảo mật chữ ký số** | Không kiểm tra mã băm hoặc chỉ kiểm tra sơ sài. | Kiểm tra mã băm bảo mật **HMAC-SHA512** bằng bí mật `HashSecret` trên cả kênh Return URL và kênh Webhook IPN. Nếu tham số bị can thiệp, giao dịch bị hủy ngay lập tức. |
+| **Khả năng thanh toán lại (Retry)** | Nếu lỡ tắt tab hoặc thẻ hết tiền: đơn hàng bị hủy bỏ, khách phải chọn lại sản phẩm từ đầu. | **Khả năng Retry vô hạn**: Khách hàng chỉ cần vào mục "Đơn hàng của tôi", bấm **"Thanh toán qua VNPay"**, hệ thống sinh ngay URL thanh toán mới toanh để thanh toán tiếp. |
 
 ---
 
-### 5.6. Bảng Ma trận Kịch bản Biên (Edge Cases) & Giải pháp Xử lý
+### 4.2. Bảng Chu Trình Xử Lý Giao Dịch Thanh Toán VNPay Chi Tiết
 
-| STT | Kịch bản biên (Edge Case) | Nguy cơ tiềm ẩn | Giải pháp kỹ thuật xử lý của hệ thống |
+| Bước | Thực thể thực hiện | Thao tác chi tiết | Trạng thái Đơn hàng | Trạng thái Thanh toán |
+| :---: | :--- | :--- | :---: | :---: |
+| **1** | Khách hàng (Frontend) | Chọn phương thức thanh toán VNPay và bấm nút **"Đặt hàng"** tại `/checkout`. | Chưa lưu | Chưa lưu |
+| **2** | Backend API | Khởi tạo đơn hàng trong cơ sở dữ liệu: tính toán lại tiền, áp dụng voucher, đóng băng snapshot chi tiết mặt hàng, trừ tồn kho tức thì. | `Pending` | `Pending` |
+| **3** | Backend (`VnPayService`) | Tạo chuỗi tham số ký số HMAC-SHA512 (`vnp_TxnRef`, `vnp_Amount`, `vnp_CreateDate`...), trả về `paymentUrl` của cổng VNPay Sandbox/Production. | `Pending` | `Pending` |
+| **4** | Khách hàng | Được chuyển hướng sang cổng thanh toán VNPay để nhập thông tin thẻ ATM / Quét mã QR VNPay-QR. | `Pending` | `Pending` |
+| **5a** | **Kịch bản Khách đóng tab / Hủy ngang** | Khách hàng tắt trình duyệt, thoát ứng dụng hoặc hủy giao dịch tại cổng VNPay. | **Vẫn giữ nguyên `Pending`** | **Vẫn giữ nguyên `Pending`** |
+| **5b** | **Kịch bản Khách thanh toán thành công** | Khách hàng nhập mã OTP ngân hàng thành công. Server VNPay ghi nhận trừ tiền thành công. | `Pending` | Đang chờ xác thực |
+| **6** | Server VNPay $\rightarrow$ Backend | VNPay gọi ngầm qua kênh Webhook IPN (`GET /api/payment/vnpay-return`) từ máy chủ sang máy chủ. | `Pending` | Chuyển sang `Paid` |
+| **7** | Backend (`OrderService`) | Kiểm tra chữ ký số HMAC-SHA512. Kiểm tra số tiền khớp 100%. Ghi nhận thanh toán thành công, ghi chú vào `StatusHistoryJson`. | `Confirmed` | **`Paid`** |
+| **8** | Frontend | Trình duyệt chuyển hướng về trang thông báo `/payment/vnpay-return`. Giao diện hiển thị trạng thái đã thanh toán thành công và mã đơn. | `Confirmed` | **`Paid`** |
+
+---
+
+### 4.3. Tính Năng "Ăn Tiền": Retry Thanh Toán Vô Hạn Không Giới Hạn Thời Gian
+
+#### 1. Bài toán Thực tế của Khách hàng Mua sắm
+
+Trong thực tế mua sắm các thiết bị giá trị cao như iPhone 16 Pro Max hay MacBook Pro:
+
+- Khách hàng bấm thanh toán VNPay nhưng tài khoản ngân hàng tạm thời không đủ số dư.
+- Khách hàng làm rơi điện thoại, mất kết nối mạng 4G/Wi-Fi hoặc vô tình bấm tắt trình duyệt.
+- Khách hàng muốn mở ứng dụng ngân hàng khác để nạp thêm tiền rồi mới thanh toán tiếp.
+
+#### 2. Cơ chế Kỹ thuật Độc quyền của Urban Stitch
+
+- Khi một đơn hàng VNPay được tạo, đơn hàng được lưu trữ an toàn trong Database với trạng thái `Status = Pending` và `PaymentStatus = Pending`.
+- Khách hàng có thể truy cập lại trang **"Đơn hàng của tôi" (`/orders`)** hoặc trang **"Tra cứu đơn hàng" (`/order-lookup`)** bất cứ lúc nào (sau 10 phút, 1 giờ hay vài ngày).
+- Giao diện hiển thị nút bấm nổi bật **"Thanh toán qua VNPay"**.
+- Khi khách hàng nhấn nút:
+  - Frontend gọi API `/api/orders/{id}/repay-vnpay` (hoặc tạo lại payment URL).
+  - Backend sinh ra một mã giao dịch mới (`vnp_TxnRef` mới gắn với mã đơn gốc), mốc thời gian UTC+7 hiện hành và chữ ký số HMAC-SHA512 mới toanh.
+  - Khách hàng được chuyển hướng mượt mà sang cổng VNPay và thanh toán thành công ngay lập tức.
+  - **Khách hàng không bao giờ phải chọn lại sản phẩm, không lo bị người khác cướp mất cấu hình đã giữ trong kho.**
+
+#### 3. Chặn Tuyệt Đối Hủy Đơn Sau Khi Đã Thanh Toán Thành Công
+
+- Ngay khi nhận được xác thực `PaymentStatus = Paid` từ VNPay:
+  - Backend kiểm tra điều kiện cứng: `if (order.PaymentStatus == PaymentStatus.Paid) throw new DomainException("Đơn hàng đã được thanh toán trực tuyến thành công, không thể hủy bỏ.")`.
+  - DTO trả về cho giao diện có cờ `CanCancel => Status == "Pending" && PaymentStatus != "Paid"`.
+  - Frontend ẩn hoàn toàn nút "Hủy đơn hàng" trên màn hình của khách và vô hiệu hóa nút hủy đơn trên Admin, bảo vệ toàn vẹn dòng tiền của doanh nghiệp.
+
+---
+
+## 5. Cơ Chế Kiểm Soát Tương Tranh Đa Tầng (3-Tier Concurrency Defense)
+
+Xử lý triệt để bài toán **"Nhiều người cùng đặt mà hàng sắp hết" (Overselling / Race Condition)** trong các đợt mở bán cao điểm:
+
+| Tầng kiểm soát | Công nghệ triển khai | Cơ chế bảo vệ chi tiết |
+| :---: | :--- | :--- |
+| **Tầng 1: Khóa Bộ nhớ RAM** | `SemaphoreSlim` & Lock Ordering theo `VariantId` | - Sử dụng `ConcurrentDictionary<int, SemaphoreSlim>` cấp phát một khóa độc quyền cho từng biến thể sản phẩm.<br>- **Nguyên tắc Lock Ordering chống Deadlock:** Khi một đơn hàng chứa nhiều sản phẩm (ví dụ vừa mua iPhone vừa mua AirPods), hệ thống **bắt buộc sắp xếp danh sách mã biến thể theo thứ tự ID tăng dần (`OrderBy(x => x.VariantId)`) trước khi xin khóa**. Quy tắc này triệt tiêu hoàn toàn khả năng xảy ra Deadlock chéo giữa các luồng giao dịch song song. |
+| **Tầng 2: Giao dịch CSDL Toàn vẹn** | SQL Server ACID Database Transaction | - Toàn bộ chuỗi thao tác: Đọc tồn kho $\rightarrow$ Kiểm tra đủ hàng $\rightarrow$ Trừ tồn kho $\rightarrow$ Tạo đơn $\rightarrow$ Lưu chi tiết mặt hàng $\rightarrow$ Xóa giỏ hàng được bọc trong một `IDatabaseTransaction` duy nhất.<br>- Bất kỳ lỗi phát sinh nào ở giữa chu trình đều kích hoạt lệnh `ROLLBACK` tự động, bảo đảm cơ sở dữ liệu không bao giờ bị rơi vào trạng thái rác hoặc sai lệch số dư tồn kho. |
+| **Tầng 3: Khóa Lạc quan Database** | SQL Server `RowVersion` (Timestamp) | - Cột `RowVersion` trên bảng `catalog.ProductVariants` tự động sinh chuỗi nhị phân mới mỗi khi có bản ghi bị thay đổi.<br>- Entity Framework Core cập nhật với điều kiện `WHERE Id = @Id AND RowVersion = @OriginalRowVersion`.<br>- Nếu có luồng khác đã trừ kho trước đó một phần nghìn giây, câu lệnh trả về 0 dòng và hệ thống ném ngoại lệ `DbUpdateConcurrencyException`, giao dịch tự động dừng lại an toàn và thông báo cho khách hàng sản phẩm đã hết hàng. |
+
+---
+
+## 6. Động Cơ Báo Cáo Thống Kê & Phân Tích Kinh Doanh (Business Intelligence Engine)
+
+Hệ thống cung cấp trung tâm báo cáo điều hành toàn diện tại `/admin/reports` và `/admin/dashboard`:
+
+### 6.1. Kiến Trúc Thu Thập Dữ Liệu & Bộ Chỉ Số Hiệu Suất (KPI Cards)
+
+| Thẻ đo lường KPI | Công thức tính toán từ CSDL | Ý nghĩa điều hành doanh nghiệp |
+| :--- | :--- | :--- |
+| **Doanh thu thực thu** | `SUM(TotalAmount)` của các đơn có `Status IN ('Completed', 'Delivered') AND PaymentStatus = 'Paid'` | Số tiền thực tế đã về tài khoản doanh nghiệp (loại bỏ hoàn toàn đơn ảo, đơn hủy). |
+| **Doanh số gộp ước tính** | `SUM(Subtotal)` của các đơn phát sinh trừ đi các đơn hủy (`Cancelled`) | Thước đo quy mô giao dịch phát sinh trên toàn hệ thống trong kỳ. |
+| **Tổng số đơn hàng** | `COUNT(Id)` của toàn bộ đơn hàng phát sinh trong khoảng thời gian đã chọn | Đo lường lưu lượng mua sắm và tải vận hành của bộ phận xử lý đơn. |
+| **Tỷ lệ hoàn tất đơn** | `(Số đơn Completed + Delivered) / Tổng số đơn * 100%` | Chỉ số đánh giá chất lượng giao vận và mức độ hài lòng của khách hàng. |
+| **Giá trị đơn trung bình (AOV)** | `Doanh thu thực thu / Số đơn hàng thành công` | Thước đo giỏ hàng trung bình để ra quyết định chiến lược up-sell / cross-sell. |
+| **Tiền voucher đã ưu đãi** | `SUM(DiscountAmount)` của các đơn hàng đã áp dụng mã khuyến mãi | Đo lường chi phí ngân sách khuyến mãi đã chi trả để thu hút khách hàng. |
+
+### 6.2. Phân Tích Đa Chiều & Xuất Báo Cáo Excel OpenXML Chuẩn Doanh Nghiệp
+
+- **Biểu đồ Xu hướng Doanh thu Kép:** Truy vấn nhóm theo chu kỳ thời gian thực (Hôm nay, Hôm qua, 7 ngày, 30 ngày, Tháng này, Tháng trước, Năm nay).
+- **Phân bổ Trạng thái Đơn hàng:** 6 trạng thái trực quan (*Chờ xử lý*, *Đã xác nhận*, *Đang giao*, *Đã giao*, *Hoàn tất*, *Đã hủy*).
+- **Cơ cấu Kênh Thanh toán:** Tỷ lệ phân bổ giữa Cổng thanh toán trực tuyến VNPay và Tiền mặt khi nhận hàng (COD).
+- **Cơ cấu Tồn kho Danh mục:** Thống kê trực quan số lượng tồn kho theo 7 ngành hàng Apple.
+- **Xuất Báo cáo Excel Chuẩn OpenXML:** Hệ thống phát sinh trực tiếp tệp bảng tính `.xlsx` từ luồng stream dữ liệu bộ nhớ, bao gồm tiêu đề doanh nghiệp, ngày xuất, định dạng số tiền VND chuẩn mực, và danh sách chi tiết toàn bộ đơn hàng thỏa mãn tiêu chí lọc.
+
+---
+
+## 7. Hạ Tầng Khởi Chạy Container Docker Tuần Tự (Deterministic Docker Orchestration)
+
+Quy trình khởi chạy Docker Compose tuân thủ nghiêm ngặt 3 giai đoạn không sai lệch:
+
+| Giai đoạn | Dịch vụ đảm nhiệm | Trạng thái kiểm tra | Điều kiện tiên quyết để kích hoạt bước kế tiếp |
 | :---: | :--- | :--- | :--- |
-| **1** | Nhiều người dùng đồng thời mua cùng 1 biến thể sắp hết hàng | Bán vượt tồn kho (Overselling), số lượng tồn kho bị âm. | `SemaphoreSlim` theo từng `VariantId` (đã sắp xếp tăng dần chống deadlock) kết hợp `IDatabaseTransaction` và `RowVersion`. Chỉ luồng đầu tiên trừ thành công, các luồng sau nhận mã lỗi 400 kèm thông báo "Biến thể sản phẩm đã hết hàng hoặc không đủ số lượng". |
-| **2** | Khách hàng tắt trình duyệt ngay sau khi nhập mã OTP thành công trên VNPay | Trình duyệt không chuyển hướng về Return URL, giao diện không báo thành công, đơn hàng có thể bị treo `Pending`. | Kênh **IPN Webhook (Server-to-Server)** của VNPay tự động gọi ngầm tới Backend, xác thực chữ ký HMAC-SHA512 và cập nhật đơn hàng thành `PaymentStatus = Paid`. Khi khách mở lại trang "Đơn hàng của tôi", đơn đã hiển thị đã thanh toán thành công. |
-| **3** | VNPay gửi IPN Webhook nhiều lần cho cùng một giao dịch | Trùng lặp ghi nhận doanh thu, ghi đè lịch sử trạng thái đơn hàng. | Cơ chế **Idempotent Webhook Handler**: Kiểm tra `order.PaymentStatus == PaymentStatus.Paid`. Nếu đã thanh toán, hệ thống bỏ qua bước cập nhật và phản hồi mã `02 (Order already confirmed)` cho VNPay. |
-| **4** | Kẻ xấu can thiệp sửa đổi số tiền `vnp_Amount` hoặc mã đơn `vnp_TxnRef` trên URL | Gian lận thanh toán giá rẻ hoặc thanh toán cho đơn hàng của người khác. | Kiểm tra chữ ký HMAC-SHA512 thất bại ngay lập tức do dữ liệu đã bị biến đổi so với mã băm ban đầu. Đồng thời, hệ thống đối chiếu số tiền thực tế trong cơ sở dữ liệu (`order.TotalAmount * 100 == vnp_Amount`), nếu sai lệch sẽ lập tức từ chối giao dịch. |
-| **5** | Khách hàng đã thanh toán thành công cố tình gọi API hủy đơn | Tiền đã vào tài khoản nhưng đơn bị hủy và sản phẩm bị trả lại kho hàng. | Backend kiểm tra `order.PaymentStatus == PaymentStatus.Paid` và ném `DomainException`, từ chối 100% yêu cầu hủy đơn. Frontend ẩn nút hủy đơn và vô hiệu hóa tùy chọn hủy trên giao diện Quản trị. |
-| **6** | Lỗi kết nối cơ sở dữ liệu hoặc sự cố mạng trong lúc trừ tồn kho | Dữ liệu bị phân mảnh: kho bị trừ nhưng đơn hàng không tạo được, hoặc ngược lại. | Khối `using var transaction = await _appDbContext.BeginTransactionAsync()` đảm bảo tính toàn vẹn ACID. Khi xảy ra ngoại lệ, toàn bộ thay đổi tự động được rollback về trạng thái ban đầu. |
-
----
-
-## 6. Kiến Trúc Phân Hệ Thống Kê & Báo Cáo Tài Chính (Dashboard & Reporting Architecture)
-
-> Phân hệ Bảng điều khiển (Dashboard) và Báo cáo Thống kê Đơn hàng (Reports) cung cấp bức tranh tài chính và vận hành trung thực, minh bạch cho doanh nghiệp, loại bỏ hoàn toàn các số liệu ảo hoặc ước tính thiếu cơ sở.
-
----
-
-### 6.1. Thiết Kế Phân Tầng Clean Architecture Cho Module Xuất Báo Cáo (Excel OpenXML Exporting Pattern)
-
-Hệ thống tuân thủ nghiêm ngặt nguyên lý Dependency Inversion Principle trong việc tích hợp thư viện tạo bảng tính Office OpenXML (`ClosedXML`):
-
-| Phân tầng | Tệp nguồn / Thành phần | Trách nhiệm kỹ thuật |
-| :--- | :--- | :--- |
-| **Application** | `Application/Common/Interfaces/Reports/IExcelExportService.cs` | Định nghĩa giao diện trừu tượng xuất file: `byte[] ExportOrdersReport(OrderReportDto reportData, string storeName)`. Tầng này hoàn toàn độc lập, không cài đặt hay phụ thuộc vào bất kỳ thư viện bên thứ ba nào như ClosedXML hay DocumentFormat.OpenXml. |
-| **Infrastructure** | `Infrastructure/Reports/ClosedXmlOrderReportExportService.cs` | Hiện thực hóa kỹ thuật thông qua thư viện `ClosedXML` (OpenXML SDK). Tầng Infrastructure chịu trách nhiệm khởi tạo `XLWorkbook`, định dạng font chữ Segoe UI, kẻ viền (border), tô màu header bảng, định dạng số tiền VND, tỷ lệ %, căn chỉnh chiều cao dòng và chèn khối chú thích nghiệp vụ tại dòng 4. |
-| **Host** | `Host/Controllers/Manager/OrderReportsController.cs` | Đăng ký dịch vụ DI (`builder.Services.AddScoped<IExcelExportService, ClosedXmlOrderReportExportService>()`), đón nhận query params của bộ lọc (`fromDate`, `toDate`, `status`, `paymentMethod`), gọi tầng Application lấy dữ liệu, truyền sang `IExcelExportService` để sinh mảng byte và trả về file stream định dạng `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`. |
-
----
-
-### 6.2. Mô Hình Xử Lý Hiệu Năng & Luồng Dữ Liệu Báo Cáo (Performance Pipeline)
-
-Hệ thống tối ưu hóa luồng xuất báo cáo theo dung lượng dữ liệu:
-
-1. **Luồng Trực Tiếp Đồng Bộ (Synchronous Stream - Dưới 5.000 dòng):**
-   - Với quy mô dữ liệu đơn hàng dưới 5.000 dòng chi tiết, hệ thống xử lý sinh file trực tiếp trên bộ nhớ (`MemoryStream`) và trả thẳng file stream về trình duyệt của người dùng trong thời gian dưới 1 giây.
-   - Tránh phát sinh tải không cần thiết lên hệ thống lưu trữ đĩa cứng hoặc hàng đợi tin nhắn.
-2. **Kiến Trúc Mở Rộng Cho Dữ Liệu Lớn (Background Job Architecture - Trên 5.000 dòng):**
-   - Khi số lượng bản ghi vượt ngưỡng 5.000 dòng, request xuất báo cáo được đẩy vào hàng đợi tác vụ nền (Background Service / Hangfire).
-   - Tiến trình nền tạo file ngầm, lưu tạm vào Storage và đẩy thông báo (In-App Notification hoặc SignalR) kèm đường dẫn tải về an toàn, ngăn chặn hoàn toàn nguy cơ cạn kiệt RAM (Out Of Memory) hoặc Timeout kết nối HTTP.
-
----
-
-### 6.3. Quy Chuẩn Logic Tài Chính Nhất Quán (Financial Calculation Integrity)
-
-Hệ thống thiết lập các nguyên tắc tính toán tài chính bất biến từ tầng Backend:
-
-| Chỉ số tài chính | Công thức & Quy chuẩn Backend | Ý nghĩa nghiệp vụ |
-| :--- | :--- | :--- |
-| **Doanh thu thực thu (`NetRevenue`)** | `SUM(TotalAmount)` của các đơn có `OrderStatus IN (Delivered, Completed)` VÀ `PaymentStatus != Refunded`. | Chỉ ghi nhận tiền thực tế khi hàng đã giao thành công tới tay khách hàng, không ghi nhận khống đơn hàng đang vận chuyển hoặc đơn VNPAY có nguy cơ hủy/hoàn. |
-| **Doanh số gộp hiệu dụng (`NetGrossAmount`)** | `SUM(TotalAmount)` của tất cả đơn ngoại trừ đơn có `OrderStatus = Cancelled` hoặc `PaymentStatus = Refunded`. | Phản ánh chính xác tổng giá trị đơn hàng đang có hiệu lực trong chu trình vận hành, loại bỏ hoàn toàn các đơn ảo hoặc đã bị hủy. |
-| **Giá trị đơn hàng trung bình (`AOV`)** | `NetRevenue / Count(SuccessfulOrders)`. Nếu số đơn thành công = 0 thì AOV = 0. | Loại bỏ việc dùng doanh thu ước tính để lấp dữ liệu trống. AOV phản ánh số tiền thực chi bình quân của một đơn hàng thành công. |
-| **Tỷ lệ tăng trưởng chu kỳ (`GrowthPercentage`)** | `((Current - Previous) / Previous) * 100%`. Nếu `Previous = 0` và `Current > 0`, trả về `null` (`decimal?`). | Tuân thủ chuẩn toán học (phép chia cho 0 không xác định), không gán số 100% gây hiểu lầm. Frontend hiển thị huy hiệu "Mới phát sinh". |
-| **Top Sản phẩm & Top Khách hàng** | Chỉ tổng hợp số lượng và doanh thu từ các đơn hàng thành công (`Completed` / `Delivered`). | Đảm bảo bảng xếp hạng phản ánh doanh thu thực tế, loại trừ việc sản phẩm bị đặt ảo rồi hủy đơn. |
+| **Giai đoạn 1** | `sqlserver` | Microsoft SQL Server 2022 | Healthcheck chạy câu lệnh `sqlcmd SELECT 1`. Khi trả về 1, container chuyển sang trạng thái `Healthy`. |
+| **Giai đoạn 2** | `db-init` | Trình nạp khởi tạo Idempotent | - Nhận diện biến môi trường `${DB_NAME:-AppleStoreDb}` từ `.env`.<br>- Kiểm tra nếu chưa có cơ sở dữ liệu: tự động tạo `CREATE DATABASE`.<br>- Kiểm tra số lượng sản phẩm trong bảng `[catalog].[Products]`. Nếu = 0: tự động chạy script `seed-data.sql` nạp toàn bộ cấu hình Apple 2022-2026, thông số, voucher và đơn hàng.<br>- Nếu đã có dữ liệu: lập tức bỏ qua để bảo toàn dữ liệu giao dịch thực tế.<br>- Khi hoàn tất thành công, container thoát với exit code 0 (`service_completed_successfully`). |
+| **Giai đoạn 3** | `backend` | ASP.NET Core 8 Web API | Khởi động sau khi `sqlserver` đã Healthy và `db-init` đã hoàn thành thành công. Chạy kiểm tra kết nối, đồng bộ EF Core Migrations, thực thi `ApplicationDbSeeder`. Healthcheck `curl http://localhost:8080/health` đạt 200 OK chuyển sang `Healthy`. |
+| **Giai đoạn 4** | `frontend` & `ngrok` | Nginx React SPA & Ngrok Tunnel | Khởi động sau khi `backend` đã Healthy. Frontend lắng nghe cổng 3088, Ngrok mở tunnel kết nối cổng 8088. Toàn bộ hệ thống sẵn sàng phục vụ 100%. |

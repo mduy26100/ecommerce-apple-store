@@ -147,7 +147,7 @@ test.describe("Identity & Authentication - Tách biệt Phân hệ Quản trị 
     await expect(page.locator("header:has-text('Quản trị viên Apple'), header:has-text('SuperAdmin')").first()).toBeVisible();
 
     // Click vào Avatar Admin để mở menu
-    const adminAvatar = page.locator("header img[alt='User']");
+    const adminAvatar = page.locator("[data-testid='admin-avatar-btn']");
     await expect(adminAvatar).toBeVisible();
     await adminAvatar.click();
 
@@ -198,7 +198,7 @@ test.describe("Identity & Authentication - Tách biệt Phân hệ Quản trị 
     await expect(page.locator("header:has-text('Quản trị viên Apple'), header:has-text('SuperAdmin')").first()).toBeVisible();
 
     // 3. Đăng xuất admin
-    const adminAvatar = page.locator("header img[alt='User']");
+    const adminAvatar = page.locator("[data-testid='admin-avatar-btn']");
     await adminAvatar.click();
     const logoutMenuItem = page.locator(".ant-dropdown:not(.ant-dropdown-hidden) [role='menuitem']:has-text('Đăng xuất'), .ant-dropdown:not(.ant-dropdown-hidden) :has-text('Đăng xuất')").last();
     await Promise.all([

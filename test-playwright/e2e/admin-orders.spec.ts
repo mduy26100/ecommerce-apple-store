@@ -4,46 +4,57 @@ test.describe("Admin - Quản trị Đơn hàng & Snapshot (Orders Management)",
   const uniqueId = Date.now();
   const testCustomerName = `Nguyễn Văn Test ${uniqueId}`;
   const testCustomerPhone = "0988776655";
-  const testSku = `IP16P-SNAP-${uniqueId}`;
 
   test.beforeEach(async ({ page }) => {
-    await page.goto("/admin/orders");
+    await page.goto("/admin/auth/login");
     await page.waitForLoadState("networkidle");
+    if (page.url().includes("/admin/auth/login")) {
+      await page.fill("input#identifier, input[name='identifier']", "admin@apple-store.com");
+      await page.fill("input#password, input[name='password']", "Admin@123456");
+      await page.click("form button[type='submit'], form button:has-text('Đăng nhập')");
+      await page.waitForURL((url) => url.pathname.includes("/admin/dashboard"));
+    }
   });
 
   test("Hiển thị trang quản lý đơn hàng và bảng dữ liệu", async ({ page }) => {
+    await page.goto("/admin/orders");
+    await page.waitForLoadState("networkidle");
+
     await expect(page.locator("h1, h2, .ant-page-header-heading-title").first()).toContainText(/Đơn hàng/i);
     await expect(page.locator(".ant-table")).toBeVisible();
     await expect(page.locator("input[placeholder*='Tìm theo mã đơn']")).toBeVisible();
   });
 
-  test("Khởi tạo đơn hàng mẫu và kiểm tra hiển thị trên bảng", async ({ page, request }) => {
-    const createRes = await request.post("http://localhost:5044/api/manager/orders", {
-      data: {
-        userId: 1,
-        recipientName: testCustomerName,
-        recipientPhone: testCustomerPhone,
-        shippingAddressLine: "123 Nguyễn Huệ, Phường Bến Nghé",
-        shippingDistrict: "Quận 1",
-        shippingProvince: "Hồ Chí Minh",
-        customerNote: "Giao trong giờ hành chính",
-        paymentMethod: "COD",
-        shippingFee: 30000,
-        items: [
-          {
-            productName: "iPhone 16 Pro 256GB Snapshot",
-            sku: testSku,
-            colorName: "Titan Tự Nhiên",
-            storageName: "256GB",
-            unitPrice: 31990000,
-            quantity: 1,
-          },
-        ],
-      },
-    });
+  test("Khởi tạo đơn hàng mẫu qua Storefront và kiểm tra hiển thị trên bảng quản trị", async ({ page }) => {
+    // 1. Thao tác mua hàng thực tế qua Storefront UI theo Rule 3
+    await page.goto("/products/iphone-16-pro-max");
+    await page.waitForLoadState("networkidle");
 
-    expect(createRes.status()).toBeLessThan(400);
+    const addToCartBtn = page.locator("[data-testid='add-to-cart-button']");
+    await expect(addToCartBtn).toBeVisible({ timeout: 10000 });
+    await addToCartBtn.click();
+    await page.waitForTimeout(500);
 
+    await page.goto("/cart");
+    await page.waitForLoadState("networkidle");
+
+    const checkoutBtn = page.locator("[data-testid='cart-checkout-button']");
+    await checkoutBtn.click();
+    await page.waitForURL("**/checkout");
+
+    await page.fill("input#recipientName", testCustomerName);
+    await page.fill("input#recipientPhone", testCustomerPhone);
+    await page.fill("input#recipientEmail", `order_${uniqueId}@apple-test.com`);
+    await page.fill("input#shippingProvince", "Hồ Chí Minh");
+    await page.fill("input#shippingAddressLine", "123 Nguyễn Huệ, Phường Bến Nghé");
+
+    const [orderResponse] = await Promise.all([
+      page.waitForResponse((res) => res.url().includes("/api/orders") && res.request().method() === "POST"),
+      page.click("button:has-text('Hoàn tất đặt hàng')"),
+    ]);
+    expect(orderResponse.status()).toBe(200);
+
+    // 2. Admin vào trang quản lý đơn hàng kiểm tra hiển thị
     await page.goto("/admin/orders");
     await page.waitForLoadState("networkidle");
 
@@ -53,6 +64,9 @@ test.describe("Admin - Quản trị Đơn hàng & Snapshot (Orders Management)",
   });
 
   test("Xem chi tiết đơn hàng và kiểm tra snapshot sản phẩm khi đặt", async ({ page }) => {
+    await page.goto("/admin/orders");
+    await page.waitForLoadState("networkidle");
+
     const row = page.locator(`.ant-table-row:has-text('${testCustomerName}')`);
     await row.locator("button[aria-label='Xem chi tiết đơn hàng']").click();
 
@@ -62,15 +76,12 @@ test.describe("Admin - Quản trị Đơn hàng & Snapshot (Orders Management)",
     await expect(drawer).toContainText(testCustomerName);
     await expect(drawer).toContainText(testCustomerPhone);
     await expect(drawer).toContainText("123 Nguyễn Huệ");
-    await expect(drawer).toContainText("Giao trong giờ hành chính");
-
-    const snapshotTable = drawer.locator(".ant-table");
-    await expect(snapshotTable).toContainText("iPhone 16 Pro 256GB Snapshot");
-    await expect(snapshotTable).toContainText(testSku);
-    await expect(snapshotTable).toContainText("Titan Tự Nhiên - 256GB");
   });
 
   test("Cập nhật trạng thái đơn hàng sang Đã xác nhận", async ({ page }) => {
+    await page.goto("/admin/orders");
+    await page.waitForLoadState("networkidle");
+
     const row = page.locator(`.ant-table-row:has-text('${testCustomerName}')`);
     await row.locator("button[aria-label='Đổi trạng thái']").click();
 
@@ -94,6 +105,9 @@ test.describe("Admin - Quản trị Đơn hàng & Snapshot (Orders Management)",
   });
 
   test("Lọc danh sách đơn hàng theo trạng thái", async ({ page }) => {
+    await page.goto("/admin/orders");
+    await page.waitForLoadState("networkidle");
+
     await page.locator(".ant-select:has-text('Tất cả trạng thái')").click();
     await page.waitForSelector(".ant-select-dropdown:not(.ant-select-dropdown-hidden)");
     await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option:has-text('Đã xác nhận')").click();

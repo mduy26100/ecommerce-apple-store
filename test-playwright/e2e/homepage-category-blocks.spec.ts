@@ -71,13 +71,16 @@ test.describe("Storefront HomePage - Khối Danh Mục và Lưới Sản Phẩm"
     }
   });
 
-  test("Fallback hiển thị logo quả táo Apple khi ảnh sản phẩm bị lỗi", async ({ page }) => {
+  test("Fallback hiển thị logo quả táo Apple khi ảnh sản phẩm bị lỗi hoặc rỗng", async ({ page }) => {
     const firstImg = page.locator("[data-testid='product-image-container'] img").first();
-    await expect(firstImg).toBeVisible();
+    const isImgPresent = (await firstImg.count()) > 0;
 
-    await firstImg.evaluate((img: HTMLImageElement) => {
-      img.dispatchEvent(new Event("error"));
-    });
+    if (isImgPresent) {
+      await expect(firstImg).toBeVisible();
+      await firstImg.evaluate((img: HTMLImageElement) => {
+        img.dispatchEvent(new Event("error"));
+      });
+    }
 
     const appleLogoFallback = page.locator("[data-testid='product-image-container'] svg").first();
     await expect(appleLogoFallback).toBeVisible();

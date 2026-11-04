@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Admin - Quản lý Thông số kỹ thuật theo nhóm (Product Specifications Groups)", () => {
+  const uniqueId = Date.now();
+  const testGroupName = `Tiện ích ${uniqueId}`;
+
   test.beforeEach(async ({ page }) => {
     await page.goto("/admin/auth/login");
     await page.waitForLoadState("networkidle");
@@ -14,40 +17,27 @@ test.describe("Admin - Quản lý Thông số kỹ thuật theo nhóm (Product S
     await page.waitForLoadState("networkidle");
   });
 
-  test("1. Mở ngăn kéo quản lý thông số và hiển thị danh sách các nhóm thông số", async ({ page }) => {
-    await page.fill("input[placeholder*='Tìm theo tên']", "iPhone 16 Pro Max");
+  test("1. Mở quản lý thông số và hiển thị danh sách các nhóm thông số", async ({ page }) => {
+    await page.goto("/admin/products/1?tab=specs");
     await page.waitForLoadState("networkidle");
 
-    const row = page.locator(".ant-table-row:has-text('iPhone 16 Pro Max')").first();
-    await expect(row).toBeVisible();
+    await expect(page.locator("body")).toContainText("Quản lý thông số kỹ thuật theo nhóm");
+    await expect(page.locator("button:has-text('Thêm nhóm thông số')")).toBeVisible();
 
-    await row.locator("button[aria-label='Quản lý thông số'], button:has(.anticon-sliders)").click();
-
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-    await expect(drawer).toContainText("Quản lý thông số kỹ thuật theo nhóm");
-    await expect(drawer.locator("button:has-text('Thêm nhóm thông số')")).toBeVisible();
-
-    await expect(drawer.locator(".ant-card:has-text('Hiệu năng')")).toBeVisible();
-    await expect(drawer.locator(".ant-card:has-text('Cấu hình')")).toBeVisible();
+    await expect(page.locator(".ant-card-small:has-text('Hiệu năng')")).toBeVisible();
+    await expect(page.locator(".ant-card-small:has-text('Cấu hình')")).toBeVisible();
   });
 
   test("2. Thêm nhóm thông số mới và hiển thị khối nhóm với thứ tự chuẩn", async ({ page }) => {
-    await page.fill("input[placeholder*='Tìm theo tên']", "iPhone 16 Pro Max");
+    await page.goto("/admin/products/1?tab=specs");
     await page.waitForLoadState("networkidle");
 
-    const row = page.locator(".ant-table-row:has-text('iPhone 16 Pro Max')").first();
-    await row.locator("button[aria-label='Quản lý thông số'], button:has(.anticon-sliders)").click();
-
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-
-    await drawer.locator("button:has-text('Thêm nhóm thông số')").click();
+    await page.locator("button:has-text('Thêm nhóm thông số')").click();
     const modal = page.locator(".ant-modal");
     await expect(modal).toBeVisible();
     await expect(modal).toContainText("Thêm nhóm thông số mới");
 
-    await modal.locator("input#name").fill("Tiện ích & Kết nối");
+    await modal.locator("input#name").fill(testGroupName);
     await modal.locator("input#displayOrder").fill("5");
 
     await Promise.all([
@@ -59,20 +49,14 @@ test.describe("Admin - Quản lý Thông số kỹ thuật theo nhóm (Product S
       modal.locator(".ant-modal-footer button:has-text('Thêm mới')").click(),
     ]);
 
-    await expect(drawer.locator(".ant-card:has-text('Tiện ích & Kết nối')")).toBeVisible();
+    await expect(page.locator(`.ant-card-small:has-text('${testGroupName}')`)).toBeVisible();
   });
 
   test("3. Thêm thông số kỹ thuật mới vào nhóm vừa tạo", async ({ page }) => {
-    await page.fill("input[placeholder*='Tìm theo tên']", "iPhone 16 Pro Max");
+    await page.goto("/admin/products/1?tab=specs");
     await page.waitForLoadState("networkidle");
 
-    const row = page.locator(".ant-table-row:has-text('iPhone 16 Pro Max')").first();
-    await row.locator("button[aria-label='Quản lý thông số'], button:has(.anticon-sliders)").click();
-
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-
-    const groupCard = drawer.locator(".ant-card:has-text('Tiện ích & Kết nối')");
+    const groupCard = page.locator(`.ant-card-small:has-text('${testGroupName}')`);
     await expect(groupCard).toBeVisible();
 
     await groupCard.locator("button:has-text('Thêm thông số')").first().click();
@@ -80,7 +64,7 @@ test.describe("Admin - Quản lý Thông số kỹ thuật theo nhóm (Product S
     const modal = page.locator(".ant-modal");
     await expect(modal).toBeVisible();
     await expect(modal).toContainText("Thêm thông số kỹ thuật mới");
-    await expect(modal).toContainText("Tiện ích & Kết nối");
+    await expect(modal).toContainText(testGroupName);
 
     await modal.locator("input#name").fill("Cổng sạc");
     await modal.locator("textarea#value").fill("USB-C chuẩn Thunderbolt / USB 4");
@@ -100,16 +84,10 @@ test.describe("Admin - Quản lý Thông số kỹ thuật theo nhóm (Product S
   });
 
   test("4. Chỉnh sửa thông số kỹ thuật trong nhóm", async ({ page }) => {
-    await page.fill("input[placeholder*='Tìm theo tên']", "iPhone 16 Pro Max");
+    await page.goto("/admin/products/1?tab=specs");
     await page.waitForLoadState("networkidle");
 
-    const row = page.locator(".ant-table-row:has-text('iPhone 16 Pro Max')").first();
-    await row.locator("button[aria-label='Quản lý thông số'], button:has(.anticon-sliders)").click();
-
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-
-    const groupCard = drawer.locator(".ant-card:has-text('Tiện ích & Kết nối')");
+    const groupCard = page.locator(`.ant-card-small:has-text('${testGroupName}')`);
     const specRow = groupCard.locator(".ant-table-row:has-text('Cổng sạc')");
     await specRow.locator("button[aria-label='Sửa thông số']").click();
 
@@ -133,16 +111,10 @@ test.describe("Admin - Quản lý Thông số kỹ thuật theo nhóm (Product S
   });
 
   test("5. Xóa thông số kỹ thuật và xóa nhóm thông số", async ({ page }) => {
-    await page.fill("input[placeholder*='Tìm theo tên']", "iPhone 16 Pro Max");
+    await page.goto("/admin/products/1?tab=specs");
     await page.waitForLoadState("networkidle");
 
-    const row = page.locator(".ant-table-row:has-text('iPhone 16 Pro Max')").first();
-    await row.locator("button[aria-label='Quản lý thông số'], button:has(.anticon-sliders)").click();
-
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-
-    const groupCard = drawer.locator(".ant-card:has-text('Tiện ích & Kết nối')");
+    const groupCard = page.locator(`.ant-card-small:has-text('${testGroupName}')`);
     const specRow = groupCard.locator(".ant-table-row:has-text('Cổng sạc')");
     await specRow.locator("button[aria-label='Xóa thông số']").click();
 
@@ -154,7 +126,7 @@ test.describe("Admin - Quản lý Thông số kỹ thuật theo nhóm (Product S
           !res.url().includes("/groups") &&
           res.request().method() === "DELETE"
       ),
-      page.locator(".ant-popconfirm .ant-btn-dangerous").click(),
+      page.locator(".ant-popconfirm .ant-btn-dangerous, .ant-popconfirm button:has-text('Xóa')").click(),
     ]);
 
     await expect(groupCard.locator(".ant-table")).not.toContainText("USB-C chuẩn Thunderbolt 4 (40Gbps)");
@@ -168,10 +140,10 @@ test.describe("Admin - Quản lý Thông số kỹ thuật theo nhóm (Product S
           res.url().includes("/api/manager/product-specifications/groups") &&
           res.request().method() === "DELETE"
       ),
-      page.locator(".ant-popconfirm .ant-btn-dangerous").click(),
+      page.locator(".ant-popconfirm .ant-btn-dangerous, .ant-popconfirm button:has-text('Xóa')").click(),
     ]);
 
-    await expect(drawer.locator(".ant-card:has-text('Tiện ích & Kết nối')")).toHaveCount(0);
+    await expect(page.locator(`.ant-card-small:has-text('${testGroupName}')`)).toHaveCount(0);
   });
 
   test("6. Kiểm tra giao diện Storefront hiển thị nhóm thông số kỹ thuật phân cấp chuẩn chỉ", async ({ page }) => {

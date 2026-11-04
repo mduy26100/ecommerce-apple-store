@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Storefront - Điều hướng Danh mục (Categories Navigation)", () => {
+  const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8088";
+
   test("1. Backend API /api/categories hoạt động chính xác", async ({ request }) => {
-    const response = await request.get("http://localhost:5288/api/categories");
+    const response = await request.get(`${BACKEND_URL}/api/categories`);
     expect(response.status()).toBe(200);
 
     const body = await response.json();
@@ -115,7 +117,7 @@ test.describe("Storefront - Điều hướng Danh mục (Categories Navigation)"
       expect(pos).toBeGreaterThan(0);
     }
 
-    const categoryCards = scrollContainer.locator("> div");
+    const categoryCards = scrollContainer.locator("> *");
     const count = await categoryCards.count();
     expect(count).toBeGreaterThan(0);
 

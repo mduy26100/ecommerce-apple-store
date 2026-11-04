@@ -1,11 +1,11 @@
 # Đặc Tả Tính Năng Hệ Thống (System Features Specification)
 
-> **Tài liệu đặc tả toàn bộ tính năng hiện có của nền tảng thương mại điện tử Urban Stitch.**  
-> Tài liệu này đóng vai trò là kim chỉ nam chức năng (Functional Specification Document - FSD) cho toàn bộ hệ thống, mô tả chi tiết hành vi, đầu vào, đầu ra, quy tắc nghiệp vụ (Business Rules), cơ chế bảo mật Zero-Trust và các kịch bản biên cho từng phân hệ từ Storefront đến Admin Portal.
+> **Tài liệu đặc tả toàn diện toàn bộ tính năng của nền tảng thương mại điện tử Urban Stitch (Apple Store Ecosystem).**  
+> Đóng vai trò là tài liệu chức năng chuẩn mực (Functional Specification Document - FSD) cho toàn hệ thống, mô tả chi tiết hành vi, đầu vào, đầu ra, quy tắc nghiệp vụ (Business Rules), cơ chế bảo mật Zero-Trust, kiến trúc xử lý tương tranh 3 tầng, quy trình thanh toán có Webhook IPN thật sự kèm khả năng Retry vô hạn, và trung tâm báo cáo thống kê kinh doanh chuyên sâu.
 
 ---
 
-## Mục lục Tính năng Hệ thống
+## Mục Lục Các Phân Hệ Nghiệp Vụ
 
 1. [Phân hệ 1: Xác thực, Định danh & Phân quyền (Identity & RBAC)](#1-phân-hệ-xác-thực-định-danh--phân-quyền-identity--rbac)
 2. [Phân hệ 2: Danh mục, Thuộc tính Động & Cấu hình Kỹ thuật (Catalog & Specs)](#2-phân-hệ-danh-mục-thuộc-tính-động--cấu-hình-kỹ-thuật-catalog--specs)
@@ -14,9 +14,10 @@
 5. [Phân hệ 5: Giỏ hàng Trực tuyến & Tự phục hồi Tồn kho (Smart Cart)](#5-phân-hệ-giỏ-hàng-trực-tuyến--tự-phục-hồi-tồn-kho-smart-cart)
 6. [Phân hệ 6: Khuyến mãi Đa đối tượng & Ví Voucher Cá nhân hóa (Vouchers)](#6-phân-hệ-khuyến-mãi-đa-đối-tượng--ví-voucher-cá-nhân-hóa-vouchers)
 7. [Phân hệ 7: Đặt hàng, Vòng đời Đơn hàng & Tra cứu Bảo mật (Checkout & Lifecycle)](#7-phân-hệ-đặt-hàng-vòng-đời-đơn-hàng--tra-cứu-bảo-mật-checkout--lifecycle)
-8. [Phân hệ 8: Thanh toán Trực tuyến VNPay & Kiểm soát Tương tranh Đa tầng](#8-phân-hệ-thanh-toán-trực-tuyến-vnpay--kiểm-soát-tương-tranh-đa-tầng)
-9. [Phân hệ 9: Cổng Quản trị & Vận hành Đơn hàng (Admin Portal)](#9-phân-hệ-cổng-quản-trị--vận-hành-đơn-hàng-admin-portal)
-10. [Phân hệ 10: Tự động hóa Hạ tầng, Container Docker & Môi trường Triển khai](#10-phân-hệ-tự-động-hóa-hạ-tầng-container-docker--môi-trường-triển-khai)
+8. [Phân hệ 8: Thanh toán Trực tuyến VNPay, Webhook IPN Thực & Khả năng Retry Thanh toán Vô hạn](#8-phân-hệ-thanh-toán-trực-tuyến-vnpay-webhook-ipn-thực--khả-năng-retry-thanh-toán-vô-hạn)
+9. [Phân hệ 9: Cổng Quản trị Vận hành & Quản lý Người dùng (Admin Portal)](#9-phân-hệ-cổng-quản-trị-vận-hành--quản-lý-người-dùng-admin-portal)
+10. [Phân hệ 10: Động cơ Báo cáo Thống kê & Xuất Excel Doanh nghiệp (Business Intelligence)](#10-phân-hệ-động-cơ-báo-cáo-thống-kê--xuất-excel-doanh-nghiệp-business-intelligence)
+11. [Phân hệ 11: Tự động hóa Hạ tầng & Container Docker Tuần tự (Docker Orchestration)](#11-phân-hệ-tự-động-hóa-hạ-tầng--container-docker-tuần-tự-docker-orchestration)
 
 ---
 
@@ -24,7 +25,7 @@
 
 ### 1.1. Bảng Tổng hợp Tính năng Xác thực
 
-| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức |
+| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức HTTP |
 | :--- | :--- | :--- | :--- | :--- | :---: |
 | **AUTH-01** | Đăng ký tài khoản khách hàng | Khách vãng lai | `/register` | `/api/auth/register` | `POST` |
 | **AUTH-02** | Đăng nhập hệ thống (Storefront & Admin) | Toàn bộ người dùng | `/login`, `/admin/auth/login` | `/api/auth/login` | `POST` |
@@ -35,20 +36,13 @@
 
 ### 1.2. Mô tả Chi tiết Nghiệp vụ & Ràng buộc Bảo mật
 
-#### 1. Đăng ký & Đăng nhập (AUTH-01 & AUTH-02)
-- **Đầu vào (Input):** Họ tên, Email hợp lệ, Mật khẩu (tối thiểu 6 ký tự, bao gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt).
-- **Đầu ra (Output):** Thông tin người dùng (`Id`, `Email`, `FullName`, `Roles`), `AccessToken` dạng JWT trong phản hồi JSON và `RefreshToken` được lưu trong HTTP-Only Cookie.
-- **Quy tắc bảo mật:**
-  - Mật khẩu được băm (hash) bằng thuật toán mật mã PBKDF2 của ASP.NET Core Identity.
-  - Kiểm tra email duy nhất: nếu email đã tồn tại, hệ thống ném ngoại lệ 400 kèm thông báo thân thiện.
-  - Tự động gán quyền `Customer` mặc định cho các tài khoản đăng ký qua giao diện Storefront.
-
-#### 2. Cơ chế Xác thực Kép Token (AUTH-03 & AUTH-06)
-- **Kiến trúc Token:**
-  - **Access Token:** Có thời hạn sống ngắn (15-60 phút), lưu hoàn toàn trong bộ nhớ RAM của ứng dụng React (Zustand store), tuyệt đối không lưu trong `localStorage` để chống tấn công XSS (Cross-Site Scripting).
-  - **Refresh Token:** Lưu trữ trong cơ sở dữ liệu bảng `identity.RefreshTokens`, gắn kèm cờ `HttpOnly`, `SameSite=Strict`, `Secure` trong Cookie của trình duyệt để chống tấn công CSRF.
-- **Cơ chế Silent Refresh Token:** Khi Access Token hết hạn, Axios Interceptor phát hiện mã lỗi 401, tự động kích hoạt API `/api/auth/refresh-token` để lấy Access Token mới mà không làm gián đoạn trải nghiệm của người dùng.
-- **Thu hồi phiên (Revoke Token):** Khi bấm Đăng xuất, Refresh Token được đánh dấu hủy trong Database và xóa bỏ Cookie khỏi trình duyệt.
+1. **Cơ chế Xác thực Kép Token Bảo Vệ Zero-Trust (AUTH-02 & AUTH-03):**
+   - **Access Token:** Định dạng JWT có thời gian sống ngắn (15-60 phút), được lưu trữ hoàn toàn trong bộ nhớ RAM của ứng dụng React (Zustand store). **Tuyệt đối không lưu Access Token trong `localStorage` hay `sessionStorage`** để loại bỏ 100% rủi ro bị đánh cắp qua lỗ hổng Cross-Site Scripting (XSS).
+   - **Refresh Token:** Chuỗi ký tự ngẫu nhiên 256-bit được băm và lưu trong bảng `identity.RefreshTokens`. Khi phản hồi đăng nhập, Refresh Token được đóng gói trong **HTTP-Only, Secure, SameSite=Strict Cookie**, ngăn chặn hoàn toàn việc mã độc JavaScript truy cập từ xa.
+   - **Silent Refresh Token:** Khi Access Token hết hạn, Axios Interceptor tự động phát hiện mã phản hồi 401, tạm dừng các request đang chờ, gửi lệnh ngầm tới `/api/auth/refresh-token` để đổi lấy Access Token mới rồi tiếp tục thực thi các request dở dang mà người dùng không hề bị gián đoạn thao tác.
+2. **Phân quyền Theo Vai trò (Role-Based Access Control - RBAC):**
+   - Phân cấp nghiêm ngặt giữa `SuperAdmin` (Toàn quyền quản trị cổng Admin) và `User` (Khách hàng mua sắm).
+   - Bảo vệ tuyến đường kép (Dual Route Guards): Cả Frontend React Router lẫn Backend Authorization Middleware đều kiểm tra quyền hạn. Nếu tài khoản `User` cố tình truy cập các đường dẫn `/admin/*`, hệ thống lập tức từ chối và chuyển hướng về trang chủ Storefront.
 
 ---
 
@@ -56,28 +50,28 @@
 
 ### 2.1. Bảng Tổng hợp Tính năng Danh mục & Thuộc tính
 
-| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức |
+| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức HTTP |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| **CAT-01** | Lấy danh sách danh mục hoạt động | Công khai | Navigation Bar | `/api/categories` | `GET` |
-| **CAT-02** | Quản lý Danh mục (CRUD, Slug, Sắp xếp) | Quản trị viên | `/admin/categories` | `/api/manager/categories` | `GET/POST/PUT/DELETE` |
-| **CAT-03** | Quản lý Màu sắc thương mại Apple | Quản trị viên | `/admin/colors` | `/api/manager/colors` | `GET/POST/PUT/DELETE` |
-| **CAT-04** | Quản lý Dung lượng bộ nhớ | Quản trị viên | `/admin/storage-options` | `/api/manager/storage-options` | `GET/POST/PUT/DELETE` |
-| **CAT-05** | Quản lý Tùy chọn động (Options Matrix) | Quản trị viên | `/admin/products/:id` | `/api/manager/product-options` | `GET/POST/PUT/DELETE` |
-| **CAT-06** | Quản lý Nhóm thông số kỹ thuật phân cấp | Quản trị viên | `/admin/products/:id` | `/api/manager/spec-groups` | `GET/POST/PUT/DELETE` |
+| **CAT-01** | Lấy danh sách danh mục khả dụng | Công khai | Navigation Bar | `/api/categories` | `GET` |
+| **CAT-02** | Quản lý Danh mục (CRUD, Slug, Thứ tự) | Quản trị viên | `/admin/categories` | `/api/manager/categories` | `GET/POST/PUT/DELETE` |
+| **CAT-03** | Quản lý Bảng màu thương mại Apple | Quản trị viên | `/admin/colors` | `/api/manager/colors` | `GET/POST/PUT/DELETE` |
+| **CAT-04** | Quản lý Dung lượng bộ nhớ lưu trữ | Quản trị viên | `/admin/storage-options` | `/api/manager/storage-options` | `GET/POST/PUT/DELETE` |
+| **CAT-05** | Quản lý Ma trận Tùy chọn Động (Hybrid EAV) | Quản trị viên | `/admin/products/:id?tab=options` | `/api/manager/product-options` | `GET/POST/PUT/DELETE` |
+| **CAT-06** | Quản lý Nhóm thông số kỹ thuật phân cấp | Quản trị viên | `/admin/products/:id?tab=specs` | `/api/manager/spec-groups` | `GET/POST/PUT/DELETE` |
 
-### 2.2. Mô tả Chi tiết Nghiệp vụ & Ràng buộc
+### 2.2. Mô tả Chi tiết Nghiệp vụ Thuộc Tính Đa Năng
 
-#### 1. Quản lý Danh mục Apple (CAT-01 & CAT-02)
-- **Cấu trúc:** Quản lý các ngành hàng chuyên biệt: iPhone, iPad, Mac, Apple Watch, AirPods, Phụ kiện.
-- **Ràng buộc:** Cột `Slug` được tạo tự động từ `Name`, đánh chỉ mục duy nhất (Unique Index). Hỗ trợ thứ tự hiển thị `DisplayOrder` để quản trị viên tùy biến vị trí xuất hiện trên thanh điều hướng chính.
-
-#### 2. Thuộc tính Cố định: Màu sắc & Dung lượng (CAT-03 & CAT-04)
-- **Màu sắc (`Colors`):** Lưu trữ cả tên hiển thị thương mại chuẩn Apple (ví dụ: *Titan Tự Nhiên*, *Xanh Cổ Vịt*, *Starlight*) và mã màu HEX (`#E2DFD7`) phục vụ việc hiển thị nút bấm mẫu màu trực quan cho người mua.
-- **Dung lượng (`StorageOptions`):** Lưu trữ tên hiển thị (128GB, 256GB, 1TB) và giá trị số học quy đổi `CapacityInGB` (ví dụ 1TB = 1024GB) để hệ thống tự động sắp xếp các nút chọn dung lượng theo thứ tự tăng dần mà không bị sai lệch kiểu chuỗi.
-
-#### 3. Mô hình Mở rộng Thuộc tính Động (Dynamic Hybrid EAV - CAT-05)
-- **Bản chất:** Áp dụng cho các dòng sản phẩm phức tạp (MacBook phân hóa theo RAM 16GB/24GB/32GB; iPad phân hóa theo Wi-Fi / Wi-Fi + 5G; Apple Watch phân hóa theo Size mặt 41mm/45mm).
-- **Cơ chế:** Cho phép tạo các `ProductOptions` và `ProductOptionValues` tùy ý trong Admin. Biến thể (`ProductVariants`) liên kết với các giá trị động này qua bảng nối `ProductVariantValues`. Cấu trúc này giúp cửa hàng mở rộng dải sản phẩm mới trong tương lai mà không cần thay đổi cấu trúc bảng SQL Server.
+1. **Chuẩn hóa Thuộc tính Cố định Tối ưu Tốc độ (CAT-03 & CAT-04):**
+   - **Bảng màu Apple (`Colors`):** Lưu trữ tên thương mại chuẩn mực (ví dụ: *Titan Sa Mạc, Titan Tự Nhiên, Titan Đen, Titan Trắng, Midnight, Starlight, Jet Black*) kèm mã màu HEX (`#C4A482`, `#9E9A95`, `#0A0A0A`). Frontend sử dụng mã HEX này để kết xuất ngay các nút swatch màu trực quan.
+   - **Dung lượng lưu trữ (`StorageOptions`):** Lưu trữ tên nhãn hiển thị (`128GB`, `256GB`, `512GB`, `1TB`, `2TB`) cùng trường số học `CapacityValue` (`128`, `256`, `512`, `1024`, `2048`). Cho phép Backend sắp xếp danh sách dung lượng theo đúng trật tự dung lượng tăng dần bằng toán tử số học, không bị lỗi sắp xếp chuỗi ký tự (tránh lỗi `1TB` đứng trước `256GB`).
+2. **Ma trận Thuộc tính Động Hybrid EAV Đa năng (CAT-05):**
+   - Hỗ trợ mọi cấu hình sản phẩm phức tạp của Apple:
+     - MacBook: Tùy biến RAM Unified (16GB, 24GB, 36GB, 48GB, 64GB, 128GB).
+     - iPad: Tùy biến Kết nối (Wi-Fi tiêu chuẩn vs Wi-Fi + 5G Cellular), Tùy biến Mặt kính (Kính tiêu chuẩn vs Kính phủ cấu trúc Nano-texture).
+     - Apple Watch: Tùy biến Kích thước mặt (42mm, 46mm, 49mm Ultra), Chất liệu vỏ (Nhôm vs Titanium).
+   - Biến thể thương mại thực tế (`ProductVariants`) liên kết với các giá trị tùy chọn qua bảng nối `ProductVariantValues`. **Cho phép cửa hàng mở rộng ngành hàng mới trong tương lai mà không phải can thiệp sửa đổi cấu trúc bảng cơ sở dữ liệu**.
+3. **Nhóm Thông Số Kỹ Thuật Đa Tầng (CAT-06):**
+   - Phân cấp thông số thành 2 tầng rõ rệt: Tầng nhóm (`ProductSpecificationGroups`) đại diện cho các chủ đề (*Hiệu năng & Vi xử lý*, *Màn hình & Hiển thị*, *Camera & Quay phim*, *Pin & Sạc*, *Tiện ích & Kết nối*); Tầng chi tiết (`ProductSpecifications`) chứa cặp tiêu chí - giá trị thực tế kèm đơn vị đo lường (ví dụ: *Độ sáng đỉnh: 3000 nits*, *Chuẩn kháng bụi nước: IP68*).
 
 ---
 
@@ -85,73 +79,58 @@
 
 ### 3.1. Bảng Tổng hợp Tính năng Sản phẩm & Media
 
-| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức |
+| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức HTTP |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| **PRD-01** | Xem danh sách sản phẩm phân trang & lọc | Quản trị viên | `/admin/products` | `/api/manager/products` | `GET` |
-| **PRD-02** | Thêm mới & Chỉnh sửa sản phẩm cha | Quản trị viên | `/admin/products` | `/api/manager/products` | `POST/PUT/DELETE` |
-| **PRD-03** | Quản lý Biến thể cấu hình (Variants) | Quản trị viên | `/admin/products/:id` | `/api/manager/product-variants` | `GET/POST/PUT/DELETE` |
+| **PRD-01** | Xem danh sách sản phẩm phân trang & bộ lọc | Quản trị viên | `/admin/products` | `/api/manager/products` | `GET` |
+| **PRD-02** | Thêm mới & Chỉnh sửa sản phẩm cha | Quản trị viên | `/admin/products/:id?tab=general` | `/api/manager/products` | `POST/PUT/DELETE` |
+| **PRD-03** | Quản lý Biến thể kho (Variants & Stock) | Quản trị viên | `/admin/products/:id?tab=variants` | `/api/manager/product-variants` | `GET/POST/PUT/DELETE` |
 | **PRD-04** | Tải & Cắt ảnh đẩy lên Cloudinary CDN | Quản trị viên | Các Modal ảnh trong Admin | `/api/manager/media/upload` | `POST` |
-| **PRD-05** | Phân loại ảnh sản phẩm theo màu sắc | Quản trị viên | `/admin/products/:id` | `/api/manager/product-images` | `GET/POST/PUT/DELETE` |
+| **PRD-05** | Quản lý thư viện ảnh đồng bộ theo màu sắc | Quản trị viên | `/admin/products/:id?tab=images` | `/api/manager/product-images` | `GET/POST/PUT/DELETE` |
 
-### 3.2. Mô tả Chi tiết Nghiệp vụ & Kỹ thuật
+### 3.2. Mô tả Chi tiết Nghiệp vụ
 
-#### 1. Mô hình Phân cấp Sản phẩm Cha - Biến thể Con (PRD-02 & PRD-03)
-- **Sản phẩm Cha (`Products`):** Đại diện cho dòng sản phẩm (ví dụ: *iPhone 16 Pro Max*). Quản lý thông tin chung: danh mục, tên chip Apple Silicon (A18 Pro), huy hiệu (BÁN CHẠY, HÀNG MỚI), mô tả tóm tắt và bài viết đánh giá chi tiết.
-- **Biến thể Con (`ProductVariants`):** Đại diện cho cấu hình cụ thể người dùng mua (ví dụ: *Titan Tự Nhiên - 256GB*).
-  - Quản lý mã SKU duy nhất, đơn giá bán (`Price`), đơn giá niêm yết cũ (`CompareAtPrice`), giá vốn (`CostPrice`) và số lượng tồn kho khả dụng (`QuantityInStock`).
-  - Tích hợp trường `RowVersion` kiểm soát khóa lạc quan (Optimistic Concurrency).
-
-#### 2. Quy trình Xử lý Ảnh Tối ưu với Cloudinary CDN (PRD-04 & PRD-05)
-- **Tối ưu hóa phía Client:**
-  - Tích hợp công cụ cắt ảnh (`react-easy-crop`) chuẩn tỷ lệ vàng.
-  - Tích hợp thư viện nén ảnh trực tiếp trong trình duyệt (`browser-image-compression`) giảm 70-80% dung lượng tệp trước khi gửi lên server.
-- **Xử lý phía Backend:** Tiếp nhận file dưới dạng `IFormFile`, đẩy trực tiếp lên Cloudinary CDN bằng `CloudinaryDotNet`, tiếp nhận URL ảnh an toàn (HTTPS) và lưu vào bảng `catalog.ProductImages`.
-- **Gắn ảnh theo Màu sắc (`ColorId`):** Mỗi hình ảnh được liên kết với một màu sắc cụ thể của sản phẩm. Khi khách hàng bấm chọn màu trên giao diện Storefront, toàn bộ slide ảnh chính tự động lọc và chuyển sang bộ ảnh tương ứng của màu đó.
+1. **Kiến trúc Quản lý Sản phẩm Toàn Trang (Dedicated Product Page):**
+   - Thay vì nhồi nhét vào các Drawer hay Modal chật hẹp, hệ thống nâng cấp giao diện quản lý chi tiết sản phẩm thành một trang riêng biệt `/admin/products/:id` với 5 tab chức năng độc lập:
+     - **Tab 1 - Thông tin chung (`general`):** Tên dòng máy, slug, danh mục, thời gian bảo hành, mô tả tóm tắt và bài viết chi tiết.
+     - **Tab 2 - Biến thể & Tồn kho (`variants`):** Bảng danh sách cấu hình, SKU, giá bán, giá niêm yết, tồn kho và giá vốn.
+     - **Tab 3 - Hình ảnh theo màu (`images`):** Quản lý bộ sưu tập ảnh liên kết chặt chẽ với từng màu sắc, gắn cờ ảnh chính (`IsPrimary`).
+     - **Tab 4 - Tùy chọn cấu hình (`options`):** Ma trận thuộc tính động mở rộng.
+     - **Tab 5 - Thông số kỹ thuật (`specs`):** Nhóm thông số và tiêu chuẩn kỹ thuật phân cấp.
+2. **Quy tắc Kiểm soát Biến thể Duy nhất (Conflict Prevention):**
+   - Mỗi tổ hợp cấu hình (Màu sắc + Dung lượng + Thuộc tính động) chỉ được phép tồn tại duy nhất một biến thể tương ứng cho mỗi dòng máy.
+   - Nếu quản trị viên cố tình tạo trùng tổ hợp đã có, Backend từ chối với mã lỗi `409 Conflict` kèm thông báo giải thích rõ ràng.
+3. **Tải & Xử lý Ảnh Tự động lên Cloudinary CDN (PRD-04):**
+   - Tích hợp công cụ cắt ảnh tỷ lệ chuẩn (`image-cropper`) và nén ảnh phía client trước khi gửi lên máy chủ.
+   - Backend tiếp nhận file stream và đẩy trực tiếp lên Cloudinary CDN, nhận về URL ảnh bảo mật tối ưu hóa tự động theo định dạng WebP/AVIF.
+   - Cơ chế Fallback an toàn: Toàn bộ bảng `ProductImages` chấp nhận giá trị `NULL`. Khi đường dẫn ảnh là `NULL` hoặc gặp sự cố tải, Frontend tự động hiển thị biểu tượng Apple Logo `<AppleLogo />` cao cấp, tuyệt đối không văng lỗi màn hình trắng.
 
 ---
 
 ## 4. Phân hệ Trải nghiệm Mua sắm Khách hàng (Storefront Experience)
 
-### 4.1. Bảng Tổng hợp Màn hình & Tương tác Storefront
+### 4.1. Bảng Tổng hợp Tính năng Mua sắm
 
-| Mã tính năng | Màn hình / Tính năng | Đối tượng áp dụng | URL Giao diện | API Sử dụng |
-| :--- | :--- | :--- | :--- | :--- |
-| **STF-01** | Trang chủ Apple cao cấp (Hero Banner & Showcase) | Công khai | `/` | `/api/products/showcase`, `/api/categories` |
-| **STF-02** | Danh mục & Bộ lọc sản phẩm đa tiêu chí | Công khai | `/products` | `/api/products/cards` |
-| **STF-03** | Xem chi tiết sản phẩm toàn diện (Product Detail) | Công khai | `/products/:slug` | `/api/products/{slug}` |
-| **STF-04** | Bộ chuyển đổi Biến thể Động (Dynamic Variant Switcher) | Công khai | `/products/:slug` | Xử lý Client State + React Query |
-| **STF-05** | Bảng Thông số kỹ thuật phân cấp (Grouped Specs) | Công khai | `/products/:slug` | Thuộc DTO chi tiết sản phẩm |
-| **STF-06** | Tìm kiếm gần đúng Realtime trên Header (Desktop & Mobile Portal) | Công khai | Navigation Bar | `/api/products/search` |
+| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức HTTP |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **ST-01** | Trang chủ Banner Hero & Cam kết Apple | Công khai | `/` | `/api/products/showcase` | `GET` |
+| **ST-02** | Danh mục sản phẩm & Lọc đa tiêu chí | Công khai | `/products` | `/api/products/cards` | `GET` |
+| **ST-03** | Tìm kiếm nhanh Realtime trên Header | Công khai | Header Component | `/api/products/search` | `GET` |
+| **ST-04** | Trang chi tiết sản phẩm toàn diện | Công khai | `/products/:slug` | `/api/products/{slug}` | `GET` |
+| **ST-05** | Bộ chuyển đổi Biến thể & Đồng bộ Ảnh tức thì | Công khai | `/products/:slug` | Xử lý nội bộ React State | Tức thì |
 
-### 4.2. Mô tả Chi tiết Tương tác Người dùng
+### 4.2. Mô tả Chi tiết Nghiệp vụ
 
-#### 1. Bộ chuyển đổi Biến thể Tức thời (STF-04)
-- Khi khách hàng truy cập trang chi tiết sản phẩm (ví dụ: `/products/iphone-16-pro-max`):
-  - Hệ thống tải toàn bộ danh sách biến thể khả dụng trong một API call duy nhất.
-  - Khách hàng bấm chọn mẫu màu (Color Swatches) $\rightarrow$ Bộ sưu tập ảnh tự động chuyển sang ảnh của màu đó; danh sách dung lượng khả dụng của màu đó được làm nổi bật.
-  - Khách hàng bấm chọn dung lượng (Storage Buttons) $\rightarrow$ Đơn giá bán, giá so sánh, % tiết kiệm và trạng thái tồn kho (Còn hàng / Tạm hết hàng) cập nhật tức thì trên giao diện mà không cần tải lại trang.
-
-#### 2. Hiển thị Thông số Kỹ thuật Phân cấp (STF-05)
-- Thông số kỹ thuật không hiển thị dưới dạng văn bản thô mà được chia thành các nhóm chuyên biệt (Màn hình, Camera sau, Camera trước, Vi xử lý & Đồ họa, Pin & Sạc, Thiết kế & Trọng lượng).
-- Giao diện thiết kế dạng Accordion đóng mở mượt mà, hỗ trợ khách hàng tra cứu cấu hình chi tiết chuẩn xác như trên trang chủ Apple.
-
-#### 3. Tìm kiếm gần đúng Realtime trên Header & Mobile Portal (STF-06)
-- **Quy tắc kích hoạt tìm kiếm:** Hệ thống lắng nghe sự kiện nhập liệu của người dùng trên ô tìm kiếm; chỉ gửi request tới Backend khi độ dài từ khóa đạt từ 3 ký tự trở lên (`query.trim().length >= 3`).
-- **Xử lý phía Backend (.NET 8):**
-  - Endpoint `GET /api/products/search?query=...&limit=8`.
-  - Áp dụng Specification Pattern `ProductQuickSearchSpec` thực thi truy vấn gần đúng đa trường qua `EF.Functions.Like`: Tên sản phẩm (`Name`), Đường dẫn (`Slug`), Mã dòng máy (`ModelCode`), Tên danh mục (`CategoryName`) và Mô tả ngắn (`ShortDescription`).
-  - Trả về danh sách `ProductSearchResultDto` gồm: `Id`, `Name`, `Slug`, `CategoryName`, `ChipName`, `Price`, `CompareAtPrice`, `ImageUrl`.
-- **Cơ chế Fallback Ảnh An Toàn:**
-  - Cả trên Header và danh sách giỏ hàng, nếu đường dẫn ảnh là `null` hoặc trình duyệt gặp lỗi tải ảnh (`onError`), hệ thống tự động fallback về biểu tượng chuẩn Apple Logo (`<AppleLogo />`) với phông nền xám nhạt tối giản, chống vỡ giao diện.
-- **Tối ưu Trải nghiệm Desktop:**
-  - Khi người dùng bấm icon Tìm kiếm trên Header, thanh tìm kiếm mở rộng toàn bộ phần giữa của Header (chiều cao chuẩn `h-16`, chiều rộng `max-w-4xl`), đồng thời ẩn thanh menu danh mục chính để tập trung sự chú ý.
-  - Đóng thanh tìm kiếm linh hoạt: người dùng có thể bấm lại icon Tìm kiếm, nhấn phím `Escape` hoặc click ra ngoài vùng tìm kiếm (`handleClickOutside`).
-- **Tối ưu Trải nghiệm Mobile (Fullscreen Portal):**
-  - **Khắc phục lỗi Containing Block của CSS:** Do thẻ `<header>` sử dụng hiệu ứng làm mờ nền `backdrop-blur-sm` (`backdrop-filter: blur(4px)`), theo chuẩn W3C thẻ header sẽ trở thành containing block cô lập các phần tử con `position: fixed`. Do đó, hệ thống sử dụng React Portal (`createPortal(..., document.body)`) đưa toàn bộ giao diện tìm kiếm ra ngoài DOM body dưới dạng Fullscreen Overlay (`fixed inset-0 z-50 bg-white flex flex-col`).
-  - **Bố cục màn hình chuyên biệt:** Thanh top bar cao chuẩn `h-16` ngang bằng header, tích hợp nút quay lại (`ArrowLeftOutlined`) và nút `Hủy`. Danh sách gợi ý cuộn toàn màn hình (`flex-1 overflow-y-auto`), hiển thị thoáng đãng; giá bán màu xanh và giá niêm yết màu xám được phân tách thành 2 dòng riêng biệt chống chồng chéo chữ trên màn hình hẹp.
-  - **Nút Xem tất cả ghim đáy:** Nút "Xem tất cả kết quả cho..." được ghim cố định ở đáy màn hình điện thoại, dễ thao tác bằng một tay.
-  - **Chống đóng tìm kiếm nhầm lẫn trên Mobile:** Hệ thống bỏ qua sự kiện `handleClickOutside` khi độ rộng màn hình nhỏ hơn 768px, đảm bảo khi người dùng chạm vào ô input hoặc vuốt danh sách kết quả thì giao diện tìm kiếm vẫn được giữ nguyên, chỉ đóng khi chủ động nhấn nút Hủy, nút Quay lại hoặc chọn sản phẩm.
-- **Chuẩn hóa URL Điều hướng:** Khi người dùng nhấn vào nút "Xem tất cả kết quả cho...", hệ thống điều hướng đồng bộ sang trang danh mục sản phẩm theo đúng cấu trúc: `/products?q={encodeURIComponent(query)}&page=1`.
+1. **Tìm kiếm Realtime Header Phân Tách Thiết Bị (ST-03):**
+   - Tự động kích hoạt khi người dùng gõ từ 3 ký tự trở lên (`useProductSearch`), áp dụng cơ chế Debounce 300ms chống spam request.
+   - Specification Pattern `ProductQuickSearchSpec` tại Backend thực hiện tìm kiếm đa trường: Tên sản phẩm, Slug, ModelCode, Danh mục và Mô tả ngắn.
+   - **Giao diện Desktop:** Mở rộng thanh tìm kiếm toàn bộ chiều ngang thanh Header (`max-w-4xl`), ẩn thanh category bar, tự động đóng khi click ra ngoài hoặc bấm phím `Escape`.
+   - **Giao diện Di động (Mobile Fullscreen Portal):** Sử dụng React Portal kết xuất giao diện tìm kiếm thẳng vào `document.body` dưới dạng Fullscreen Overlay, giải phóng hoàn toàn khỏi giới hạn chiều cao của header có hiệu ứng `backdrop-blur`.
+2. **Bộ Chuyển Đổi Biến Thể & Đồng Bộ Thư Viện Ảnh (ST-05):**
+   - Người dùng bấm chọn các nút swatch màu sắc và nút dung lượng trên trang chi tiết sản phẩm.
+   - Hệ thống tự động tính toán và đối chiếu với ma trận biến thể:
+     - Giá bán thực tế và giá niêm yết cũ cập nhật tức thì.
+     - Huy hiệu tồn kho thời gian thực thay đổi: *Còn hàng* (kèm số lượng cụ thể), *Sắp hết hàng* (< 10 sản phẩm) hoặc *Tạm hết hàng* (khóa nút Mua ngay và Thêm vào giỏ).
+     - Bộ sưu tập ảnh chính và carousel ảnh nhỏ tự động chuyển sang tập ảnh tương ứng với màu sắc vừa chọn.
 
 ---
 
@@ -159,36 +138,29 @@
 
 ### 5.1. Bảng Tổng hợp Tính năng Giỏ hàng
 
-| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức |
+| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức HTTP |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| **CART-01** | Lấy thông tin giỏ hàng hiện tại | Khách vãng lai & Thành viên | `/cart`, Header Cart | `/api/cart` | `GET` |
-| **CART-02** | Thêm sản phẩm biến thể vào giỏ hàng | Khách vãng lai & Thành viên | `/products/:slug` | `/api/cart/items` | `POST` |
-| **CART-03** | Cập nhật số lượng mua của từng món | Khách vãng lai & Thành viên | `/cart` | `/api/cart/items/quantity` | `PUT` |
-| **CART-04** | Chọn / Bỏ chọn mua hàng (Selective Checkout) | Khách vãng lai & Thành viên | `/cart` | `/api/cart/items/selection` | `PUT` |
-| **CART-05** | Đổi phân loại biến thể ngay trong giỏ hàng | Khách vãng lai & Thành viên | `/cart` (Modal Đổi phân loại) | `/api/cart/items/variant` | `PUT` |
-| **CART-06** | Xóa sản phẩm khỏi giỏ hàng | Khách vãng lai & Thành viên | `/cart` | `/api/cart/items/{id}` | `DELETE` |
-| **CART-07** | Tự động gộp giỏ hàng khách vãng lai khi đăng nhập | Khách vãng lai chuyển thành viên | Kích hoạt tự động khi Login | `/api/cart/merge` | `POST` |
-| **CART-08** | Cơ chế Tự phục hồi Số lượng Tồn kho (Self-Healing) | Nền tảng Backend | Kích hoạt khi gọi `/api/cart` | Logic xử lý trong `CartService` |
+| **CART-01** | Lấy dữ liệu giỏ hàng (Khách & Thành viên) | Toàn bộ khách hàng | `/cart`, Header Cart Drawer | `/api/cart` | `GET` |
+| **CART-02** | Thêm sản phẩm biến thể vào giỏ hàng | Toàn bộ khách hàng | `/products/:slug`, `/cart` | `/api/cart/items` | `POST` |
+| **CART-03** | Cập nhật số lượng mặt hàng trong giỏ | Toàn bộ khách hàng | `/cart` | `/api/cart/items/quantity` | `PUT` |
+| **CART-04** | Đổi cấu hình biến thể trực tiếp trong giỏ | Toàn bộ khách hàng | `/cart` (`ChangeVariantModal`) | `/api/cart/items/variant` | `PUT` |
+| **CART-05** | Tích chọn mặt hàng thanh toán (Selective) | Toàn bộ khách hàng | `/cart` | `/api/cart/items/selection` | `PUT` |
+| **CART-06** | Xóa mặt hàng hoặc làm trống toàn bộ giỏ | Toàn bộ khách hàng | `/cart` | `/api/cart/items/{id}`, `/api/cart` | `DELETE` |
+| **CART-07** | Tự động gộp giỏ hàng khách khi đăng nhập | Khách vừa đăng nhập | Hệ thống kích hoạt ngầm | `/api/cart/merge` | `POST` |
 
-### 5.2. Mô tả Chi tiết Nghiệp vụ & Cơ chế Tự phục hồi (Self-Healing Cart)
+### 5.2. Mô tả Chi tiết Cơ chế Tự Phục Hồi Tồn Kho (Self-Healing Cart)
 
-#### 1. Hỗ trợ Song song Khách vãng lai & Thành viên (CART-01 & CART-07)
-- **Khách vãng lai:** Hệ thống sinh mã UUID ngẫu nhiên lưu tại `localStorage` với khóa `guest_cart_id`. Mọi thao tác thêm giỏ hàng được liên kết với `sales.Carts.GuestId`.
-- **Tự động gộp giỏ hàng (Auto-Merge):** Ngay khi khách vãng lai đăng nhập tài khoản thành viên thành công, frontend tự động kích hoạt API `/api/cart/merge`. Backend tìm toàn bộ mặt hàng trong giỏ khách vãng lai, chuyển sang giỏ thành viên (`UserId`), cộng dồn số lượng nếu trùng biến thể và xóa bỏ giỏ tạm thời.
-
-#### 2. Cơ chế Tự phục hồi Tồn kho (Self-Healing Cart Safeguard - CART-08)
-- **Vấn đề thực tế:** Khách hàng thêm 10 chiếc iPhone vào giỏ nhưng nhiều ngày sau mới quay lại mua. Trong thời gian đó, tồn kho thực tế của cửa hàng chỉ còn 2 chiếc.
-- **Giải pháp xử lý:** Khi khách truy cập lại giỏ hàng:
-  - Backend tự động so sánh `CartItem.Quantity` với `ProductVariant.QuantityInStock`.
-  - Nếu phát hiện số lượng trong giỏ vượt quá tồn kho thực tế, hệ thống **tự động ép số lượng về `1`** (hoặc mức tồn khả dụng lớn nhất) và gọi `SaveChangesAsync()` để cập nhật vĩnh viễn vào cơ sở dữ liệu.
-  - Frontend hiển thị thông báo màu vàng cảnh báo số lượng đã được điều chỉnh theo tồn kho thực tế và vô hiệu hóa nút tăng số lượng vượt quá tồn kho.
-  - Tổng tiền `Subtotal`, `TotalItems`, `SelectedItemsCount` chỉ tính toán dựa trên các mặt hàng khả dụng (`IsAvailable && QuantityInStock > 0`).
-
-#### 3. Đổi phân loại Biến thể trong Giỏ (CART-05)
-- Khách hàng có thể nhấn nút "Đổi phân loại" ngay tại dòng sản phẩm trong giỏ hàng.
-- Modal mở ra ma trận màu sắc và dung lượng còn hàng. Khi chọn sang cấu hình mới:
-  - Nếu cấu hình mới chưa có trong giỏ: cập nhật `ProductVariantId` cho dòng đó.
-  - Nếu cấu hình mới đã tồn tại trong giỏ: tự động cộng dồn số lượng vào dòng đã có và xóa dòng cũ, tránh phát sinh 2 dòng trùng lặp cùng một biến thể.
+1. **Cơ chế Tự Phục Hồi Tồn Kho (Self-Healing Cart):**
+   - Nếu một khách hàng để sản phẩm trong giỏ hàng qua đêm và số lượng tồn kho trong kho bị khách khác mua bớt:
+   - Khi khách mở lại giỏ hàng, API `/api/cart` tự động phát hiện số lượng tồn kho khả dụng hiện tại nhỏ hơn số lượng trong giỏ.
+   - Backend tự động điều chỉnh số lượng mặt hàng đó về bằng với tồn kho tối đa (hoặc về `1`), tính lại tổng tiền giỏ hàng và lưu ngay xuống Database.
+   - Frontend hiển thị cảnh báo tồn kho và khóa nút tăng số lượng vượt quá tồn kho thực tế.
+2. **Đổi Cấu Hình Biến Thể Ngay Trong Giỏ (`ChangeVariantModal`):**
+   - Khách hàng không cần phải xóa sản phẩm ra khỏi giỏ rồi quay lại trang chi tiết để chọn lại màu hoặc dung lượng.
+   - Chỉ cần nhấn nút "Đổi phân loại", modal hiển thị các tùy chọn màu và dung lượng còn hàng. Nếu phiên bản mới đã có trong giỏ hàng, hệ thống tự động cộng dồn số lượng thông minh.
+3. **Tự Động Gộp Giỏ Hàng (Guest Cart Auto-Merge):**
+   - Khi một khách hàng chưa đăng nhập duyệt web và thêm hàng vào giỏ (gắn với `GuestId` lưu trong trình duyệt), sau đó bấm Đăng nhập:
+   - Hệ thống tự động phát hiện giỏ khách vãng lai, chuyển toàn bộ mặt hàng sang giỏ hàng chính thức của tài khoản thành viên (`UserId`), làm sạch giỏ tạm và bảo toàn trải nghiệm mua sắm liền mạch.
 
 ---
 
@@ -196,29 +168,26 @@
 
 ### 6.1. Bảng Tổng hợp Tính năng Khuyến mãi
 
-| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức |
+| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức HTTP |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| **VOUCH-01** | Lấy danh sách Voucher công khai khả dụng | Khách vãng lai & Thành viên | `/checkout` | `/api/vouchers/available` | `GET` |
-| **VOUCH-02** | Xem ví voucher cá nhân của người dùng | Thành viên đăng nhập | `/profile` (Tab Ví Voucher) | `/api/vouchers/my-wallet` | `GET` |
+| **VOUCH-01** | Lấy danh sách voucher công khai khả dụng | Khách vãng lai & Thành viên | `/checkout` | `/api/vouchers/available` | `GET` |
+| **VOUCH-02** | Xem ví voucher cá nhân của người dùng | Thành viên đăng nhập | `/profile` (Tab Ví voucher) | `/api/vouchers/my-wallet` | `GET` |
 | **VOUCH-03** | Áp dụng & Kiểm tra tính hợp lệ của mã Voucher | Khách vãng lai & Thành viên | `/checkout` | `/api/vouchers/apply` | `POST` |
-| **VOUCH-04** | Quản lý Chiến dịch Khuyến mãi (CRUD Voucher) | Quản trị viên | `/admin/vouchers` | `/api/manager/vouchers` | `GET/POST/PUT/DELETE` |
+| **VOUCH-04** | Quản lý Chiến dịch Khuyến mãi (CRUD) | Quản trị viên | `/admin/vouchers` | `/api/manager/vouchers` | `GET/POST/PUT/DELETE` |
 | **VOUCH-05** | Cấp phát Voucher cá nhân hóa cho từng User | Quản trị viên | `/admin/vouchers/assign` | `/api/manager/vouchers/assign` | `POST` |
 
 ### 6.2. Mô tả Chi tiết Phân loại & Ràng buộc Nghiệp vụ
 
-#### 1. Hệ thống Phân loại Đối tượng Khuyến mãi (`TargetType`)
-Hệ thống hỗ trợ 3 nhóm đối tượng voucher chuyên biệt:
-- **`Public` (Công khai):** Hiển thị công khai trên giao diện Checkout cho mọi khách hàng (kể cả khách vãng lai chưa đăng nhập).
-- **`RegisteredOnly` (Bắt buộc đăng nhập):** Chỉ tài khoản thành viên đã đăng nhập mới có quyền sử dụng mã.
-- **`AssignedOnly` (Cấp phát riêng cá nhân hóa):** Mã không hiển thị công khai, chỉ xuất hiện trong Ví voucher cá nhân của tài khoản được Quản trị viên hoặc hệ thống chủ động cấp tặng (ví dụ: *Voucher sinh nhật, Voucher bồi thường dịch vụ, Voucher tri ân khách VIP*).
-
-#### 2. Ràng buộc Xác thực Zero-Trust tại Backend
-Khi khách hàng gửi mã giảm giá tại bước thanh toán:
-- Kiểm tra khoảng thời gian hiệu lực (`StartDate <= UtcNow <= EndDate`).
-- Kiểm tra giá trị đơn hàng tối thiểu (`Subtotal >= MinOrderAmount`).
-- Kiểm tra tổng ngân sách / lượt dùng toàn hệ thống (`UsageCount < UsageLimit`).
-- Kiểm tra giới hạn lượt dùng của từng người dùng (`PerUserLimit` hoặc `AssignedUsageLimit` trong bảng `UserVouchers`).
-- Tính toán số tiền chiết khấu thực tế: Nếu voucher theo tỷ lệ `%` (`Percentage`), số tiền giảm được chặn trần bởi `MaxDiscountAmount`.
+1. **Phân loại 3 Nhóm Đối tượng Khuyến mãi (`TargetType`):**
+   - **`Public` (Công khai):** Hiển thị công khai trên giao diện Checkout cho mọi khách hàng (kể cả khách vãng lai chưa đăng nhập).
+   - **`RegisteredOnly` (Bắt buộc đăng nhập):** Chỉ tài khoản thành viên đã đăng nhập mới có quyền sử dụng mã.
+   - **`AssignedOnly` (Cấp phát riêng cá nhân hóa):** Mã không hiển thị công khai, chỉ xuất hiện trong Ví voucher cá nhân của tài khoản được Quản trị viên hoặc hệ thống chủ động cấp tặng (ví dụ: *Voucher sinh nhật, Voucher bồi thường dịch vụ, Voucher tri ân khách VIP*).
+2. **Kiểm tra Zero-Trust tại Backend khi Áp dụng Voucher:**
+   - Kiểm tra khoảng thời gian hiệu lực (`StartDate <= UtcNow <= EndDate`).
+   - Kiểm tra giá trị đơn hàng tối thiểu (`Subtotal >= MinOrderAmount`).
+   - Kiểm tra tổng ngân sách / lượt dùng toàn hệ thống (`UsageCount < UsageLimit`).
+   - Kiểm tra giới hạn lượt dùng của từng người dùng (`PerUserLimit` hoặc `AssignedUsageLimit` trong bảng `UserVouchers`).
+   - Tính toán số tiền chiết khấu thực tế: Nếu voucher theo tỷ lệ `%` (`Percentage`), số tiền giảm được chặn trần bởi `MaxDiscountAmount`.
 
 ---
 
@@ -226,187 +195,155 @@ Khi khách hàng gửi mã giảm giá tại bước thanh toán:
 
 ### 7.1. Bảng Tổng hợp Tính năng Đơn hàng
 
-| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức |
+| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức HTTP |
 | :--- | :--- | :--- | :--- | :--- | :---: |
 | **ORD-01** | Tiến hành Đặt hàng (Checkout) | Khách vãng lai & Thành viên | `/checkout` | `/api/orders/checkout` | `POST` |
 | **ORD-02** | Xem danh sách đơn hàng cá nhân phân trang | Thành viên đăng nhập | `/orders` | `/api/orders/my-orders` | `GET` |
-| **ORD-03** | Xem chi tiết đơn hàng cá nhân | Thành viên đăng nhập | `/orders` (Modal chi tiết) | `/api/orders/my-orders/{id}` | `GET` |
+| **ORD-03** | Xem chi tiết đơn hàng cá nhân | Thành viên đăng nhập | `/orders` (Drawer chi tiết) | `/api/orders/my-orders/{id}` | `GET` |
 | **ORD-04** | Hủy đơn hàng an toàn (Chỉ đơn Chưa thanh toán) | Thành viên sở hữu đơn | `/orders` | `/api/orders/my-orders/{id}/cancel` | `POST` |
-| **ORD-05** | Chỉnh sửa địa chỉ giao hàng 1 lần duy nhất | Thành viên sở hữu đơn | `/orders` (Modal chi tiết) | `/api/orders/my-orders/{id}/shipping-address` | `PUT` |
+| **ORD-05** | Chỉnh sửa địa chỉ giao hàng 1 lần duy nhất | Thành viên sở hữu đơn | `/orders` (Modal địa chỉ) | `/api/orders/my-orders/{id}/shipping-address` | `PUT` |
 | **ORD-06** | Xác nhận đã nhận hàng (Confirm Received) | Thành viên sở hữu đơn | `/orders` | `/api/orders/my-orders/{id}/confirm-received` | `POST` |
 | **ORD-07** | Tra cứu đơn hàng bảo mật cho Khách vãng lai | Khách chưa đăng nhập | `/order-lookup` | `/api/orders/lookup` | `POST` |
 | **ORD-08** | Gộp đơn hàng vãng lai vào tài khoản thành viên | Thành viên đăng nhập | Banner gộp đơn trên Web | `/api/orders/merge-guest` | `POST` |
 
 ### 7.2. Mô tả Chi tiết Nghiệp vụ & Vòng đời Đơn hàng
 
-#### 1. Quy trình Đặt hàng Zero-Trust (ORD-01)
-- Khách hàng gửi thông tin giao nhận và danh sách các sản phẩm chọn mua.
-- Backend hoàn toàn không tin tưởng đơn giá từ phía client gửi lên:
-  - Tự động truy vấn giá bán hiện hành (`UnitPrice`) và giá vốn (`CostPrice`) từ bảng `ProductVariants`.
-  - Tính toán lại toàn bộ `Subtotal`, `ShippingFee`, `DiscountAmount` và `TotalAmount`.
-  - Đóng băng toàn bộ thông tin tại thời điểm mua vào bảng `sales.OrderItems` (Snapshot bất biến: tên sản phẩm, tên biến thể, SKU, ảnh thumbnail, Dynamic Attributes JSON, đơn giá bán, giá vốn).
-
-#### 2. Vòng đời Trạng thái Đơn hàng (Order Lifecycle)
-Chu trình chuyển trạng thái tuần tự của đơn hàng:
-- **`Pending` (Chờ xử lý):** Đơn hàng vừa được khởi tạo thành công. Tồn kho đã được trừ ngay lập tức. Khách hàng có quyền chỉnh sửa địa chỉ (tối đa 1 lần) hoặc hủy đơn (nếu chưa thanh toán).
-- **`Confirmed` (Đã xác nhận):** Quản trị viên duyệt đơn hàng, chuẩn bị xuất kho.
-- **`Processing` (Đang đóng gói):** Bộ phận kho tiến hành đóng kiện thiết bị.
-- **`Shipping` (Đang giao hàng):** Đơn hàng được bàn giao cho đối tác vận chuyển.
-- **`Delivered` (Đã giao hàng):** Nhân viên giao vận đã phát kiện hàng tới người nhận.
-- **`Completed` (Đã nhận hàng):** Khách hàng nhấn xác nhận "Đã nhận hàng" hoặc đơn hàng tự động hoàn tất sau thời hạn quy định. Trạng thái thanh toán của đơn COD tự động chuyển sang `Paid`.
-- **`Cancelled` (Đã hủy):** Đơn hàng bị hủy. Hệ thống tự động kích hoạt tiến trình hoàn trả toàn bộ số lượng tồn kho của các biến thể về lại kho hàng và phục hồi voucher.
-
-#### 3. Chỉnh sửa Địa chỉ Giao nhận 1 Lần Duy Nhất (ORD-05)
-- Nhằm hỗ trợ khách hàng lỡ nhập sai số nhà hoặc số điện thoại mà không phải hủy đơn đặt lại:
-  - Khi đơn hàng đang ở trạng thái `Pending`, thành viên được quyền bấm nút "Đổi địa chỉ nhận hàng".
-  - Trường `ShippingAddressUpdateCount` trên bảng `sales.Orders` ghi nhận số lần sửa đổi.
-  - Giới hạn: **Tối đa đúng 1 lần duy nhất**. Sau khi cập nhật thành công, nút sửa địa chỉ biến mất và hiển thị badge "Đã cập nhật địa chỉ (1/1 lần)". Nếu cố tình can thiệp API để sửa lần 2, Backend sẽ lập tức từ chối với mã lỗi 400.
-
-#### 4. Bảo mật Toàn diện Trang Tra cứu Đơn hàng (ORD-07)
-- **Ẩn nút tra cứu khi đã đăng nhập:** Người dùng đăng nhập quản lý toàn bộ đơn hàng tại `/orders`. Trang `/order-lookup` chỉ phục vụ khách vãng lai chưa có tài khoản.
-- **Chỉ cho phép tra cứu đơn khách vãng lai (`UserId == null`):** Ngăn chặn tuyệt đối việc kẻ xấu lợi dụng số điện thoại của người khác để dò xem các đơn hàng của thành viên. Nếu mã đơn thuộc về thành viên, Backend trả về 404 Not Found.
-- **Chế độ Chỉ đọc (Read-only):** Không cung cấp nút hủy đơn công khai trên trang tra cứu để chống việc phá hoại hủy bậy đơn hàng của người khác.
+1. **Quy trình Đặt hàng Zero-Trust (ORD-01):**
+   - Khách hàng gửi thông tin giao nhận và danh sách các sản phẩm chọn mua.
+   - Backend hoàn toàn không tin tưởng đơn giá từ phía client gửi lên:
+     - Tự động truy vấn giá bán hiện hành (`UnitPrice`) và giá vốn (`CostPrice`) từ bảng `ProductVariants`.
+     - Tính toán lại toàn bộ `Subtotal`, `ShippingFee`, `DiscountAmount` và `TotalAmount`.
+     - Đóng băng toàn bộ thông tin tại thời điểm mua vào bảng `sales.OrderItems` (Snapshot bất biến: tên sản phẩm, tên biến thể, SKU, ảnh thumbnail, Dynamic Attributes JSON, đơn giá bán, giá vốn).
+2. **Vòng đời 6 Trạng thái Đơn hàng (Order Lifecycle):**
+   - **`Pending` (Chờ xử lý):** Đơn hàng vừa được khởi tạo thành công. Tồn kho đã được trừ ngay lập tức. Khách hàng có quyền chỉnh sửa địa chỉ (tối đa 1 lần) hoặc hủy đơn (nếu chưa thanh toán).
+   - **`Confirmed` (Đã xác nhận):** Quản trị viên duyệt đơn hàng, chuẩn bị xuất kho.
+   - **`Shipping` (Đang giao hàng):** Đơn hàng được bàn giao cho đối tác vận chuyển hỏa tốc.
+   - **`Delivered` (Đã giao hàng):** Nhân viên giao vận đã phát kiện hàng nguyên seal tới người nhận.
+   - **`Completed` (Hoàn tất đơn hàng):** Khách hàng nhấn xác nhận "Đã nhận hàng" hoặc đơn hàng tự động hoàn tất sau thời hạn quy định. Trạng thái thanh toán của đơn COD tự động chuyển sang `Paid`.
+   - **`Cancelled` (Đã hủy):** Đơn hàng bị hủy. Hệ thống tự động kích hoạt tiến trình hoàn trả toàn bộ số lượng tồn kho của các biến thể về lại kho hàng và phục hồi voucher.
+3. **Chỉnh sửa Địa chỉ Giao nhận 1 Lần Duy Nhất (ORD-05):**
+   - Khi đơn hàng đang ở trạng thái `Pending`, thành viên được quyền bấm nút "Đổi địa chỉ nhận hàng".
+   - Trường `ShippingAddressUpdateCount` trên bảng `sales.Orders` ghi nhận số lần sửa đổi.
+   - **Khóa cứng tối đa đúng 1 lần duy nhất**: Sau khi cập nhật thành công, nút sửa địa chỉ biến mất và hiển thị badge "Đã cập nhật địa chỉ (1/1 lần)". Nếu can thiệp API để sửa lần 2, Backend lập tức từ chối với mã lỗi 400.
+4. **Bảo Mật Tuyệt Đối Trang Tra Cứu Đơn Hàng (ORD-07):**
+   - **Ẩn nút tra cứu khi đã đăng nhập:** Người dùng đăng nhập quản lý toàn bộ đơn hàng tại `/orders`. Trang `/order-lookup` chỉ phục vụ khách vãng lai chưa có tài khoản.
+   - **Chỉ cho phép tra cứu đơn khách vãng lai (`UserId == null`):** Ngăn chặn tuyệt đối việc kẻ xấu lợi dụng số điện thoại của người khác để dò xem các đơn hàng của thành viên. Nếu mã đơn thuộc về thành viên, Backend trả về 404 Not Found.
+   - **Chế độ Chỉ đọc (Read-only):** Không cung cấp nút hủy đơn công khai trên trang tra cứu để chống việc phá hoại hủy bậy đơn hàng của người khác.
 
 ---
 
-## 8. Phân hệ Thanh toán Trực tuyến VNPay & Kiểm soát Tương tranh Đa tầng
+## 8. Phân hệ Thanh toán Trực tuyến VNPay, Webhook IPN Thực & Khả năng Retry Thanh toán Vô hạn
 
 ### 8.1. Bảng Tổng hợp Tính năng Thanh toán VNPay
 
-| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức |
+| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức HTTP |
 | :--- | :--- | :--- | :--- | :--- | :---: |
 | **PAY-01** | Tạo URL thanh toán VNPay khi Checkout | Khách vãng lai & Thành viên | `/checkout` | `/api/orders/checkout` | `POST` |
-| **PAY-02** | Xử lý phản hồi Return URL từ Trình duyệt | Khách hàng chuyển hướng về | `/checkout/success` | Nhận Query Params từ VNPay | `GET` |
-| **PAY-03** | Tiếp nhận Webhook IPN từ Server VNPay | Server VNPay gọi ngầm | Nền tảng Backend | `/api/orders/vnpay-ipn` | `GET` |
+| **PAY-02** | Xử lý phản hồi Return URL từ Trình duyệt | Khách hàng chuyển hướng về | `/payment/vnpay-return` | Nhận Query Params từ VNPay | `GET` |
+| **PAY-03** | Tiếp nhận Webhook IPN ngầm từ Server VNPay | Server VNPay gọi ngầm | Nền tảng Backend | `/api/payment/vnpay-return` | `GET` |
 | **PAY-04** | Thanh toán lại qua VNPay không giới hạn thời gian | Thành viên sở hữu đơn | `/orders` (Nút Thanh toán qua VNPay) | `/api/orders/{id}/repay-vnpay` | `POST` |
-| **PAY-05** | Kiểm soát tương tranh đa lớp chống Bán vượt kho | Nền tảng Backend | Mọi giao dịch tạo đơn | Bộ ba Lock 3 lớp | Xử lý ngầm |
-| **PAY-06** | Chặn tuyệt đối Hủy đơn khi đã Thanh toán thành công | Nền tảng Backend & Frontend | Mọi giao diện hủy đơn | Logic kiểm tra `PaymentStatus` | Chặn API & UI |
+| **PAY-05** | Kiểm soát tương tranh đa tầng chống bán vượt kho | Toàn bộ giao dịch tạo đơn | Nền tảng Backend | Bộ ba Lock 3 lớp | Xử lý ngầm |
+| **PAY-06** | Chặn tuyệt đối Hủy đơn khi đã Thanh toán thành công | Toàn bộ giao diện hủy đơn | Backend & Frontend | Logic kiểm tra `PaymentStatus` | Chặn API & UI |
 
 ### 8.2. Mô tả Chi tiết Cơ chế Kỹ thuật Phân hệ Thanh toán
 
-#### 1. Cơ chế Kiểm soát Tương tranh Đa Lớp (3-Tier Concurrency Defense - PAY-05)
-Bảo đảm tính toàn vẹn tuyệt đối cho kho hàng trong các đợt mở bán cao điểm:
-- **Lớp 1: In-Memory Lock với SemaphoreSlim & Lock Ordering:**
-  - Sử dụng `ConcurrentDictionary<int, SemaphoreSlim>` quản lý khóa theo từng mã biến thể `ProductVariantId`.
-  - **Nguyên tắc Lock Ordering chống Deadlock:** Sắp xếp danh sách biến thể trong đơn hàng theo ID tăng dần (`OrderBy(x => x.VariantId)`) trước khi xin khóa. Cơ chế này loại bỏ hoàn toàn nguy cơ deadlock chéo giữa các đơn hàng mua cùng lúc nhiều sản phẩm.
-- **Lớp 2: Giao dịch Cơ sở Dữ liệu Toàn vẹn (ACID Transaction):**
-  - Toàn bộ thao tác: Đọc tồn kho $\rightarrow$ Kiểm tra đủ hàng $\rightarrow$ Trừ tồn kho $\rightarrow$ Tạo đơn `Orders` $\rightarrow$ Lưu chi tiết `OrderItems` $\rightarrow$ Xóa giỏ hàng được đóng gói trong một `IDatabaseTransaction` duy nhất. Nếu có lỗi, toàn bộ thao tác tự động Rollback nguyên trạng.
-- **Lớp 3: Khóa lạc quan Cơ sở Dữ liệu (`RowVersion`):**
-  - Cột `RowVersion` trên bảng `catalog.ProductVariants` phát hiện và ném `DbUpdateConcurrencyException` nếu có bất kỳ tiến trình nào sửa đổi dữ liệu đồng thời.
-
-#### 2. Quy tắc Nghiệp vụ Tồn kho & Chặn Hủy đơn Thanh toán (PAY-06)
-- **Trừ kho tức thì:** Ngay khi tạo đơn hàng thành công ở trạng thái `Pending`, số lượng tồn kho được trừ ngay cho dù phương thức là COD hay VNPay. Điều này giúp giữ hàng công bằng cho khách hàng, tránh việc khách hàng đã thanh toán xong qua cổng VNPay nhưng sau đó bị báo hết hàng.
-- **Chặn tuyệt đối Hủy đơn khi `PaymentStatus = Paid`:**
-  - Khi khách hàng đã thanh toán thành công (qua Return URL hoặc IPN Webhook), trường `PaymentStatus` chuyển sang `Paid`.
-  - Backend kiểm tra điều kiện `if (order.PaymentStatus == PaymentStatus.Paid) throw new DomainException(...)`, từ chối 100% mọi yêu cầu hủy đơn qua API.
-  - Thuộc tính DTO `CanCancel => Status == "Pending" && PaymentStatus != "Paid"`.
-  - Frontend ẩn hoàn toàn nút "Hủy đơn hàng" trên trang "Đơn hàng của tôi" và vô hiệu hóa tùy chọn "Hủy đơn" trên giao diện Admin.
-
-#### 3. Thanh toán lại Linh hoạt Không Giới Hạn Thời Gian (PAY-04)
-- Gỡ bỏ hoàn toàn giới hạn 15 phút.
-- Khách hàng sở hữu đơn hàng `VNPAY` ở trạng thái `Pending` và chưa thanh toán (`PaymentStatus != Paid`) có thể quay lại mục "Đơn hàng của tôi" bất cứ lúc nào và bấm nút **"Thanh toán qua VNPay"**.
-- API `/api/orders/{id}/repay-vnpay` sinh ra URL thanh toán VNPay mới toanh với mã tham chiếu giao dịch độc nhất và mốc thời gian UTC+7 hiện tại, giúp khách hàng thanh toán thành công ngay cả khi đổi thẻ hoặc nạp thêm tiền sau đó.
-
-#### 4. Quy trình Xác thực Kép: Return URL & IPN Webhook (PAY-02 & PAY-03)
-- **Mã hóa băm HMAC-SHA512:** Cả 2 kênh đều kiểm tra chữ ký số bí mật bằng `HashSecret`. Nếu tham số trên URL bị kẻ xấu can thiệp sửa đổi, mã băm sẽ không khớp và giao dịch lập tức bị từ chối.
-- **Tính Idempotent chống ghi nhận lặp:** Khi máy chủ VNPay gọi IPN Webhook nhiều lần cho cùng một giao dịch, hệ thống kiểm tra trạng thái đơn: nếu đã là `Paid`, hệ thống bỏ qua việc cập nhật và phản hồi ngay mã chuẩn `{"RspCode":"02","Message":"Order already confirmed"}` cho VNPay.
+1. **Khác Biệt Quyết Định: Webhook IPN Thực vs Báo Thanh Toán Ảo:**
+   - Không bao giờ cập nhật trạng thái đơn hàng chỉ dựa trên hành động bấm nút của người dùng hay việc chuyển hướng URL trình duyệt thông thường.
+   - **Chỉ khi nhận được phản hồi chính thức từ VNPay qua kênh Webhook IPN kèm mã `vnp_ResponseCode == "00"` và chữ ký số HMAC-SHA512 khớp 100%**, đơn hàng mới được chuyển trạng thái thanh toán sang `Paid` và trạng thái đơn sang `Confirmed`.
+   - Nếu khách hàng đóng trình duyệt, mất mạng hoặc hủy ngang tại cổng VNPay: Đơn hàng vẫn giữ nguyên trạng thái `Pending` và `PaymentStatus = Pending`.
+2. **Khả Năng Retry Thanh Toán Vô Hạn (PAY-04):**
+   - Loại bỏ hoàn toàn sự ức chế khi thanh toán thất bại: Khách hàng chỉ cần truy cập vào mục "Đơn hàng của tôi" (`/orders`), tìm đơn hàng VNPay đang ở trạng thái `Pending`, bấm nút **"Thanh toán qua VNPay"**.
+   - Hệ thống sinh ngay URL thanh toán mới với mã giao dịch độc nhất và thời gian thực hiện tại. Khách hàng nạp tiền vào thẻ xong là có thể thanh toán tiếp ngay, không phải tạo lại đơn hàng, không lo bị mất voucher hay mất cấu hình máy đã chọn.
+3. **Chặn Tuyệt Đối Hủy Đơn Sau Khi Đã Thanh Toán Thành Công (PAY-06):**
+   - Khi đơn hàng có `PaymentStatus == Paid`, Backend ném ngoại lệ cấm hủy đơn: `throw new DomainException("Đơn hàng đã được thanh toán trực tuyến thành công, không thể hủy bỏ.")`.
+   - Frontend ẩn hoàn toàn nút "Hủy đơn hàng" trên trang chi tiết đơn và vô hiệu hóa nút hủy đơn trên Admin Portal.
+4. **Cơ Chế Kiểm Soát Tương Tranh Đa Lớp (3-Tier Concurrency Defense - PAY-05):**
+   - **Tầng 1 (In-Memory Lock với SemaphoreSlim):** Cấp phát khóa độc quyền theo `VariantId`. Bắt buộc sắp xếp danh sách mã biến thể theo thứ tự tăng dần (`OrderBy(x => x.VariantId)`) trước khi xin khóa để triệt tiêu hoàn toàn nguy cơ Deadlock chéo giữa các luồng.
+   - **Tầng 2 (ACID Database Transaction):** Đóng gói toàn bộ thao tác kiểm tra tồn kho, trừ tồn kho, tạo đơn hàng và xóa giỏ hàng trong một `IDatabaseTransaction`. Bất kỳ lỗi nào phát sinh đều kích hoạt `ROLLBACK` nguyên trạng.
+   - **Tầng 3 (Khóa Lạc Quan RowVersion):** Cột `RowVersion` trên bảng `catalog.ProductVariants` phát hiện mọi cập nhật song song và ném `DbUpdateConcurrencyException`, ngăn chặn bán vượt quá số lượng hàng có trong kho.
 
 ---
 
-## 9. Phân hệ Cổng Quản trị & Vận hành Đơn hàng (Admin Portal)
+## 9. Phân hệ Cổng Quản trị Vận hành & Quản lý Người dùng (Admin Portal)
 
 ### 9.1. Bảng Tổng hợp Màn hình Quản trị
 
-| Mã tính năng | Tên màn hình / Chức năng | Phân quyền | URL Giao diện |
+| Mã tính năng | Tên màn hình / Chức năng | Phân quyền | Giao diện URL |
 | :--- | :--- | :--- | :--- |
-| **ADM-01** | Bảng điều khiển tổng quan (Dashboard thống kê) | Quản trị viên | `/admin/dashboard` |
-| **ADM-02** | Quản trị Danh mục sản phẩm (Categories) | Quản trị viên | `/admin/categories` |
+| **ADM-01** | Bảng điều khiển tổng quan (Dashboard thời gian thực) | Quản trị viên | `/admin/dashboard` |
+| **ADM-02** | Quản trị Danh mục sản phẩm (Categories CRUD) | Quản trị viên | `/admin/categories` |
 | **ADM-03** | Quản trị Thuộc tính Cấu hình (Màu sắc & Dung lượng) | Quản trị viên | `/admin/colors`, `/admin/storage-options` |
-| **ADM-04** | Quản trị Sản phẩm & Biến thể chuyên sâu | Quản trị viên | `/admin/products` |
-| **ADM-05** | Quản trị Đơn hàng & Ngăn kéo Chi tiết (Order Drawer) | Quản trị viên | `/admin/orders` |
-| **ADM-06** | Chuyển trạng thái Đơn hàng tuần tự & Ghi chú | Quản trị viên | `/admin/orders` (Modal trạng thái) |
-| **ADM-07** | Quản trị Người dùng & Phân quyền vai trò (RBAC) | Quản trị viên cấp cao | `/admin/users`, `/admin/roles` |
-| **ADM-08** | Cài đặt hệ thống & Hồ sơ quản trị viên | Quản trị viên | `/admin/settings`, `/admin/profile` |
-| **ADM-09** | Báo cáo Thống kê Đơn hàng, Dòng tiền & Xuất Excel OpenXML | Quản trị viên | `/admin/reports` |
+| **ADM-04** | Quản trị Sản phẩm & Biến thể toàn trang chuyên sâu | Quản trị viên | `/admin/products`, `/admin/products/:id` |
+| **ADM-05** | Quản trị Đơn hàng & Drawer xem chi tiết | Quản trị viên | `/admin/orders` |
+| **ADM-06** | Cập nhật Trạng thái Đơn hàng tuần tự & Ghi chú | Quản trị viên | `/admin/orders` (Modal trạng thái) |
+| **ADM-07** | Quản trị Người dùng & Khóa/Mở tài khoản | Quản trị viên cấp cao | `/admin/users` |
+| **ADM-08** | Quản trị Vai trò & Phân quyền hệ thống (RBAC) | Quản trị viên cấp cao | `/admin/roles` |
+| **ADM-09** | Cài đặt hệ thống & Hồ sơ cá nhân Quản trị | Quản trị viên | `/admin/settings`, `/admin/profile` |
 
-### 9.2. Bảng Điều Khiển Tổng Quan Hệ Thống (ADM-01 Dashboard)
-- **Khối Thẻ Chỉ Số Hiệu Suất Cốt Lõi (Core Metrics Cards):**
-  - *Doanh thu thực thu:* Tổng tiền từ các đơn hàng thành công (`Completed`, `Delivered`) và không bị hoàn tiền (`PaymentStatus != Refunded`). So sánh tăng trưởng với chu kỳ trước (ngày/tuần/tháng); nếu chu kỳ trước = 0, hiển thị huy hiệu "Mới phát sinh" thay vì gán 100%.
-  - *Doanh số gộp ước tính:* Tổng giá trị đơn hàng phát sinh trong kỳ trừ đi đơn hủy/hoàn, kèm số tiền voucher ưu đãi đã áp dụng.
-  - *Tổng số đơn hàng:* Số lượng đơn phát sinh kèm biến động số lượng so với kỳ trước.
-  - *Tỷ lệ đơn thành công:* Tỷ lệ đơn giao thành công trên tổng đơn, kèm tỷ lệ đơn bị hủy/hoàn.
-  - *Giá trị đơn hàng trung bình (AOV):* Doanh thu thực thu chia cho tổng số đơn thành công (mẫu số = 0 thì AOV = 0đ).
-- **Trung Tâm Hành Động Khẩn Cấp (Action Center):** 5 hàng đợi điều hành gồm *Chờ xác nhận*, *Chờ giao hàng*, *Sắp hết hàng* (< 10 sản phẩm), *Đã hết hàng* (0 sản phẩm), và *Khiếu nại / Hủy đơn*. Bấm vào hàng đợi tự động điều hướng sang màn hình quản lý tương ứng với bộ lọc đã áp dụng sẵn.
-- **Biểu Đồ Trực Quan Hóa Đa Chiều:**
-  - Biểu đồ xu hướng doanh thu kép (Doanh thu & Số lượng đơn theo ngày).
-  - Biểu đồ tỷ lệ kênh thanh toán (VNPAY trực tuyến vs Tiền mặt COD).
-  - Biểu đồ cơ cấu số lượng tồn kho theo danh mục sản phẩm Apple (iPhone, iPad, Mac, Watch, Phụ kiện).
-- **Bảng Xếp Hạng Doanh Thu & Khách Hàng:**
-  - *Top 5 Sản phẩm bán chạy nhất:* Tổng hợp số lượng bán và doanh thu **chỉ tính trên các đơn hàng thành công**, loại bỏ hoàn toàn đơn ảo/đơn hủy.
-  - *Top 5 Khách hàng thân thiết:* Tổng hợp doanh số thực tế khách đã chi trả thành công.
+### 9.2. Mô tả Chi tiết Nghiệp vụ Quản trị
 
-### 9.3. Mô tả Chi tiết Nghiệp vụ Quản trị Đơn hàng (ADM-05 & ADM-06)
-- **Bộ lọc & Tìm kiếm:** Phân trang danh sách đơn hàng, tìm kiếm tức thì theo mã đơn hàng, tên người nhận, số điện thoại hoặc email; lọc theo trạng thái đơn hàng (`Chờ xử lý`, `Đã xác nhận`, `Đang giao`, `Đã giao`, `Đã nhận hàng`, `Đã hủy`) và phương thức thanh toán.
-- **Ngăn kéo (Drawer) Chi tiết Đơn hàng:**
-  - Hiển thị thông tin người nhận, địa chỉ giao hàng và huy hiệu số lần cập nhật địa chỉ.
-  - Hiển thị danh sách snapshot các mặt hàng đã mua kèm hình ảnh, tên biến thể, đơn giá, số lượng và thành tiền.
-  - Hiển thị timeline nhật ký tiến trình (`StatusHistoryJson`) ghi nhận từng mốc thời gian, trạng thái chuyển đổi, người thực hiện và lý do/ghi chú.
-- **Kiểm soát Chuyển trạng thái Tuần tự:** Quản trị viên chỉ được phép chuyển trạng thái theo quy trình hợp lệ (`Pending` $\rightarrow$ `Confirmed` $\rightarrow$ `Shipping` $\rightarrow$ `Delivered` $\rightarrow$ `Completed`). Không được phép nhảy cóc trạng thái trái quy luật.
-- **Vô hiệu hóa Hủy đơn đã Thanh toán:** Khi đơn hàng đã có `PaymentStatus == 'Paid'`, giao diện quản trị tự động vô hiệu hóa lựa chọn "Hủy đơn", kèm chú thích hướng dẫn thực hiện theo quy trình Hoàn tiền (Refund) có biên bản đối soát.
-
-### 9.4. Báo Cáo Thống Kê Đơn Hàng, Dòng Tiền & Xuất Excel Chuẩn OpenXML (ADM-09 Reports)
-- **Kiến Trúc Tách Biệt Khối Số Liệu Cố Định:**
-  - Giao diện báo cáo tách độc lập làm 2 tầng dữ liệu: Khối thẻ KPI tổng quan trên cùng **luôn cố định theo khoảng thời gian lọc** (Từ ngày - Đến ngày) và độc lập hoàn toàn với bộ lọc trạng thái đơn hàng.
-  - Khi quản trị viên bấm chọn lọc trạng thái ở bảng bên dưới (ví dụ: chỉ lọc đơn "Chờ xử lý" hoặc "Đã hủy"), chỉ có bảng danh sách chi tiết và các phân bổ phía dưới thay đổi; khối KPI tài chính trên đầu vẫn giữ nguyên vẹn tổng thể kỳ báo cáo.
-- **Khối Thẻ KPI Tài Chính & Vận Hành Chuyên Sâu:**
-  - *Doanh thu thực thu:* Tổng tiền từ đơn `Completed`/`Delivered`, không bị `Refunded`.
-  - *Doanh số gộp:* Hiển thị song song Tổng phát sinh gộp danh nghĩa (`TotalGrossAmount`) và Doanh số gộp hiệu dụng (`NetGrossAmount`) sau khi trừ đơn Hủy/Hoàn.
-  - *Tổng đơn hàng & Tổng khách hàng:* Số lượng đơn và số lượng khách hàng duy nhất phát sinh giao dịch trong kỳ.
-  - *Tỷ lệ thành công & Đơn giá trung bình (AOV):* Tính chuẩn xác trên tập đơn hoàn tất, không lấp liếm bằng số ước tính.
-- **Hệ Thống 5 Tab Biểu Đồ Phân Tích Chuyên Sâu:**
-  - *Tab 1: Xu hướng Doanh thu:* Biểu đồ cột kép kết hợp đường xu hướng thể hiện doanh thu thực tế và số lượng đơn hàng theo từng ngày.
-  - *Tab 2: Kênh Thanh toán:* Biểu đồ tròn so sánh tỷ trọng giá trị và số lượng đơn giữa VNPay và COD.
-  - *Tab 3: Phân khúc Khách hàng:* Thống kê tỷ trọng đơn hàng và doanh số giữa Thành viên đã đăng ký tài khoản và Khách vãng lai.
-  - *Tab 4: Cơ cấu Dòng tiền:* Phân tích trực quan 3 luồng dòng tiền: An toàn (đã giao thành công), Đang luân chuyển (đang giao/xử lý, bao gồm đơn VNPay đã thanh toán nhưng chưa giao xong) và Tổn thất (đơn hủy/hoàn tiền).
-  - *Tab 5: Phân tích Sản phẩm:* Bảng xếp hạng Top 5 sản phẩm bán chạy nhất (mang lại doanh thu cao nhất) và Top 5 sản phẩm kén khách nhất (tồn kho nhiều nhưng sức mua thấp) để kịp thời đưa ra chương trình khuyến mãi.
-- **Module Xuất Báo Cáo Excel OpenXML Chuẩn (.xlsx) Bằng ClosedXML:**
-  - *Cấu trúc bảng phẳng cấp độ mục hàng (Item-level Flat List):* Mỗi dòng trong file Excel tương ứng với một sản phẩm trong đơn hàng.
-  - *Cột dữ liệu chuẩn hóa:* STT, Mã đơn hàng, Ngày đặt, Khách hàng, Số điện thoại, Kênh thanh toán, Trạng thái đơn, Tên sản phẩm, Mã SKU, Đơn giá, Số lượng, Thành tiền món, Tiền hàng (Subtotal), Giảm giá voucher, Phí ship, Tổng tiền đơn (TotalAmount), và Cột **Phân loại dòng tiền** (*An toàn*, *Đang luân chuyển*, *Tổn thất*).
-  - *Khối chú thích nghiệp vụ chuẩn:* Đặt tại dòng 4 ngay dưới tiêu đề báo cáo cửa hàng Urban Stitch, giải thích rõ quy ước tài chính và cách thức phân loại dòng tiền cho bộ phận kế toán.
-  - *Đồng bộ bộ lọc 100%:* API xuất Excel tiếp nhận chính xác tham số ngày tháng, trạng thái đơn và kênh thanh toán đang chọn trên giao diện, đảm bảo tổng tiền trên file Excel khớp 100% với số liệu hiển thị trên trang báo cáo.
-- **Cẩm Nang Chú Thích Thuật Ngữ Báo Cáo (`ReportGlossary`):** Tích hợp component chú thích tương tác ngay trên trang Báo cáo, phân loại theo 4 tab chuyên đề (*Chỉ số Tài chính*, *Chỉ số Vận hành*, *Cơ cấu Dòng tiền*, *Quy chuẩn Xuất Excel*) giúp mọi nhân sự vận hành hiểu tường tận nguồn gốc và công thức của từng con số hiển thị.
+1. **Quản trị Đơn hàng & Nhật Ký Kiểm Toán (ADM-05 & ADM-06):**
+   - Phân trang danh sách đơn hàng, tìm kiếm tức thì theo mã đơn hàng, tên người nhận, số điện thoại hoặc email.
+   - Lọc nhanh theo 6 trạng thái đơn hàng và phương thức thanh toán.
+   - **Cập nhật trạng thái tuần tự:** Ngăn chặn việc nhảy cóc trạng thái (ví dụ từ *Chờ xử lý* không được nhảy ngay lên *Hoàn tất* mà phải qua *Đã xác nhận* $\rightarrow$ *Đang giao*).
+   - Mọi lần chuyển đổi trạng thái đều được lưu vết chi tiết vào trường `StatusHistoryJson` kèm mốc thời gian UTC và ghi chú kiểm toán.
+2. **Quản trị Người Dùng & Khóa Tài Khoản (ADM-07):**
+   - Danh sách người dùng hệ thống kèm thông tin vai trò, trạng thái kích hoạt và ngày đăng ký.
+   - Tính năng Khóa/Mở khóa tài khoản an toàn (`ToggleActive`): Tài khoản bị khóa lập tức bị vô hiệu hóa Refresh Token và không thể đăng nhập vào hệ thống.
 
 ---
 
-## 10. Phân hệ Tự động hóa Hạ tầng, Container Docker & Môi trường Triển khai
+## 10. Động cơ Báo cáo Thống kê & Xuất Excel Doanh nghiệp (Business Intelligence)
 
-### 10.1. Bảng Tổng hợp Tính năng Tự động hóa Hạ tầng
+### 10.1. Bảng Tổng hợp Tính năng Báo cáo
 
-| Mã tính năng | Thành phần / Module | Công nghệ sử dụng | Mục đích & Trách nhiệm kỹ thuật |
-| :--- | :--- | :--- | :--- |
-| **OPS-01** | Khởi chạy Toàn diện với 1 Lệnh duy nhất | Docker & Docker Compose | Đóng gói toàn bộ 4 dịch vụ (`sqlserver`, `backend`, `frontend`, `ngrok`), cấu hình hoàn chỉnh thông qua file `.env` duy nhất. |
-| **OPS-02** | Khởi động Tuần tự có Kiểm tra Sức khỏe | Docker Compose Healthchecks | `backend` chỉ khởi chạy khi `sqlserver` đã sẵn sàng nhận kết nối mạng (port 1433); `frontend` chỉ khởi chạy khi `backend` đã phản hồi HTTP 200 tại endpoint `/api/health`. |
-| **OPS-03** | Tự động hóa Migration & Nạp Seed Data An Toàn | ASP.NET Core EF Core Migration | Tự động áp dụng Migration mới nhất khi khởi động; tự động nạp dữ liệu mẫu ban đầu (`data-test.sql`) đúng **1 lần duy nhất** khi tạo DB mới, chống ghi đè dữ liệu đang có. |
-| **OPS-04** | Đường hầm Webhook Public cho VNPay Sandbox | Ngrok Container | Tự động lấy Public URL từ container Ngrok để làm cấu hình `PaymentUrl` và `VnpIpnUrl`, cho phép nhận Webhook từ cổng VNPay Sandbox về môi trường phát triển local. |
+| Mã tính năng | Tên tính năng | Đối tượng áp dụng | Giao diện URL | API Endpoint | Phương thức HTTP |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **REP-01** | Báo cáo 6 Thẻ đo lường KPI Hiệu suất | Quản trị viên | `/admin/reports` | `/api/manager/reports/kpi` | `GET` |
+| **REP-02** | Biểu đồ Xu hướng Doanh thu Kép đa kỳ | Quản trị viên | `/admin/reports` | `/api/manager/reports/revenue-chart` | `GET` |
+| **REP-03** | Khối Phân bổ 6 Trạng thái Đơn hàng | Quản trị viên | `/admin/reports` | `/api/manager/reports/status-distribution` | `GET` |
+| **REP-04** | Biểu đồ Cơ cấu Kênh Thanh toán (VNPAY vs COD) | Quản trị viên | `/admin/reports` | `/api/manager/reports/payment-methods` | `GET` |
+| **REP-05** | Biểu đồ Cơ cấu Tồn kho theo 7 Ngành hàng Apple | Quản trị viên | `/admin/reports` | `/api/manager/reports/inventory-category` | `GET` |
+| **REP-06** | Xuất Báo cáo Đơn hàng ra Excel OpenXML chuẩn | Quản trị viên | `/admin/reports` | `/api/manager/reports/export-excel` | `GET` |
+
+### 10.2. Mô tả Chi tiết Bộ Chỉ Số & Định Dạng Báo Cáo
+
+1. **Bộ Chỉ Số Hiệu Suất Cốt Lõi (Core Metrics Cards):**
+   - *Doanh thu thực thu:* Tổng tiền từ các đơn hàng thành công (`Completed`, `Delivered`) và không bị hoàn tiền (`PaymentStatus != Refunded`).
+   - *Doanh số gộp ước tính:* Tổng giá trị đơn hàng phát sinh trong kỳ trừ đi đơn hủy/hoàn, kèm số tiền voucher ưu đãi đã áp dụng.
+   - *Tổng số đơn hàng:* Số lượng đơn phát sinh trong kỳ.
+   - *Tỷ lệ đơn thành công:* Tỷ lệ đơn giao thành công trên tổng số đơn.
+   - *Giá trị đơn hàng trung bình (AOV):* Doanh thu thực thu chia cho tổng số đơn thành công.
+   - *Tiền voucher ưu đãi:* Tổng ngân sách chiết khấu khuyến mãi đã áp dụng.
+2. **Bộ Lọc Thời Gian Nhanh Toàn Diện:**
+   - 8 mốc thời gian định sẵn: *Hôm nay, Hôm qua, 7 ngày qua, 30 ngày qua, Tháng này, Tháng trước, Năm nay, Tùy chỉnh khoảng ngày*.
+3. **Xuất Tệp Báo Cáo Excel OpenXML Chuẩn Doanh Nghiệp (REP-06):**
+   - Sử dụng thư viện `ClosedXML` sinh ra tệp bảng tính `.xlsx` từ luồng stream dữ liệu bộ nhớ, không ghi tệp rác lên ổ cứng.
+   - Bảng tính được định dạng chuyên nghiệp: Header tiêu đề doanh nghiệp thương hiệu Urban Stitch, ngày xuất, độ rộng cột tự động điều chỉnh (`AdjustToContents`), định dạng tiền tệ VND chuẩn mực (`#,##0 đ`), và danh sách chi tiết toàn bộ đơn hàng thỏa mãn bộ lọc.
 
 ---
 
-### 10.2. Chi tiết Kiến trúc Đóng gói & Phối hợp 4 Container
+## 11. Tự động hóa Hạ tầng & Container Docker Tuần tự (Docker Orchestration)
 
-| Tên Container | Hình ảnh cơ sở (Base Image) | Cổng lắng nghe (Ports) | Trách nhiệm trong hệ sinh thái Urban Stitch |
-| :--- | :--- | :---: | :--- |
-| **`apple-store-sqlserver`** | `mcr.microsoft.com/mssql/server:2022-latest` | `14333:1433` | Lưu trữ toàn bộ dữ liệu quan hệ của hệ thống, quản lý 3 schemas độc lập (`catalog`, `sales`, `identity`), đảm bảo các ràng buộc toàn vẹn, giao dịch ACID và khóa lạc quan `rowversion`. |
-| **`apple-store-backend`** | Multi-stage: SDK `.NET 8` $\rightarrow$ ASP.NET Runtime | `8088:8080` | Tiếp nhận và xử lý toàn bộ logic Web API, xác thực JWT, kết nối SQL Server, tích hợp thanh toán VNPay, upload ảnh Cloudinary CDN và chuẩn hóa `ApiResponse`. Tích hợp endpoint Healthcheck tại `/api/health`. |
-| **`apple-store-frontend`** | Multi-stage: `Node 20 Alpine` $\rightarrow$ `Nginx Alpine` | `3088:80` | Phục vụ mã tĩnh Single Page Application (React 19 + TypeScript). Cấu hình Nginx điều hướng `try_files $uri $uri/ /index.html` hỗ trợ HTML5 History Mode cho React Router, tối ưu nén Gzip và bảo mật HTTP headers. |
-| **`apple-store-ngrok`** | `ngrok/ngrok:latest` | `4040:4040` | Mở đường hầm bảo mật (Secure Tunnel) từ Internet tới container `apple-store-backend`, cung cấp tên miền HTTPS công khai cho Webhook IPN của VNPay Sandbox gọi callback về môi trường local mà không cần mở port modem. |
+### 11.1. Bảng Dịch vụ Docker Compose
 
----
+| Dịch vụ Container | Image cơ sở | Cổng Host:Container | Cơ chế Kiểm tra Sức khỏe (Healthcheck) | Phụ thuộc khởi động (Depends On) |
+| :--- | :--- | :---: | :--- | :--- |
+| **`sqlserver`** | `mcr.microsoft.com/mssql/server:2022-latest` | `14333:1433` | Lệnh `sqlcmd -S localhost -Q 'SELECT 1'` mỗi 5 giây | Không phụ thuộc |
+| **`db-init`** | `mcr.microsoft.com/mssql/server:2022-latest` | Không mở cổng | Khởi chạy script bash kiểm tra và nạp database idempotent | Phụ thuộc `sqlserver` (Healthy) |
+| **`backend`** | Multi-stage build .NET 8 SDK & Runtime | `8088:8080` | Lệnh `curl -f http://localhost:8080/health` mỗi 5 giây | Phụ thuộc `sqlserver` (Healthy) & `db-init` (Completed Successfully) |
+| **`frontend`** | Multi-stage build Node.js & Nginx Alpine | `3088:80` | Nginx web server lắng nghe yêu cầu | Phụ thuộc `backend` (Healthy) |
+| **`ngrok`** | `ngrok/ngrok:latest` | `4040:4040` | Tunnel kết nối cổng 8080 của backend | Phụ thuộc `backend` (Healthy) |
 
-### 10.3. Quy trình Tự động hóa Vận hành & Bảo vệ Dữ liệu
+### 11.2. Trình Tự Khởi Chạy Deterministic Tuyệt Đối An Toàn
 
-| Quy trình | Cơ chế kỹ thuật | Lợi ích thực tiễn |
-| :--- | :--- | :--- |
-| **Đóng gói Multi-stage Build** | Tách biệt môi trường Build (nặng) và Runtime (nhẹ) cho cả Backend (.NET) và Frontend (Vite + Nginx). | Giảm dung lượng Image từ hàng Gigabyte xuống còn vài chục Megabyte, tối ưu hóa tốc độ tải và giảm thiểu bề mặt tấn công bảo mật. |
-| **Kiểm tra Sức khỏe Tuần tự (Healthchecks)** | Docker Compose giám sát trạng thái `service_healthy`. Container sau chỉ khởi động khi container phụ thuộc trước đó đã thực sự sẵn sàng phục vụ. | Triệt tiêu hoàn toàn lỗi crash khi khởi chạy do Backend cố gắng kết nối tới Database khi SQL Server chưa khởi tạo xong. |
-| **Nạp Dữ liệu Mẫu An Toàn 1 Lần Duy Nhất** | Kiểm tra cờ bảng dữ liệu trước khi nạp tập lệnh `data-test.sql`. | Đảm bảo khi khởi chạy hệ thống trên máy mới chỉ cần gõ đúng 1 lệnh là có ngay cơ sở dữ liệu mẫu đầy đủ sản phẩm Apple, đồng thời bảo vệ an toàn không ghi đè mất dữ liệu khi khởi động lại các lần tiếp theo. |
-| **Quản trị Cấu hình Tập trung qua `.env`** | Toàn bộ chuỗi kết nối, khóa bí mật JWT, API Key Cloudinary, tham số VNPay (`TmnCode`, `HashSecret`) và Ngrok Auth Token được định nghĩa tại file `.env` duy nhất ở thư mục gốc. | Giúp việc triển khai lên máy mới hoặc chuyển đổi giữa các môi trường (Development, Staging, Production) diễn ra tức thì mà không cần sửa đổi bất kỳ dòng mã nguồn nào. |
+1. **Bước 1 (Pull & Build):** Docker tiến hành pull và build images cho toàn bộ dịch vụ. Backend và Frontend **tuyệt đối chưa được kích hoạt**.
+2. **Bước 2 (SQL Server & Idempotent Database Seeding):**
+   - Container `sqlserver` khởi động. Khi lệnh `SELECT 1` thành công, container chuyển sang `Healthy`.
+   - Container `db-init` khởi động: đọc biến môi trường `${DB_NAME:-AppleStoreDb}` từ file `.env`. Nếu chưa có database, tự động tạo mới `CREATE DATABASE`.
+   - Kiểm tra số lượng sản phẩm trong bảng `[catalog].[Products]`. Nếu chưa có dữ liệu: tự động nạp `seed-data.sql` tạo 27 bảng, 48 dòng máy Apple (2022-2026), 298 biến thể, voucher và 45 đơn hàng mẫu. Nếu đã có dữ liệu: lập tức bỏ qua để bảo toàn dữ liệu.
+   - `db-init` hoàn thành và thoát với mã 0 (`service_completed_successfully`).
+3. **Bước 3 (Backend Initialization):**
+   - Container `backend` khởi động: kết nối tới cơ sở dữ liệu đã chuẩn bị sẵn sàng, đồng bộ EF Core Migrations, thực thi `ApplicationDbSeeder`. Khi endpoint `/health` trả về 200 OK, `backend` chuyển sang `Healthy`.
+4. **Bước 4 (Frontend & Ngrok Startup):**
+   - Container `frontend` và `ngrok` khởi động. Khách hàng truy cập ngay tại `http://localhost:3088` với đầy đủ dữ liệu hoàn mỹ sẵn sàng.

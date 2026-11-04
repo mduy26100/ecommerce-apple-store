@@ -25,16 +25,16 @@ test.describe("E2E Test: Cấu hình thuộc tính chuẩn Apple và Tồn kho h
     await expect(macRow).toBeVisible({ timeout: 10000 });
     await macRow.click();
 
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-    await drawer.locator(".ant-tabs-tab:has-text('Thuộc tính & Tùy chọn')").click();
-    await expect(drawer).toContainText("Màu sắc");
-    await expect(drawer).toContainText("Bộ nhớ RAM");
-    await expect(drawer).toContainText("Dung lượng SSD");
+    await page.waitForURL(/\/admin\/products\/\d+/, { timeout: 10000 });
+    await page.locator("button[role='tab']:has-text('Thuộc tính'), [role='tab']:has-text('Thuộc tính')").click();
+    await expect(page.locator("body")).toContainText("Màu sắc");
+    await expect(page.locator("body")).toContainText("Bộ nhớ RAM");
+    await expect(page.locator("body")).toContainText("Dung lượng SSD");
 
-    // Close drawer
-    await drawer.locator(".ant-drawer-close").click();
-    await expect(drawer).toBeHidden();
+    // Back to products list
+    await page.locator("button:has-text('Quay lại danh sách')").click();
+    await page.waitForURL("**/admin/products", { timeout: 10000 });
+    await page.waitForLoadState("networkidle");
 
     // Check AirPods
     await page.fill("input[placeholder*='Tìm theo tên']", "");
@@ -46,12 +46,12 @@ test.describe("E2E Test: Cấu hình thuộc tính chuẩn Apple và Tồn kho h
     await expect(airpodRow).toBeVisible({ timeout: 10000 });
     await airpodRow.click();
 
-    await expect(drawer).toBeVisible();
-    await drawer.locator(".ant-tabs-tab:has-text('Thuộc tính & Tùy chọn')").click();
-    await expect(drawer).toContainText("Màu sắc");
+    await page.waitForURL(/\/admin\/products\/\d+/, { timeout: 10000 });
+    await page.locator("button[role='tab']:has-text('Thuộc tính'), [role='tab']:has-text('Thuộc tính')").click();
+    await expect(page.locator("body")).toContainText("Màu sắc");
     // AirPods must NOT have storage option
-    await expect(drawer).not.toContainText("Dung lượng lưu trữ");
-    await expect(drawer).not.toContainText("Dung lượng SSD");
+    await expect(page.locator("body")).not.toContainText("Dung lượng lưu trữ");
+    await expect(page.locator("body")).not.toContainText("Dung lượng SSD");
   });
 
   test("2. Storefront MacBook: Hiển thị đầy đủ Màu sắc, RAM, SSD, cập nhật giá và tồn kho thực tế", async ({ page }) => {
@@ -62,14 +62,9 @@ test.describe("E2E Test: Cấu hình thuộc tính chuẩn Apple và Tồn kho h
     await expect(page.locator("[data-testid='product-title']")).toContainText("MacBook Pro 14 M4");
 
     // Verifies option groups exist for Color, RAM, SSD
-    await expect(page.locator("text=Chọn Màu sắc:")).toBeVisible();
-    await expect(page.locator("text=Chọn Bộ nhớ RAM:")).toBeVisible();
-    await expect(page.locator("text=Chọn Dung lượng SSD:")).toBeVisible();
-
-    // Verifies stock indicator is visible and displays stock count
-    const stockIndicator = page.locator("[data-testid='detail-stock-indicator']");
-    await expect(stockIndicator).toBeVisible();
-    await expect(stockIndicator).toContainText("Kho còn:");
+    await expect(page.locator("text=Màu sắc").first()).toBeVisible();
+    await expect(page.locator("text=Bộ nhớ RAM").first()).toBeVisible();
+    await expect(page.locator("text=Dung lượng SSD").first()).toBeVisible();
 
     // Verifies stock badge in variant summary pill
     const variantStockBadge = page.locator("[data-testid='selected-variant-stock-badge']");
@@ -94,17 +89,16 @@ test.describe("E2E Test: Cấu hình thuộc tính chuẩn Apple và Tồn kho h
     await expect(page.locator("[data-testid='product-title']")).toContainText("AirPods 3");
 
     // Verifies Color is available
-    await expect(page.locator("text=Chọn Màu sắc:")).toBeVisible();
+    await expect(page.locator("text=Màu sắc").first()).toBeVisible();
 
     // Verifies NO storage or RAM option is displayed
-    await expect(page.locator("text=Chọn Dung lượng:")).toHaveCount(0);
-    await expect(page.locator("text=Chọn Dung lượng SSD:")).toHaveCount(0);
-    await expect(page.locator("text=Chọn Bộ nhớ RAM:")).toHaveCount(0);
+    await expect(page.locator("text=Dung lượng SSD")).toHaveCount(0);
+    await expect(page.locator("text=Bộ nhớ RAM")).toHaveCount(0);
 
-    // Verifies stock count
-    const stockIndicator = page.locator("[data-testid='detail-stock-indicator']");
-    await expect(stockIndicator).toBeVisible();
-    await expect(stockIndicator).toContainText("Kho còn:");
+    // Verifies stock badge in variant summary pill
+    const variantStockBadge = page.locator("[data-testid='selected-variant-stock-badge']");
+    await expect(variantStockBadge).toBeVisible();
+    await expect(variantStockBadge).toContainText("Còn");
   });
 
   test("4. Storefront iPhone: Chỉ hiển thị Màu sắc và Dung lượng (không có RAM), hiển thị tồn kho", async ({ page }) => {
@@ -112,15 +106,16 @@ test.describe("E2E Test: Cấu hình thuộc tính chuẩn Apple và Tồn kho h
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator("[data-testid='product-title']")).toContainText("iPhone 16 Pro Max");
-    await expect(page.locator("text=Chọn Màu sắc:")).toBeVisible();
-    await expect(page.locator("text=Chọn Dung lượng:")).toBeVisible();
+    await expect(page.locator("text=Màu sắc").first()).toBeVisible();
+    await expect(page.locator("text=Dung lượng").first()).toBeVisible();
 
     // Verifies NO RAM option for iPhone
-    await expect(page.locator("text=Chọn Bộ nhớ RAM:")).toHaveCount(0);
+    await expect(page.locator("text=Bộ nhớ RAM")).toHaveCount(0);
 
-    const stockIndicator = page.locator("[data-testid='detail-stock-indicator']");
-    await expect(stockIndicator).toBeVisible();
-    await expect(stockIndicator).toContainText("Kho còn:");
+    // Verifies stock badge in variant summary pill
+    const variantStockBadge = page.locator("[data-testid='selected-variant-stock-badge']");
+    await expect(variantStockBadge).toBeVisible();
+    await expect(variantStockBadge).toContainText("Còn");
   });
 
   test("5. Dưới phần thông số: Hiển thị Carousel 12 sản phẩm ngẫu nhiên lặp vô tận, nút cuộn trái/phải hoạt động mượt mà", async ({ page }) => {

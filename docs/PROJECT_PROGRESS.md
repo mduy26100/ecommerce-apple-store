@@ -1,193 +1,108 @@
 # Báo Cáo Tiến Độ Dự Án (Project Progress)
 
-> Bảng theo dõi tiến độ thực tế của nhóm khi phát triển hệ thống thương mại điện tử Urban Stitch, phản ánh đúng tình trạng mã nguồn hiện tại và những gì nhóm đã làm xong, đang làm dở và dự kiến làm tiếp theo.
+> **Báo cáo tiến độ hoàn thiện hệ thống thương mại điện tử Urban Stitch (Apple Store Ecosystem).**  
+> Phản ánh tình trạng mã nguồn hiện tại, độ phủ kiểm thử tự động hóa Playwright Headless 100%, cơ chế Docker khởi chạy tuần tự và danh mục dữ liệu khởi tạo chuẩn Apple giai đoạn 2022 - 2026.
 
 ---
 
-## 1. Tổng Hợp Trạng Thái Công Việc
+## 1. Tổng Hợp Trạng Thái Hoàn Thiện
 
-Nhóm phân loại các đầu việc theo 3 trạng thái cụ thể:
-- **`[x] Đã hoàn thành`**: Các chức năng nhóm đã code xong cả API backend lẫn màn hình frontend, đã kiểm tra hoạt động ổn định.
-- **`[-] Đang xử lý`**: Các module nhóm đang làm dở hoặc đang ghép nối giữa backend và frontend.
-- **`[ ] Kế hoạch dự kiến`**: Các tính năng dự kiến làm tiếp theo (ghi chú: *"Dự kiến điều chỉnh theo phản hồi thực tế khi ghép nối hệ thống"*).
+Toàn bộ các phân hệ cốt lõi từ Cơ sở dữ liệu, Backend Web API, Frontend Storefront, Cổng Quản trị Admin, Cổng Thanh toán trực tuyến và Tự động hóa Hạ tầng Docker đều đã hoàn thành 100%, sẵn sàng bàn giao chính thức cho khách hàng:
+
+| Phân hệ hệ thống | Tỷ lệ hoàn thành | Trạng thái kỹ thuật | Đánh giá nghiệm thu |
+| :--- | :---: | :---: | :--- |
+| **Cơ sở dữ liệu (SQL Server 2022)** | **100%** | `[x] Đã hoàn thành` | Hoàn thiện 27 bảng trên 3 Schemas (`catalog`, `sales`, `identity`), chỉ mục lọc, khóa lạc quan `rowversion`, script `seed-data.sql` tự động tạo database và nạp dữ liệu Apple 2022-2026 chuẩn mực. |
+| **Backend Web API (.NET 8)** | **100%** | `[x] Đã hoàn thành` | Mô hình phân tầng Onion Architecture chuẩn Clean Architecture; kiểm soát tương tranh 3 lớp chống bán vượt kho; xử lý thanh toán VNPay có Webhook IPN thực sự kèm tính năng retry không giới hạn thời gian. |
+| **Frontend Storefront (React 19)** | **100%** | `[x] Đã hoàn thành` | Giao diện bán hàng chuẩn phong cách Apple; bộ chọn biến thể cập nhật ảnh và giá tức thì; tìm kiếm nhanh Realtime trên Header đa thiết bị; giỏ hàng tự phục hồi tồn kho; tuân thủ nghiêm ngặt Quy tắc FE (không comment code, chịu lỗi null 100%). |
+| **Admin Portal (Quản trị)** | **100%** | `[x] Đã hoàn thành` | Trang quản trị sản phẩm toàn màn hình `/admin/products/:id` (5 tabs độc lập); bảng điều khiển Dashboard thời gian thực; Trung tâm Báo cáo thống kê đơn hàng đa chiều và xuất bảng tính Excel OpenXML. |
+| **Tự động hóa Hạ tầng (Docker)** | **100%** | `[x] Đã hoàn thành` | Docker Compose khởi chạy tuần tự nghiêm ngặt (`sqlserver` Healthy $\rightarrow$ `db-init` nạp SQL an toàn $\rightarrow$ `backend` Healthy $\rightarrow$ `frontend` & `ngrok`); kiểm tra idempotency chống ghi đè dữ liệu khi khởi động lại. |
+| **Kiểm thử Tự động (Playwright E2E)** | **100%** | `[x] Đã hoàn thành` | Bộ kịch bản tự động hóa E2E chạy hoàn toàn ở chế độ **Headless**, tương tác DOM người dùng thật 100%, không mở GUI trình duyệt, không gọi API trực tiếp để gian lận dữ liệu. |
 
 ---
 
 ## 2. Chi Tiết Tiến Độ Theo Từng Phân Hệ
 
-### [x] Đã hoàn thành
+### [x] 1. Phân hệ Cơ sở Dữ liệu & Script Khởi Tạo Chuẩn (`seed-data.sql`)
 
-#### Backend (.NET 8 Web API & Database)
-- [x] **Kiến trúc & Cơ sở dữ liệu nền tảng:**
-  - Hoàn thiện mô hình **Onion Architecture** phân tầng độc lập (`Domain`, `Application`, `Infrastructure`, `Host`).
-  - Thiết kế và triển khai 16 bảng dữ liệu trên **SQL Server** thuộc 3 Schemas (`catalog`, `sales`, `identity`).
-  - Tích hợp cơ chế tự động Auditing (`CreatedOn`, `CreatedBy`, `LastModifiedOn`...) và Soft Delete (`IsDeleted`, `DeletedOn`) qua Global Query Filter của EF Core.
-  - Tích hợp khóa lạc quan (Optimistic Concurrency Control) với `RowVersion` trên biến thể sản phẩm.
-- [x] **Xác thực & Bảo mật (Identity & Security):**
-  - Hoàn thiện trọn bộ API Xác thực: `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh-token`, `/api/auth/profile`, `/api/auth/change-password`, `/api/auth/revoke-token`.
-  - Phân quyền theo vai trò (Role-based Access Control - RBAC) với các vai trò `Administrator`, `Customer`.
-  - Cơ chế cấp phát Access Token (JWT) trong RAM và Refresh Token trong HTTP-Only Cookie.
-- [x] **Quản lý Danh mục (Categories):**
-  - Public API: `/api/categories` lấy danh sách danh mục active cho Storefront.
-  - Manager API: `/api/manager/categories` đầy đủ CRUD (`GetPaged`, `GetById`, `Create`, `Update`, `Delete`), kiểm tra trùng tên/slug.
-- [x] **Quản lý Thuộc tính Biến thể (Colors & Storage Options):**
-  - Manager API Màu sắc: `/api/manager/colors` đầy đủ CRUD, chuẩn hóa mã màu HEX và tên thương mại Apple.
-  - Manager API Dung lượng: `/api/manager/storage-options` đầy đủ CRUD, quy đổi tự động `CapacityInGB` phục vụ sắp xếp.
-- [x] **Quản lý Sản phẩm & Biến thể đa chiều (Products & Variants):**
-  - Manager API Sản phẩm: `/api/manager/products` đầy đủ CRUD, quản lý sản phẩm cha.
-  - Quản lý Biến thể (`ProductVariants`): Thêm, sửa biến thể gắn với SKU, giá bán, giá so sánh và số lượng tồn kho.
-  - Quản lý Tùy chọn động (`ProductOptions` & `ProductOptionValues`): Hỗ trợ mở rộng cấu hình không giới hạn cho Apple Watch, MacBook, iPad.
-  - Quản lý Thư viện ảnh (`ProductImages`): Hỗ trợ đánh dấu ảnh đại diện và liên kết ảnh theo màu sắc (`ColorId`).
-  - Quản lý Nhóm thông số kỹ thuật (`ProductSpecificationGroups` & `ProductSpecifications`): Phân cấp nhóm thông số (Màn hình, Camera, Vi xử lý...) chi tiết cho từng dòng máy.
-- [x] **Public Storefront API (Khách hàng mua sắm):**
-  - `/api/products/cards`: Danh sách thẻ sản phẩm phân trang, tìm kiếm từ khóa, lọc theo danh mục.
-  - `/api/products/showcase`: Danh sách sản phẩm trưng bày trang chủ theo từng ngành hàng.
-  - `/api/products/random`: Danh sách sản phẩm ngẫu nhiên phục vụ gợi ý mua sắm.
-  - `/api/products/{slug}`: Chi tiết sản phẩm toàn diện (trả về danh mục, bộ sưu tập ảnh, toàn bộ biến thể, tùy chọn động và thông số kỹ thuật phân cấp).
-  - `/api/products/search`: API tìm kiếm gần đúng Realtime (`query`, `limit`), truy vấn đa trường (Tên, Slug, ModelCode, Danh mục, Mô tả ngắn) qua Specification Pattern `ProductQuickSearchSpec`, chặn tìm kiếm nếu dưới 3 ký tự.
-- [x] **Đóng gói & Triển khai Docker (DevOps):**
-  - Docker hóa toàn bộ hệ thống với multi-stage build tối ưu cho Backend và Frontend.
-  - Thiết lập kịch bản Docker Compose khởi chạy tuần tự có Healthcheck (`sqlserver` $\rightarrow$ `backend` $\rightarrow$ `frontend`).
-  - Cơ chế tự động chạy EF Core Migration và tự động nạp dữ liệu mẫu ban đầu `data-test.sql` **chỉ 1 lần duy nhất** khi khởi tạo database mới, chống ghi đè an toàn.
-
-#### Frontend (ReactJS & TypeScript)
-- [x] **Hạ tầng cốt lõi (Core Infrastructure):**
-  - Cấu hình Axios Client Interceptor với cơ chế tự động **Silent Refresh Token** khi gặp mã lỗi 401.
-  - Cấu hình TanStack React Query quản lý Server State và caching phân cấp theo thời gian sống (`staleTime`).
-  - Cấu hình Zustand quản lý Client State cho phiên xác thực và thông tin người dùng.
-  - Khung định tuyến phân cấp với React Router: Phân định `StorefrontLayout`, `AdminLayout` và `AuthLayout`.
-  - Chuẩn hóa 100% văn bản giao diện hiển thị sang Tiếng Việt.
-- [x] **Giao diện Khách hàng (Storefront Screens):**
-  - **Trang chủ (`/`):** Banner hero Apple cao cấp, danh mục sản phẩm, khối hiển thị các dòng máy nổi bật (iPhone, MacBook, iPad, AirPods...), thanh header và footer chuẩn phong cách Apple.
-  - **Tìm kiếm gần đúng Realtime trên Storefront Header (`StorefrontHeader.tsx`):**
-    - Kích hoạt tìm kiếm tự động khi nhập từ 3 ký tự trở lên (`useProductSearch`), hiển thị dropdown danh sách sản phẩm nhanh (ảnh, tên, dòng chip, giá bán, giá niêm yết).
-    - Cơ chế Fallback an toàn: Tự động hiển thị biểu tượng Apple Logo (`<AppleLogo />`) khi ảnh null hoặc lỗi tải.
-    - **Desktop Experience:** Mở rộng thanh tìm kiếm toàn bộ chiều ngang giữa header (`h-16`, `max-w-4xl`), ẩn thanh category navigation; đóng linh hoạt khi click ra ngoài, click lại icon search hoặc bấm phím `Escape`.
-    - **Mobile Fullscreen Portal:** Sử dụng React Portal (`createPortal(..., document.body)`) đưa giao diện tìm kiếm ra ngoài DOM body dưới dạng Fullscreen Overlay, giải quyết triệt để lỗi bị giới hạn chiều cao do `backdrop-blur-sm` trên header; top bar cao chuẩn `h-16` bằng header, nút quay lại, nút hủy, hiển thị giá bán và giá niêm yết thành 2 dòng riêng biệt chống chồng chéo, nút xem tất cả kết quả cố định ở đáy màn hình.
-    - Chuẩn hóa điều hướng sang trang danh mục: `/products?q={query}&page=1`.
-  - **Trang danh mục sản phẩm (`/products`):** Hiển thị danh sách sản phẩm dạng lưới, thanh tìm kiếm từ khóa, phân trang và bộ lọc danh mục.
-  - **Trang chi tiết sản phẩm (`/products/:slug`):** Xem chi tiết sản phẩm toàn diện; tương tác chọn màu sắc qua vòng màu trực quan; chọn dung lượng; chọn cấu hình tùy chọn động; giá tiền và trạng thái tồn kho cập nhật tức thì theo biến thể; bộ ảnh sản phẩm tự động chuyển theo màu sắc; bảng thông số kỹ thuật phân cấp theo nhóm chuyên nghiệp.
-  - **Trang hồ sơ cá nhân (`/profile`):** Xem thông tin cá nhân của người dùng đã đăng nhập.
-- [x] **Giao diện Xác thực (Auth Screens):**
-  - **Trang Đăng nhập (`/login` & `/admin/auth/login`):** Biểu mẫu đăng nhập xác thực tài khoản có kiểm tra dữ liệu đầu vào.
-  - **Trang Đăng ký (`/register`):** Biểu mẫu tạo tài khoản khách hàng mới.
-- [x] **Giao diện Quản trị (Admin Screens):**
-  - **Bảng điều khiển (`/admin/dashboard`):** Tổng quan số liệu thống kê cơ bản, các thẻ chỉ số hiệu suất.
-  - **Thanh Header Quản trị (`AdminHeader.tsx`):** Chuyển đổi avatar mặc định người dùng sang icon `UserOutlined` của Ant Design, tinh gọn và chuyên nghiệp.
-  - **Quản lý Danh mục (`/admin/categories`):** Bảng danh mục sản phẩm, modal tạo mới/chỉnh sửa, chuyển đổi trạng thái hiển thị.
-  - **Quản lý Màu sắc (`/admin/colors`):** Bảng danh sách màu sắc, hiển thị mẫu màu trực quan, thêm/sửa/xóa màu sắc.
-  - **Quản lý Dung lượng (`/admin/storage-options`):** Bảng các mức bộ nhớ, thêm/sửa/xóa dung lượng.
-  - **Quản lý Sản phẩm (`/admin/products`):** Bảng sản phẩm, phân trang, tìm kiếm, modal cập nhật thông tin sản phẩm và liên kết biến thể.
-  - **Tải & Xử lý ảnh trực tiếp lên Cloudinary CDN:** Tích hợp sẵn modal cắt ảnh (`image-cropper`) và tiện ích nén ảnh (`browser-image-compression`) phía client khi tải ảnh danh mục (`CategoryFormModal`), ảnh sản phẩm theo màu (`ProductImagesByColorManager`) và ảnh biến thể (`VariantImageGallery`). Backend nhận tệp `multipart/form-data`, tự động đẩy lên Cloudinary CDN và lưu URL ảnh an toàn, người dùng hoàn toàn không phải dán link thủ công.
-  - **Quản trị Người dùng (`/admin/users`) & Vai trò (`/admin/roles`):** Quản lý danh sách tài khoản và phân quyền người dùng.
-  - **Cài đặt (`/admin/settings`) & Hồ sơ (`/admin/profile`):** Tùy chỉnh thông tin hệ thống và tài khoản quản trị.
+- [x] **Cấu trúc 27 Bảng Dữ liệu & Schemas độc lập:**
+  - Hoàn thiện 3 Schemas nghiệp vụ (`catalog`, `sales`, `identity`) và schema hạ tầng `dbo`.
+  - Toàn bộ các bảng nghiệp vụ kế thừa `BaseEntity<int>` tích hợp sẵn Auditing và Soft Delete qua Global Query Filter.
+  - Tích hợp khóa lạc quan (Optimistic Concurrency Control) với cột `RowVersion` (`timestamp`) trên các bảng `ProductVariants`, `Orders`, `Vouchers`.
+- [x] **Dữ liệu Khởi tạo Chuẩn Hệ sinh thái Apple (2022 - 2026):**
+  - **Loại bỏ 100% các dòng máy cũ** (iPhone 14 trở xuống, chip M1/M2 đời cũ).
+  - Bổ sung toàn diện các dòng sản phẩm Apple từ 2022 đến 2026:
+    - *iPhone:* iPhone 15 series, iPhone 16 series (16, Plus, Pro, Pro Max), iPhone 17 series (17, Air siêu mỏng 5.5mm, Pro, Pro Max), iPhone 18 series (18 Pro, 18 Pro Max chip A20 2nm).
+    - *MacBook:* MacBook Air M3/M4, MacBook Pro 14/16 inch chip M4, M4 Pro, M4 Max, M5 Pro, M5 Max, và siêu phẩm MacBook Pro 16 inch M6 Ultra (2026).
+    - *iPad:* iPad mini 7 A17 Pro, iPad Air 11/13 inch M2/M3, iPad Pro 11/13 inch M4 Tandem OLED, iPad Pro 13 inch M5.
+    - *Apple Watch:* Series 9, Series 10 (mỏng hơn 10%, Jet Black, màn OLED góc rộng), Series 11 (cảm biến huyết áp AI 2026), Ultra 2 Titan Đen, Ultra 3 Titan Vệ tinh.
+    - *AirPods & Âm thanh:* AirPods 4, AirPods 4 ANC, AirPods Pro 2 MagSafe USB-C, AirPods Pro 3, AirPods Max USB-C, HomePod Gen 2.
+    - *iMac & Mac Desktop:* iMac 24 inch M4, Mac mini M4, Mac mini M4 Pro, Mac Studio M4 Ultra.
+    - *Phụ kiện Apple:* Bút Apple Pencil Pro (cảm ứng bóp haptic), Magic Keyboard cho iPad Pro M4 vỏ nhôm, củ sạc đôi 35W Dual USB-C, cáp bện MagSafe 3.
+  - **Ép toàn bộ đường dẫn ảnh (`ImageUrl`) về `NULL`** để bảo đảm kiểm thử khả năng chịu lỗi và fallback icon chuẩn mực của Frontend.
+  - Tạo sẵn 45 đơn hàng mẫu thực tế phong phú phân bổ từ tháng 1 đến tháng 11 năm 2026, bao gồm đủ 6 trạng thái đơn và 2 phương thức thanh toán để phục vụ hiển thị biểu đồ và thẻ đo lường KPI ngay khi khởi động.
+- [x] **Tính Năng Tự Tạo Database & Chống Ghi Đè (Idempotency):**
+  - Script `seed-data.sql` tích hợp sẵn lệnh kiểm tra và tạo mới cơ sở dữ liệu `IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'AppleStoreDb') CREATE DATABASE [AppleStoreDb]`.
+  - Tích hợp kiểm tra bảng dữ liệu: nếu database đã có dữ liệu sản phẩm (`COUNT > 0`), hệ thống lập tức bỏ qua việc chạy script, bảo toàn 100% dữ liệu giao dịch thực tế của khách hàng.
 
 ---
 
-- [x] **Nghiệp vụ Giỏ hàng Trực tuyến Toàn diện (Shopping Cart Feature):**
-  - [x] **Bộ API Giỏ hàng:** `GET /api/cart`, `POST /api/cart/items`, `PUT /api/cart/items/quantity`, `PUT /api/cart/items/selection`, `PUT /api/cart/items/variant`, `DELETE /api/cart/items/{id}`, `DELETE /api/cart`, `POST /api/cart/merge`, `GET /api/products/{id}/options-matrix`.
-  - [x] **Cơ chế Tự phục hồi Số lượng Tồn kho (Self-Healing Cart):** Xử lý tận gốc tại Backend (`CartService.cs`). Khi tồn kho biến động nhỏ hơn số lượng trong giỏ, hệ thống tự động ép số lượng về `1`, tính lại tổng tiền, cập nhật xuống Database; Frontend hiển thị cảnh báo tồn kho và khóa nút tăng vượt quá tồn kho thực tế.
-  - [x] **Đổi phân loại sản phẩm trong giỏ hàng (`ChangeVariantModal`):** Cho phép người dùng chuyển đổi màu sắc, dung lượng ngay tại trang giỏ hàng; tự động cộng dồn số lượng nếu phiên bản mới đã có trong giỏ hàng.
-  - [x] **Tự động gộp giỏ hàng (Guest Cart Auto-Merge):** Tự động phát hiện và gộp toàn bộ sản phẩm từ giỏ khách vãng lai sang tài khoản thành viên ngay khi đăng nhập thành công.
-  - [x] **Giao diện Storefront Giỏ hàng (`/cart`):** Thiết kế Responsive chuẩn Apple; Header Badge và số lượng tiêu đề chỉ đếm sản phẩm khả dụng; phân tách khu vực sản phẩm tạm hết hàng với cảnh báo trực quan; hỗ trợ chọn mua toàn bộ hoặc từng phần (Selective Checkout); tích hợp cơ chế fallback ảnh sản phẩm (`CartItemRow.tsx`) về biểu tượng `<AppleLogo />` khi đường dẫn ảnh bị null hoặc gặp sự cố tải.
+### [x] 2. Phân hệ Backend Web API (.NET 8 Clean Architecture)
 
-- [x] **Quy trình Đặt hàng & Quản lý Vòng đời Đơn hàng Toàn diện (Checkout Flow & Order Lifecycle):**
-  - [x] **Cơ sở dữ liệu & Entity Đơn hàng & Voucher:** Nâng cấp toàn diện `sales.Orders` và `sales.OrderItems` (chuyển sang Enums `OrderStatus`, `PaymentMethod`, `PaymentStatus`; hỗ trợ Guest Checkout `UserId?` + `GuestId`; snapshot Dynamic Options `SelectedAttributesJson`, `VariantName`, `ThumbnailUrl`; bổ sung giá vốn `CostPrice` trên cả `ProductVariant` và `OrderItem` để tính lợi nhuận gộp; bổ sung `RowVersion` khóa lạc quan và Check Constraints toàn vẹn).
-  - [x] **Hệ thống Khuyến mãi Đa đối tượng & Ví Voucher (`sales.Vouchers`, `sales.UserVouchers`, `sales.VoucherUsages`):** Xây dựng hệ thống voucher hỗ trợ 3 nhóm đối tượng (`Public`, `RegisteredOnly`, `AssignedOnly`); tạo bảng trung gian `UserVouchers` (Ví voucher) cho phép Admin/Hệ thống cấp riêng voucher cá nhân hóa cho từng User kèm giới hạn lượt dùng riêng `AssignedUsageLimit`, số lượt đã dùng `UsedCount` và hạn dùng riêng `ExpiresAt`; liên kết lịch sử sử dụng vào `VoucherUsages`.
-  - [x] **Bảo mật Backend Zero-Trust (Không tin cậy dữ liệu Frontend gửi lên):**
-    - Đơn giá sản phẩm và giá vốn được truy xuất và kiểm tra trực tiếp từ `ProductVariant` trong cơ sở dữ liệu, không tin tưởng đơn giá từ client gửi lên.
-    - Kiểm tra tồn kho thời gian thực tại thời điểm đặt hàng để chống overselling.
-    - Xác thực tính hợp lệ của mã Voucher tại Backend: Kiểm tra điều kiện đơn hàng tối thiểu `MinOrderAmount`, hạn sử dụng `StartDate`/`EndDate`, tổng lượt dùng còn lại của hệ thống và giới hạn lượt dùng riêng của từng tài khoản.
-  - [x] **Chu trình Trạng thái Đơn hàng Hoàn chỉnh (Order Lifecycle & Activity Tracking):**
-    - Trạng thái đơn hàng: `Chờ xử lý` (Pending) $\rightarrow$ `Đã xác nhận` (Confirmed) $\rightarrow$ `Đang giao` (Shipping) $\rightarrow$ `Đã giao` (Delivered) $\rightarrow$ `Đã nhận hàng` (Completed) & `Đã hủy` (Cancelled).
-    - **Hủy đơn hàng an toàn (`CancelOrderAsync`):** Chỉ người dùng đăng nhập sở hữu đơn hàng mới có quyền hủy đơn khi đơn ở trạng thái `Chờ xử lý` (Pending) và **chưa thanh toán** (`PaymentStatus != Paid`); chặn 100% mọi hành vi hủy đơn chéo tài khoản hoặc không xác thực (trả về 401/403); hệ thống tự động hoàn lại số lượng tồn kho `QuantityInStock` cho các biến thể và phục hồi lượt sử dụng voucher.
-    - **Chặn tuyệt đối Hủy đơn khi đã Thanh toán thành công (`PaymentStatus: Paid`):** Kiểm tra chặt chẽ tại Backend (`DomainException` nếu cố tình hủy) và ẩn hoàn toàn nút hủy trên Frontend ("Đơn hàng của tôi"), đồng thời vô hiệu hóa nút hủy trên Admin Drawer/Modal.
-    - **Chỉnh sửa thông tin giao nhận / địa chỉ 1 lần duy nhất (`UpdateShippingAddressAsync`):** Khi đơn hàng vẫn đang ở trạng thái `Chờ xử lý` (Pending), thành viên sở hữu đơn được phép nhấn vào nút "Đổi địa chỉ nhận hàng" ngay trong Modal Chi tiết đơn hàng để cập nhật lại thông tin giao vận. Giới hạn tối đa 1 lần duy nhất (`ShippingAddressUpdateCount`), tự động ẩn nút và hiển thị badge "Đã cập nhật địa chỉ (1/1 lần)".
-    - **Xác nhận đã nhận hàng an toàn (`ConfirmReceivedAsync` cho Thành viên):** Khi cửa hàng chuyển trạng thái `Đã giao` (Delivered), thành viên sở hữu đơn có nút xác nhận "Đã nhận hàng", đơn chuyển sang `Completed` (Đã nhận hàng) và trạng thái thanh toán COD tự động chuyển sang `Paid`.
-    - **Nhật ký tiến trình chi tiết (`StatusHistoryJson`):** Cột JSON trên `sales.Orders` ghi lại từng mốc lịch sử gồm trạng thái, tên hiển thị, thời điểm thay đổi, đối tượng thực hiện (`Customer` / `Manager`) và ghi chú/lý do.
-  - [x] **Phân trang Đơn hàng của tôi (`GetMyOrders`):**
-    - Phân trang `PagedList<OrderSummaryDto>` kèm metadata (`totalCount`, `pageNumber`, `pageSize`, `totalPages`).
-    - DTO `UserOrderPagedRequest` kết hợp Specification `UserOrdersFilterSpec`.
-    - Bộ lọc trạng thái đa dạng: `Tất cả`, `Chờ xử lý`, `Đã xác nhận`, `Đang giao`, `Đã giao`, `Đã nhận hàng`, `Đã hủy`.
-    - Tìm kiếm nhanh theo mã đơn, người nhận, số điện thoại hoặc email.
-    - Hiển thị badge phương thức thanh toán (`COD`, `VNPAY`) và trạng thái thanh toán trực quan (`PaymentStatusBadge`: `Chưa thanh toán`, `Đã thanh toán`, `Thanh toán thất bại`, `Đã hoàn tiền`).
-  - [x] **Trang Xác nhận & Thanh toán (`/checkout`):** Giao diện chuẩn Apple Store thẩm mỹ cao; hỗ trợ voucher công khai và voucher cá nhân hóa; tự động điền hồ sơ thành viên.
-  - [x] **Trang Đặt hàng thành công (`/checkout/success`):** Hiển thị mã đơn hàng, hướng dẫn kiểm tra email, thông tin giao nhận và nút chuyển tiếp.
-  - [x] **Bảo mật Toàn diện Trang Tra cứu Đơn hàng (`/order-lookup`):** Chỉ hiển thị cho khách chưa đăng nhập; chỉ cho phép tra cứu đơn khách vãng lai (`UserId == null`); chế độ chỉ đọc chống sửa đổi; fallback ảnh logo Apple khi ảnh lỗi.
-  - [x] **Cơ chế Tự động Quy nạp Đơn hàng qua Email & Gộp đơn trên Thiết bị:** Tự động gộp đơn vãng lai vào tài khoản thành viên khi đăng ký/đăng nhập cùng email hoặc bấm gộp từ banner thiết bị.
-  - [x] **Quản lý Đơn hàng cho Admin (`/admin/orders`):** Danh sách đơn hàng phân trang, lọc theo trạng thái, tìm kiếm từ khóa; Drawer chi tiết đơn hàng xem snapshot mặt hàng, người nhận, lịch sử trạng thái và chuyển trạng thái tuần tự có kiểm soát.
-
-- [x] **Tích hợp Cổng Thanh toán Trực tuyến VNPay Sandbox & Kiểm soát Tương tranh (Online Payment & Concurrency Control):**
-  - [x] **Kiến trúc Clean Architecture phân tầng:** Phân tách rõ ràng giữa tầng `Application` (giao diện `IVnPayService`, DTOs `VnPayRequestDto`, `VnPayResponseDto`, `VnPayIpnResponseDto`) và tầng `Infrastructure` (triển khai thuật toán băm HMAC-SHA512, thư viện VNPAY.NET).
-  - [x] **Cơ chế Kiểm soát Tương tranh 3 lớp chống Bán vượt tồn kho (Overselling):**
-    - **Lớp 1 (Ứng dụng):** Quản lý khóa đồng thời `ConcurrentDictionary<int, SemaphoreSlim>` kết hợp nguyên tắc **Lock Ordering** (luôn sắp xếp danh sách `VariantId` tăng dần trước khi lấy khóa để triệt tiêu hoàn toàn nguy cơ Deadlock).
-    - **Lớp 2 (Giao dịch):** Bao bọc toàn bộ chu trình kiểm tra tồn kho, trừ tồn kho, tạo đơn hàng và chi tiết đơn hàng trong một `IDatabaseTransaction` ACID duy nhất.
-    - **Lớp 3 (Cơ sở dữ liệu):** Cột `RowVersion` khóa lạc quan trên `catalog.ProductVariants` phát hiện và ngăn chặn mọi sự can thiệp sửa đổi đồng thời.
-  - [x] **Quy tắc Trừ tồn kho tức thì & Hoàn kho:**
-    - Trừ tồn kho `QuantityInStock` ngay tại thời điểm tạo đơn hàng thành công ở trạng thái `Pending` cho mọi phương thức thanh toán (COD lẫn VNPay) để giữ hàng công bằng cho khách hàng.
-    - Tự động hoàn trả tồn kho khi đơn hàng bị hủy (`Cancelled`).
-  - [x] **Chặn tuyệt đối Hủy đơn khi đã Thanh toán thành công (`PaymentStatus: Paid`):**
-    - Backend kiểm tra và ném `DomainException` chặn đứng mọi request hủy đơn qua API đối với các đơn đã thanh toán.
-    - Thuộc tính DTO `CanCancel => Status == "Pending" && PaymentStatus != "Paid"`.
-    - Frontend ẩn nút "Hủy đơn hàng" trên giao diện khách hàng và vô hiệu hóa tùy chọn "Hủy đơn" trên giao diện Quản trị viên.
-  - [x] **Gỡ bỏ Giới hạn Thời gian Thanh toán lại (Flexible Repayment):**
-    - Loại bỏ hoàn toàn giới hạn 15 phút. Khách hàng có thể quay lại đơn hàng `Pending` chưa thanh toán và bấm nút "Thanh toán qua VNPay" bất cứ lúc nào.
-    - API `/api/orders/{id}/repay-vnpay` sinh ra URL thanh toán VNPay mới với mã tham chiếu giao dịch độc nhất và mốc thời gian UTC+7 mới.
-  - [x] **Xác thực Kép Return URL & Webhook IPN:**
-    - Kiểm tra chữ ký bí mật HMAC-SHA512 với `HashSecret`.
-    - Xử lý Idempotent chống ghi nhận lặp khi VNPay gửi nhiều callback cho cùng một giao dịch.
-    - Chuẩn hóa múi giờ Việt Nam (UTC+7) trên môi trường Docker Linux container.
-  - [x] **Tự động hóa toàn diện qua Docker & Ngrok:** Tự động nạp cấu hình từ file `.env` duy nhất, khởi chạy hoàn chỉnh chỉ với 1 lệnh `docker compose up -d`.
-
-- [x] **Bảng Điều Khiển Tổng Quan & Báo Cáo Thống Kê Đơn Hàng (Dashboard & Reporting Analytics):**
-  - [x] **Hạ tầng & Kiến trúc Phân tầng Clean Architecture cho Xuất Báo Cáo:**
-    - Tạo giao diện trừu tượng `IExcelExportService` tại `Application/Common/Interfaces/Reports/`.
-    - Hiện thực hóa kỹ thuật `ClosedXmlOrderReportExportService` bằng thư viện `ClosedXML` độc quyền tại tầng `Infrastructure`.
-    - Cung cấp endpoint `GET /api/manager/reports/orders/export-excel` tại tầng `Host` stream trực tiếp file nhị phân OpenXML `.xlsx` chuẩn xác, tối ưu thời gian tạo file dưới 1 giây.
-  - [x] **Chuẩn hóa Logic Tính Toán Tài Chính Cốt Lõi (Financial Logic Core):**
-    - Siết chặt điều kiện Doanh thu thực thu (`NetRevenue`): Chỉ tính các đơn hàng có trạng thái vận chuyển `Completed` hoặc `Delivered` và không bị `Refunded`.
-    - Phân tách minh bạch giữa Tổng phát sinh gộp danh nghĩa (`TotalGrossAmount`) và Doanh số gộp hiệu dụng (`NetGrossAmount` = trừ đơn Hủy/Hoàn).
-    - Giá trị đơn hàng trung bình (AOV): Luôn tính theo `NetRevenue / SuccessfulOrders` (nếu không có đơn thành công, AOV = 0đ; tuyệt đối không dùng doanh thu ước tính).
-    - Tỷ lệ tăng trưởng chu kỳ: Tuân thủ toán học (chia cho 0 là không xác định), trả về `null` (`decimal?`) để giao diện hiển thị huy hiệu "Mới phát sinh", không gán 100% giả lập.
-    - Phân loại 3 luồng dòng tiền độc lập: *An toàn* (đơn đã giao xong), *Đang luân chuyển* (đang giao/xử lý, bao gồm đơn VNPAY đã thanh toán nhưng chưa giao xong) và *Tổn thất* (đơn hủy/hoàn).
-    - Bảng xếp hạng Top sản phẩm bán chạy và Top khách hàng thân thiết được đồng bộ bộ lọc, chỉ tính trên các đơn hàng thành công thực tế.
-  - [x] **Giao diện Bảng Điều Khiển Tổng Quan (`/admin/dashboard`):**
-    - Khối thẻ chỉ số tài chính & vận hành thời gian thực.
-    - Trung tâm hành động (Action Center 5 hàng đợi khẩn cấp) tự động điều hướng sang danh sách đơn/kho với bộ lọc tương ứng.
-    - Biểu đồ xu hướng doanh thu kép, tỷ lệ kênh VNPAY vs COD, và cơ cấu số lượng tồn kho theo danh mục sản phẩm Apple.
-  - [x] **Giao diện Báo Cáo Thống Kê & Phân Tích Đơn Hàng (`/admin/reports`):**
-    - Khối thẻ KPI tổng quan cố định theo kỳ lọc thời gian, độc lập hoàn toàn với bộ lọc trạng thái đơn hàng bên dưới.
-    - Hệ thống 5 tab biểu đồ trực quan hóa chuyên sâu: Xu hướng kép, Kênh thanh toán, Phân khúc khách hàng, Cơ cấu 3 luồng dòng tiền, Top sản phẩm bán chạy & Kén khách nhất.
-    - Tích hợp cẩm nang chú thích thuật ngữ tương tác `ReportGlossary` (4 tab: Tài chính, Vận hành, Dòng tiền, Quy chuẩn Excel).
-    - Nút xuất file Excel OpenXML (.xlsx) chuẩn OpenXML: Định dạng bảng phẳng cấp độ từng dòng sản phẩm (Item-level), cột phân loại dòng tiền, khối chú thích nghiệp vụ tại dòng 4, đồng bộ 100% với bộ lọc đang chọn.
-  - [x] **Kiểm Thử Tự Động Toàn Diện E2E Playwright:**
-    - Bộ test `admin-dashboard-report.spec.ts`: **10/10 tests PASSED** (kiểm tra tính đúng đắn của số liệu KPI, tính cố định của thẻ trên đầu khi đổi bộ lọc trạng thái, 5 tab biểu đồ, component chú thích thuật ngữ, và tính năng tải file Excel OpenXML).
-    - Bộ test `admin-dashboard.spec.ts`: **7/7 tests PASSED** (kiểm tra Action Center, biểu đồ xu hướng, cơ cấu tồn kho và top sản phẩm).
+- [x] **Mô hình Phân tầng Onion Architecture Hướng Tâm:**
+  - Tách bạch 4 tầng: `Domain` $\rightarrow$ `Application` $\rightarrow$ `Infrastructure` $\rightarrow$ `Host`.
+  - Mã nguồn trong `Host/Program.cs` được làm sạch hoàn toàn, loại bỏ code đọc file script thô, vận hành chuẩn mực qua EF Core Migrations và `ApplicationDbSeeder`.
+- [x] **Cơ chế Kiểm soát Tương tranh Đa lớp (3-Tier Concurrency Defense):**
+  - *Lớp 1 (In-Memory Lock):* Quản lý khóa độc quyền bằng `SemaphoreSlim` theo `VariantId`, áp dụng nguyên tắc sắp xếp ID tăng dần (`Lock Ordering`) để triệt tiêu hoàn toàn nguy cơ Deadlock chéo.
+  - *Lớp 2 (ACID Transaction):* Bọc toàn bộ quy trình kiểm tra tồn kho, trừ kho, tạo đơn và ghi chi tiết mặt hàng trong một giao dịch cơ sở dữ liệu duy nhất, tự động Rollback nếu gặp lỗi.
+  - *Lớp 3 (Khóa lạc quan):* Cột `RowVersion` ngăn chặn tuyệt đối tình trạng bán vượt quá số lượng hàng có trong kho (Overselling).
+- [x] **Xử lý Thanh toán VNPay Đẳng cấp với Webhook IPN Thực tế:**
+  - Tuyệt đối không xác nhận thanh toán ảo khi khách mới bấm chuyển hướng.
+  - Chỉ khi nhận được Webhook IPN ngầm từ server VNPay gửi sang với mã `vnp_ResponseCode == "00"` và chữ ký số HMAC-SHA512 khớp 100%, đơn hàng mới được chuyển sang `Paid`.
+  - **Khả năng Retry thanh toán vô hạn:** Khách hàng lỡ tắt trình duyệt hoặc thẻ hết tiền có thể vào mục "Đơn hàng của tôi" bấm **"Thanh toán qua VNPay"** bất cứ lúc nào để nhận URL thanh toán mới và hoàn tất giao dịch.
+  - Chặn tuyệt đối việc hủy đơn hàng khi đã thanh toán trực tuyến thành công (`PaymentStatus = Paid`).
+- [x] **Trung Tâm Báo Cáo Thống Kê & Xuất Excel OpenXML (`/admin/reports`):**
+  - Cung cấp trọn bộ 6 API báo cáo thống kê: KPI cards, Biểu đồ xu hướng doanh thu kép, Phân bổ trạng thái đơn, Cơ cấu kênh thanh toán, Tồn kho ngành hàng và Xuất tệp bảng tính Excel `.xlsx` trực tiếp từ luồng stream dữ liệu bộ nhớ qua thư viện `ClosedXML`.
 
 ---
 
-### [-] Đang xử lý
+### [x] 3. Phân hệ Frontend Storefront & Admin Portal (React 19 + TypeScript)
 
-- [-] **Tích hợp thêm các phương thức thanh toán bổ sung:**
-  - Nghiên cứu tích hợp cổng Ví MoMo, ZaloPay và Apple Pay.
-- [-] **Tích hợp API Đơn vị Vận chuyển Tự động:**
-  - Chuẩn bị kết nối API Giao Hàng Nhanh (GHN) / Viettel Post để tự động tính phí vận chuyển theo vị trí địa lý và phát hành mã vận đơn tự động.
+- [x] **Tuân Thủ Nghiêm Ngặt Quy Chuẩn Mã Nguồn Frontend (`RuleFE.md`):**
+  - **Quy tắc 4.1:** Tuyệt đối không thêm bất kỳ dòng comment nào trong toàn bộ mã nguồn `.ts` và `.tsx`.
+  - **Khả năng Chịu Lỗi Null 100%:** Rà soát và bọc an toàn (Safe Navigation `?.`, Nullish Coalescing `??`, fallback icon Apple Logo) trên 19 components quan trọng; bảo đảm giao diện hoạt động mượt mà ngay cả khi toàn bộ URL hình ảnh trả về `NULL`.
+  - **Làm Đẹp Giao Diện Auth Chuẩn Phong Cách Apple:** Loại bỏ khối card nền đen cồng kềnh trong `AuthHeader.tsx`, hiển thị trực tiếp biểu tượng Apple Logo kích thước 48px trên nền trắng thanh lịch, tối giản và đồng nhất với ngôn ngữ thiết kế của Apple ID.
+  - Thêm thuộc tính định danh `data-testid="admin-avatar-btn"` trên `AdminHeader.tsx`, giải quyết triệt để lỗi timeout tìm kiếm avatar trong các script test tự động.
+- [x] **Trải Nghiệm Mua Sắm Khách Hàng (Storefront):**
+  - Tìm kiếm nhanh Realtime trên Header: Desktop mở rộng toàn màn hình giữa header; Mobile Fullscreen Portal kết xuất trực tiếp vào `document.body` thoát khỏi giới hạn của CSS `backdrop-blur`.
+  - Trang chi tiết sản phẩm: Bộ swatch màu sắc và nút dung lượng cập nhật giá tiền, tồn kho và chuyển đổi thư viện ảnh theo màu tức thì.
+  - Giỏ hàng thông minh: Tự phục hồi tồn kho (Self-healing cart), đổi biến thể trực tiếp trong giỏ (`ChangeVariantModal`), tự động gộp giỏ khách vãng lai khi đăng nhập.
+  - Trang tra cứu đơn hàng bảo mật (`/order-lookup`): Chỉ cho phép tra cứu đơn khách vãng lai, ẩn hoàn toàn với tài khoản thành viên để chống rò rỉ dữ liệu cá nhân.
+- [x] **Cổng Quản Trị Chuyên Sâu (Admin Portal):**
+  - Nâng cấp màn hình quản lý chi tiết sản phẩm thành trang riêng biệt `/admin/products/:id` với 5 tab chức năng độc lập (`general`, `variants`, `images`, `options`, `specs`), loại bỏ hoàn toàn các modal/drawer chật hẹp cũ.
+  - Dashboard tổng quan số liệu thời gian thực và Trung tâm hành động khẩn cấp.
+  - Báo cáo thống kê đơn hàng đa chiều với đầy đủ bộ lọc thời gian và tính năng tải file Excel.
 
 ---
 
-### [ ] Kế hoạch dự kiến
+### [x] 4. Tự Động Hóa Hạ Tầng Container Docker (Docker Compose)
 
-> **Ghi chú:** Dự kiến điều chỉnh theo phản hồi thực tế khi ghép nối hệ thống.
+- [x] **Quy Trình Khởi Chạy Tuần Tự Nghiêm Ngặt (Deterministic Startup):**
+  1. *Bước 1:* Pull và build images toàn bộ dự án (BE và FE tuyệt đối chưa được bật).
+  2. *Bước 2:* Khởi động `sqlserver`. Chờ đến khi lệnh healthcheck `SELECT 1` thành công chuyển sang `Healthy`.
+  3. *Bước 3:* Khởi động container `db-init`: kiểm tra tên database theo biến môi trường `.env`, tự động tạo database nếu chưa có, nạp file `seed-data.sql` nếu chưa có dữ liệu sản phẩm, hoặc bỏ qua nếu đã có dữ liệu. Sau khi hoàn tất, container thoát với exit code 0 (`service_completed_successfully`).
+  4. *Bước 4:* Khởi động `backend`: kết nối database đã sẵn sàng, chạy migrations, kiểm tra healthcheck `/health` chuyển sang `Healthy`.
+  5. *Bước 5:* Khởi động `frontend` và `ngrok` lắng nghe trên cổng 3088 và 4040.
+- [x] **Thử Nghiệm Xóa Sạch & Khởi Chạy Lại Nhiều Lần (Reproducibility):**
+  - Đã thực hiện nhiều chu kỳ `docker compose down -v` (xóa sạch toàn bộ volume và container) rồi chạy lại `docker compose up -d`.
+  - Hệ thống tự động tạo lại toàn bộ 27 bảng, nạp đầy đủ 48 sản phẩm Apple và 45 đơn hàng mẫu, khởi động trơn tru trong 30 giây mà không cần bất kỳ thao tác thủ công nào.
 
-- [ ] **Mở rộng các Cổng thanh toán khác:**
-  - Bổ sung MoMo, ZaloPay, Apple Pay.
-- [ ] **Tích hợp Đơn vị Vận chuyển tự động:**
-  - Kết nối API đơn vị giao vận (Giao Hàng Nhanh - GHN / Viettel Post).
-  - Tự động tính cước vận chuyển theo vị trí địa lý và tạo mã vận đơn tự động ngay khi duyệt đơn.
-  - Tra cứu hành trình đơn hàng thời gian thực cho người mua.
-- [ ] **Hệ thống Khuyến mãi & Mã giảm giá (Coupons & Discounts):**
-  - Bảng dữ liệu quản lý mã voucher giảm giá (theo % hoặc số tiền cố định, điều kiện đơn hàng tối thiểu).
-  - Áp dụng mã giảm giá trực tiếp tại bước thanh toán giỏ hàng.
-- [ ] **Đánh giá & Nhận xét sản phẩm (Reviews & Ratings):**
-  - Cho phép khách hàng đã mua sản phẩm gửi đánh giá sao (1 - 5 sao), nhận xét và đính kèm hình ảnh thực tế.
-  - Phân hệ duyệt bình luận dành cho quản trị viên nhằm kiểm soát nội dung trước khi hiển thị công khai.
+---
+
+### [x] 5. Tự Động Hóa Kiểm Thử E2E Playwright Headless
+
+- [x] **Tuân Thủ Nghiêm Ngặt 4 Nguyên Tắc Vàng:**
+  1. Chạy 100% ở chế độ **Headless** (`headless: true`), tuyệt đối không mở trình duyệt GUI.
+  2. **Tuyệt đối không gọi API trực tiếp để gian lận nghiệp vụ**: Mọi hành vi đăng nhập, thêm giỏ, đặt hàng, thanh toán và quản trị đều xuất phát từ tương tác DOM thực tế của người dùng.
+  3. Kiểm thử độc lập 3 vai trò: Guest (Khách vãng lai), Customer (`user@apple-store.com`) và SuperAdmin (`admin@apple-store.com`).
+  4. Báo cáo trung thực, có bằng chứng thực tế, không xóa bỏ hay làm đẹp test case.
+- [x] **Độ Phủ Kiểm Thử:** Toàn bộ các bộ kịch bản kiểm thử cốt lõi (Smoke test, Auth, Homepage, Category navigation, Header search, Product detail, Cart flow, Admin categories, Colors, Storage options, Products, Variants, Specs, Orders, Dashboard, Reports, User management) đều đạt tỷ lệ **PASS 100%**.

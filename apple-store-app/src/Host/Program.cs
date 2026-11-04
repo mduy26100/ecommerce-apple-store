@@ -88,67 +88,6 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    var testDataFile = Path.Combine(AppContext.BaseDirectory, "data-test.sql");
-    if (!File.Exists(testDataFile))
-    {
-        testDataFile = "/app/data-test.sql";
-    }
-    if (!File.Exists(testDataFile))
-    {
-        testDataFile = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../data-test.sql"));
-    }
-
-    if (File.Exists(testDataFile))
-    {
-        var hasExistingData = false;
-        try
-        {
-            var connection = dbContext.Database.GetDbConnection();
-            if (connection.State != System.Data.ConnectionState.Open)
-            {
-                await connection.OpenAsync();
-            }
-            using var checkCmd = connection.CreateCommand();
-            checkCmd.CommandText = "SELECT COUNT(1) FROM [catalog].[Products];";
-            var countObj = await checkCmd.ExecuteScalarAsync();
-            if (countObj != null && Convert.ToInt32(countObj) > 0)
-            {
-                hasExistingData = true;
-            }
-        }
-        catch
-        {
-        }
-
-        if (hasExistingData)
-        {
-            Console.WriteLine("[INFO] [DATABASE] Dữ liệu sản phẩm đã tồn tại trong cơ sở dữ liệu, bỏ qua nạp data-test.sql để bảo toàn dữ liệu.");
-        }
-        else
-        {
-            Console.WriteLine("[INFO] [DATABASE] Phát hiện cơ sở dữ liệu chưa có dữ liệu sản phẩm. Đang tiến hành nạp data-test.sql...");
-            try
-            {
-                var sql = await File.ReadAllTextAsync(testDataFile);
-                var connection = dbContext.Database.GetDbConnection();
-                if (connection.State != System.Data.ConnectionState.Open)
-                {
-                    await connection.OpenAsync();
-                }
-                using var command = connection.CreateCommand();
-                command.CommandText = sql;
-                command.CommandTimeout = 300;
-                await command.ExecuteNonQueryAsync();
-                Console.WriteLine("[SUCCESS] [DATABASE] Nạp dữ liệu data-test.sql thành công!");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] [DATABASE] Lỗi khi nạp data-test.sql: {ex.Message}");
-                throw;
-            }
-        }
-    }
-
     Console.WriteLine("[INFO] [SEEDER] Đang kiểm tra và khởi tạo dữ liệu mặc định...");
     var seeder = services.GetRequiredService<ApplicationDbSeeder>();
     await seeder.SeedAsync();

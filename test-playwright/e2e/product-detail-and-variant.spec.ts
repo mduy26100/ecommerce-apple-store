@@ -1,52 +1,56 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Admin - Chi tiết sản phẩm & Thêm phiên bản (Row Click & Add Variant)", () => {
+test.describe("Admin - Chi tiết sản phẩm & Thêm phiên bản (Page Navigation & Add Variant)", () => {
   const uniqueId = Date.now();
   const testProductName = `MacBook Pro M4 ${uniqueId}`;
   const testProductSlug = `macbook-pro-m4-${uniqueId}`;
   const testSku = `MBP14-M4-${uniqueId}`;
 
-  test("Kiểm tra luồng click vào row sản phẩm -> hiển thị chi tiết sản phẩm -> thêm variant", async ({ page }) => {
-    await page.goto("/admin/products");
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/admin/auth/login");
     await page.waitForLoadState("networkidle");
+    if (page.url().includes("/admin/auth/login")) {
+      await page.fill("input#identifier, input[name='identifier']", "admin@apple-store.com");
+      await page.fill("input#password, input[name='password']", "Admin@123456");
+      await page.click("form button[type='submit'], form button:has-text('Đăng nhập')");
+      await page.waitForURL((url) => url.pathname.includes("/admin/dashboard"));
+    }
+  });
 
-    await page.click("button:has-text('Thêm sản phẩm')");
-    const productModal = page.locator(".ant-modal");
-    await expect(productModal).toBeVisible();
-
-    await page.locator(".ant-modal input#categoryId").click();
-    await page.waitForSelector(".ant-select-dropdown:not(.ant-select-dropdown-hidden)");
-    await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").first().click();
+  test("Kiểm tra luồng tạo sản phẩm trên Page riêng -> chuyển đến trang chi tiết -> thêm variant", async ({ page }) => {
+    await page.goto("/admin/products/new");
+    await page.waitForLoadState("networkidle");
 
     await page.fill("input#name", testProductName);
     await page.fill("input#slug", testProductSlug);
     await page.fill("input#modelCode", "A3112");
     await page.fill("input#warrantyMonths", "12");
 
-    await Promise.all([
+    await page.locator("input#categoryId, .ant-select-selector:has(#categoryId)").click();
+    await page.waitForSelector(".ant-select-dropdown:not(.ant-select-dropdown-hidden)");
+    await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").first().click();
+
+    const [createResponse] = await Promise.all([
       page.waitForResponse(
         (res) => res.url().includes("/api/manager/products") && res.request().method() === "POST"
       ),
-      page.click(".ant-modal-footer button:has-text('Lưu')"),
+      page.click("button:has-text('Tạo sản phẩm mới')"),
     ]);
 
-    await expect(productModal).not.toBeVisible();
+    expect(createResponse.status()).toBeLessThan(400);
+    const json = await createResponse.json();
+    const createdProductId = json.data?.id || json.id;
 
-    await page.fill("input[placeholder*='Tìm theo tên']", testProductName);
+    await page.waitForURL((url) => url.pathname.includes(`/admin/products/${createdProductId}`));
     await page.waitForLoadState("networkidle");
 
-    const productRow = page.locator(`.ant-table-row:has-text('${testProductName}')`);
-    await expect(productRow).toBeVisible();
+    await expect(page.locator("h1").first()).toContainText(testProductName);
 
-    await productRow.click();
+    // Chuyển sang tab Biến thể & Tồn kho
+    await page.locator("button[role='tab']:has-text('Phiên bản'), [role='tab']:has-text('Phiên bản')").click();
+    await expect(page.locator("button:has-text('Thêm phiên bản mới')")).toBeVisible();
 
-    const drawer = page.locator(".ant-drawer");
-    await expect(drawer).toBeVisible();
-    await expect(drawer).toContainText("Chi tiết sản phẩm & Quản lý phiên bản");
-    await expect(drawer).toContainText(testProductName);
-    await expect(drawer).toContainText(testProductSlug);
-
-    await drawer.locator("button:has-text('Thêm phiên bản')").click();
+    await page.click("button:has-text('Thêm phiên bản mới')");
     const variantModal = page.locator(".ant-modal");
     await expect(variantModal).toBeVisible();
 
@@ -55,16 +59,29 @@ test.describe("Admin - Chi tiết sản phẩm & Thêm phiên bản (Row Click &
     await page.fill("input#price", "39990000");
     await page.fill("input#quantityInStock", "25");
 
-    await Promise.all([
+    const [variantResponse] = await Promise.all([
       page.waitForResponse(
         (res) => res.url().includes("/api/manager/product-variants") && res.request().method() === "POST"
       ),
       page.click(".ant-modal-footer button:has-text('Lưu')"),
     ]);
 
+    expect(variantResponse.status()).toBeLessThan(400);
     await expect(variantModal).not.toBeVisible();
 
-    await expect(drawer.locator(".ant-table")).toContainText(testSku);
-    await expect(drawer.locator(".ant-table")).toContainText("16GB RAM - 512GB SSD");
+    await expect(page.locator(".ant-table")).toContainText(testSku);
+    await expect(page.locator(".ant-table")).toContainText("16GB RAM - 512GB SSD");
+
+    // Dọn dẹp: Xóa sản phẩm thử nghiệm
+    await page.goto("/admin/products");
+    await page.waitForLoadState("networkidle");
+    await page.fill("input[placeholder*='Tìm theo tên']", testProductName);
+    await page.waitForLoadState("networkidle");
+    const row = page.locator(`.ant-table-row:has-text('${testProductName}')`);
+    if (await row.isVisible()) {
+      await row.locator("button[aria-label='Xóa sản phẩm'], button:has(.anticon-delete)").click();
+      const popconfirm = page.locator(".ant-popconfirm, .ant-popover");
+      await popconfirm.locator("button:has-text('Xóa')").click();
+    }
   });
 });
