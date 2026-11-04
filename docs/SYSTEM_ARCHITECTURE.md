@@ -141,6 +141,18 @@ Trong thực tế mua sắm các thiết bị giá trị cao như iPhone 16 Pro 
   - DTO trả về cho giao diện có cờ `CanCancel => Status == "Pending" && PaymentStatus != "Paid"`.
   - Frontend ẩn hoàn toàn nút "Hủy đơn hàng" trên màn hình của khách và vô hiệu hóa nút hủy đơn trên Admin, bảo vệ toàn vẹn dòng tiền của doanh nghiệp.
 
+#### 4. Thông Số Thẻ Thanh Toán Thử Nghiệm VNPay Sandbox
+
+Để kiểm thử toàn diện chu trình thanh toán trực tuyến từ Storefront tới Webhook IPN, hệ thống được cấu hình sẵn môi trường VNPay Sandbox với thông tin thẻ ngân hàng thử nghiệm chính thức:
+
+| Tiêu chí cấu hình | Thông tin thẻ Sandbox |
+| :--- | :--- |
+| **Ngân hàng phát hành** | `NCB` (Ngân hàng TMCP Quốc Dân) |
+| **Số thẻ thanh toán** | `9704198526191432198` |
+| **Tên chủ thẻ (In hoa không dấu)** | `NGUYEN VAN A` |
+| **Ngày phát hành (Tháng/Năm)** | `07/15` |
+| **Mã OTP xác thực** | `123456` |
+
 ---
 
 ## 5. Cơ Chế Kiểm Soát Tương Tranh Đa Tầng (3-Tier Concurrency Defense)
@@ -190,3 +202,23 @@ Quy trình khởi chạy Docker Compose tuân thủ nghiêm ngặt 3 giai đoạ
 | **Giai đoạn 2** | `db-init` | Trình nạp khởi tạo Idempotent | - Nhận diện biến môi trường `${DB_NAME:-AppleStoreDb}` từ `.env`.<br>- Kiểm tra nếu chưa có cơ sở dữ liệu: tự động tạo `CREATE DATABASE`.<br>- Kiểm tra số lượng sản phẩm trong bảng `[catalog].[Products]`. Nếu = 0: tự động chạy script `seed-data.sql` nạp toàn bộ cấu hình Apple 2022-2026, thông số, voucher và đơn hàng.<br>- Nếu đã có dữ liệu: lập tức bỏ qua để bảo toàn dữ liệu giao dịch thực tế.<br>- Khi hoàn tất thành công, container thoát với exit code 0 (`service_completed_successfully`). |
 | **Giai đoạn 3** | `backend` | ASP.NET Core 8 Web API | Khởi động sau khi `sqlserver` đã Healthy và `db-init` đã hoàn thành thành công. Chạy kiểm tra kết nối, đồng bộ EF Core Migrations, thực thi `ApplicationDbSeeder`. Healthcheck `curl http://localhost:8080/health` đạt 200 OK chuyển sang `Healthy`. |
 | **Giai đoạn 4** | `frontend` & `ngrok` | Nginx React SPA & Ngrok Tunnel | Khởi động sau khi `backend` đã Healthy. Frontend lắng nghe cổng 3088, Ngrok mở tunnel kết nối cổng 8088. Toàn bộ hệ thống sẵn sàng phục vụ 100%. |
+
+---
+
+## 8. Kiến Trúc Tác Vụ Chạy Ngầm (Background Jobs với Hangfire) & Tự Động Hủy Đơn Om Lâu
+
+### 8.1. Bài Toán Nghiệp Vụ "Om Hàng" Trong Thương Mại Điện Tử Thiết Bị Apple
+Khi khách hàng đặt hàng thanh toán trực tuyến (VNPay), hệ thống áp dụng cơ chế trừ tồn kho tức thời (`QuantityInStock -= item.Quantity`) nhằm triệt tiêu nguy cơ Overselling. Tuy nhiên, nếu khách hàng thoát trình duyệt, thẻ ngân hàng không đủ số dư hoặc cố tình treo thanh toán, số lượng sản phẩm Apple giá trị cao sẽ bị "găm giữ", tước đoạt cơ hội mua sắm của các khách hàng khác.
+
+### 8.2. Giải Pháp Kiến Trúc Phân Tầng Clean Architecture
+- **Tầng Application:** Cung cấp duy nhất Interface trừu tượng `IStaleOrderCleanupJob` và `StaleOrdersSpec`, độc lập hoàn toàn khỏi thư viện bên thứ 3.
+- **Tầng Infrastructure:** Cài đặt gói `Hangfire.Core`, `Hangfire.SqlServer`, `Hangfire.AspNetCore`. Lớp `StaleOrderCleanupJob` triển khai thuật toán quét đơn thông minh với thời gian chờ quá hạn 3 giờ cho thanh toán trực tuyến và 24 giờ cho đơn COD chưa duyệt.
+- **Tầng Host:** Tích hợp Hangfire Server worker chạy ngầm, đăng ký Recurring Job tự động quét mỗi 15 phút và kích hoạt Dashboard trực quan tại `/hangfire`.
+
+### 8.3. Xử Lý Rủi Ro Kỹ Thuật Chuyên Sâu (Advanced Concurrency & Performance Defense)
+
+| Rủi ro kỹ thuật | Thảm họa tiềm ẩn nếu thiết kế non tay | Giải pháp đẳng cấp của Urban Stitch |
+| :--- | :--- | :--- |
+| **Transaction Timeout & Table Lock** | Bọc toàn bộ hàng trăm đơn hàng vào 1 Transaction khổng lồ khiến giữ khóa dữ liệu quá lâu, gây nghẽn toàn bộ hệ thống hoặc đứt gãy giữa chừng. | **Batching & Per-Order Transaction Scope**: Giới hạn quét `Take(50)` theo thứ tự `PlacedAt ASC`. Mỗi đơn hàng được xử lý và commit trong một Transaction độc lập (< 10ms). Nếu 1 đơn lỗi, transaction đơn đó rollback mà không làm gián đoạn các đơn hàng khác trong đợt quét. |
+| **Xung đột Concurrency (Lost Update)** | Đọc thực thể biến thể về RAM rồi gán `variant.QuantityInStock += qty`. Nếu cùng lúc có khách khác đang mua, EF Core sẽ ghi đè lẫn nhau hoặc ném Exception. | **Atomic In-Database SQL Updates**: Thực thi lệnh SQL nguyên tử trực tiếp ở tầng database engine: `UPDATE [catalog].[ProductVariants] SET [QuantityInStock] = [QuantityInStock] + @qty WHERE [Id] = @id`. Lệnh thực thi nguyên tử với row-level lock tức thời, loại bỏ triệt để xung đột đồng thời. |
+| **Bảo toàn Dữ liệu & Xung đột Schema** | Thư viện Background Job can thiệp hoặc xung đột với cấu trúc bảng nghiệp vụ của hệ thống. | **Phân vùng Schema Độc Lập `[HangFire]`**: Toàn bộ bảng tác vụ của Hangfire nằm riêng biệt trong schema `[HangFire]`, hoàn toàn không ảnh hưởng tới các schemas nghiệp vụ (`catalog`, `sales`, `identity`) và tập tin `seed-data.sql`. |

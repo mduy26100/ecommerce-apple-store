@@ -32,6 +32,13 @@ Dự án sở hữu 5 giải pháp công nghệ cấp doanh nghiệp vượt xa 
    - Cung cấp bảng điều khiển Dashboard thời gian thực, biểu đồ xu hướng doanh thu kép, cơ cấu phương thức thanh toán và tỷ trọng trạng thái đơn hàng.
    - Tích hợp tính năng xuất tệp Excel `.xlsx` trực tiếp từ luồng stream bộ nhớ thông qua thư viện `ClosedXML` chuẩn OpenXML, trình bày mẫu bảng tính kế toán chuyên nghiệp.
 
+6. **Tác Vụ Chạy Ngầm Background Jobs (Hangfire) Tự Động Hủy Đơn Quá Hạn & Phục Hồi Tồn Kho:**
+   - Tự động rà soát các đơn hàng om lâu (thanh toán online quá 3 giờ chưa thanh toán, đơn COD quá 24 giờ chưa duyệt).
+   - Áp dụng **Batching & Per-Order Transaction Scope**: Xử lý độc lập từng đơn trong một Transaction riêng biệt (< 10ms), loại trừ triệt để nguy cơ Transaction Timeout và Table Lock.
+   - Áp dụng **Atomic In-Database SQL Updates** trực tiếp ở tầng database engine, loại trừ triệt để nguy cơ Lost Update / Race Condition khi có khách mua đồng thời.
+   - Vận hành trên schema `[HangFire]` độc lập, bảo toàn tính chuẩn sạch của `seed-data.sql`.
+   - Cung cấp Dashboard quản trị trực quan tại `http://localhost:8088/hangfire` theo dõi tự động hóa 100%.
+
 ---
 
 ## 2. Bảng Tóm Tắt Công Nghệ Sử Dụng (Tech Stack)
@@ -40,6 +47,7 @@ Dự án sở hữu 5 giải pháp công nghệ cấp doanh nghiệp vượt xa 
 | :--- | :--- | :--- |
 | **Backend** | **ASP.NET Core 8 (.NET 8)** | Xây dựng theo nguyên lý **Clean Architecture** kết hợp mô hình phân tầng hướng tâm **Onion Architecture** (`Domain` $\rightarrow$ `Application` $\rightarrow$ `Infrastructure` $\rightarrow$ `Host`), triển khai **Service Pattern** kết hợp **Specification Pattern (Ardalis.Specification)** và **Repository Pattern**. |
 | **Database** | **Microsoft SQL Server 2022** | Phân tách 3 Schemas độc lập (`catalog`, `sales`, `identity`), chỉ mục lọc tối ưu hóa truy vấn và khóa lạc quan `rowversion`. |
+| **Tác Vụ Ngầm** | **Hangfire (SQL Server Storage)** | Tự động hóa tác vụ ngầm quét hủy đơn quá hạn, hoàn trả kho nguyên tử, quản trị trực quan qua Hangfire Dashboard. |
 | **Frontend** | **React 19 + TypeScript + Vite** | Kiến trúc **Feature-based**, phân tách rạch ròi Client State (Zustand) và Server State (TanStack React Query), Ant Design 6 và TailwindCSS v4. |
 | **Cổng Thanh Toán** | **VNPay Sandbox** | Tích hợp cổng thanh toán trực tuyến qua thẻ ATM / QR-Code / Thẻ quốc tế với chữ ký số HMAC-SHA512. |
 | **Tự Động Hóa** | **Docker & Docker Compose** | Điều phối khởi chạy tuần tự an toàn, nạp dữ liệu Apple 2022-2026 tự động và chống ghi đè dữ liệu (Idempotency). |
@@ -146,6 +154,7 @@ docker compose up -d
 | **Frontend Storefront** | **`3088`** | `http://localhost:3088` | Giao diện bán hàng trực tuyến chuẩn Apple |
 | **Admin Portal** | **`3088`** | `http://localhost:3088/admin/auth/login` | Cổng quản trị toàn màn hình 5 tabs |
 | **Backend Web API** | **`8088`** | `http://localhost:8088/swagger` | Cổng tra cứu tài liệu Swagger RESTful API |
+| **Hangfire Dashboard** | **`8088`** | `http://localhost:8088/hangfire` | Bảng điều khiển giám sát tác vụ ngầm Background Jobs (Lịch trình, Lịch sử, Retry) |
 | **SQL Server 2022** | **`14333`** | `localhost:14333` | Cơ sở dữ liệu quan hệ (Database: `AppleStoreDb`) |
 | **Ngrok Tunnel Dashboard** | **`4040`** | `http://localhost:4040` | Bảng điều khiển Webhook trung gian cho VNPay IPN |
 
@@ -160,7 +169,21 @@ docker compose up -d
 
 ---
 
-## 7. Bộ Hồ Sơ Tài Liệu Chi Tiết Trong Thư Mục `./docs`
+## 7. Thông Tin Thẻ Thử Nghiệm Cổng Thanh Toán VNPay Sandbox
+
+Dùng để thực hiện giao dịch thanh toán thử nghiệm khi đặt hàng hoặc test tính năng thanh toán lại VNPay:
+
+| Tiêu chí | Thông tin thẻ Sandbox |
+| :--- | :--- |
+| **Ngân hàng chấp nhận** | `NCB` (Ngân hàng Quốc Dân) |
+| **Số thẻ thanh toán** | `9704198526191432198` |
+| **Tên chủ thẻ (Không dấu)** | `NGUYEN VAN A` |
+| **Ngày phát hành (MM/YY)** | `07/15` |
+| **Mã OTP xác thực** | `123456` |
+
+---
+
+## 8. Bộ Hồ Sơ Tài Liệu Chi Tiết Trong Thư Mục `./docs`
 
 Để phục vụ tốt nhất cho việc nghiên cứu, viết báo cáo đồ án và thuyết trình trước hội đồng chấm thi, toàn bộ tài liệu chuyên sâu được sắp xếp chi tiết trong thư mục `./docs`:
 

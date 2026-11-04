@@ -205,10 +205,12 @@ Khi xảy ra lỗi nghiệp vụ hoặc kiểm thực thất bại, hệ thống
 ### 7.2. Quản Trị Đơn Hàng & Tài Khoản Người Dùng
 | Phương thức | Đường dẫn API | Mô tả nghiệp vụ |
 | :--- | :--- | :--- |
-| `GET` | `/api/v1/admin/orders` | Danh sách đơn hàng toàn hệ thống với bộ lọc đa chiều |
-| `PUT` | `/api/v1/admin/orders/{id}/status` | Chuyển trạng thái đơn (`Processing` $\rightarrow$ `Shipped` $\rightarrow$ `Delivered`) |
-| `GET` | `/api/v1/admin/users` | Danh sách tài khoản khách hàng và nhân sự |
-| `PUT` | `/api/v1/admin/users/{id}/toggle-status` | Khóa hoặc kích hoạt lại tài khoản người dùng |
+| `GET` | `/api/manager/orders` | Danh sách đơn hàng toàn hệ thống với bộ lọc đa chiều |
+| `PUT` | `/api/manager/orders/{id}/status` | Chuyển trạng thái đơn (`Processing` $\rightarrow$ `Shipped` $\rightarrow$ `Delivered`) |
+| `POST` | `/api/manager/orders/{id}/cancel` | Hủy đơn hàng và tự động phục hồi tồn kho sản phẩm |
+| `GET` | `/hangfire` | **Bảng điều khiển trực quan Hangfire Dashboard (giám sát tự động hóa Jobs, Lịch trình, Lịch sử)** |
+| `GET` | `/api/manager/users` | Danh sách tài khoản khách hàng và nhân sự |
+| `PUT` | `/api/manager/users/{id}/toggle-status` | Khóa hoặc kích hoạt lại tài khoản người dùng |
 
 ---
 

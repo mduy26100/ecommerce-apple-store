@@ -26,6 +26,7 @@ Hệ thống được thiết kế vượt xa các đồ án thương mại đi�
 | **Backend** | **.NET 8 (C#)** | Xây dựng theo nguyên lý **Clean Architecture** kết hợp mô hình phân tầng hướng tâm **Onion Architecture** (`Domain` $\rightarrow$ `Application` $\rightarrow$ `Infrastructure` $\rightarrow$ `Host`). |
 | **Database** | **Microsoft SQL Server 2022** | Hệ quản trị cơ sở dữ liệu quan hệ mạnh mẽ, phân tách 3 Schemas độc lập (`catalog`, `sales`, `identity`), chỉ mục lọc và khóa lạc quan `rowversion`. |
 | **Frontend** | **React 19 + TypeScript + Vite** | Xây dựng theo mô hình **Feature-based Architecture**, phân tách rạch ròi giữa Server State (TanStack React Query) và Client State (Zustand); tối ưu giao diện với TailwindCSS v4 và Ant Design 6. |
+| **Tác vụ ngầm** | **Hangfire (SQL Server Storage)** | Tự động hóa quét hủy đơn quá hạn, hoàn trả kho nguyên tử, quản trị trực quan qua Hangfire Dashboard. |
 | **Thanh toán & Media** | **VNPay Sandbox & Cloudinary CDN** | Cổng thanh toán trực tuyến bảo mật HMAC-SHA512 và máy chủ lưu trữ / nén ảnh tự động cho các bộ sưu tập ảnh theo màu sắc. |
 | **Tự động hóa** | **Docker & Docker Compose** | Tự động hóa đóng gói multi-stage, kiểm soát startup healthcheck tuần tự, nạp seed data an toàn và mở tunnel Ngrok phục vụ Webhook IPN. |
 
@@ -130,6 +131,7 @@ docker compose up -d
 - **Cửa hàng Storefront:** `http://localhost:3088` (Port: `3088`)
 - **Cổng Quản trị Admin:** `http://localhost:3088/admin/auth/login`
 - **Backend Web API & Swagger Docs:** `http://localhost:8088/swagger` (Port: `8088`)
+- **Hangfire Dashboard:** `http://localhost:8088/hangfire` (Port: `8088`)
 - **Microsoft SQL Server 2022:** `localhost:14333` (Port: `14333`, Database: `AppleStoreDb`)
 - **Ngrok Tunnel Dashboard:** `http://localhost:4040` (Port: `4040`)
 
@@ -139,6 +141,22 @@ docker compose up -d
 | :--- | :--- | :--- | :--- |
 | **Quản trị viên (SuperAdmin)** | `admin@apple-store.com` | `Admin@123456` | Toàn quyền quản trị: Dashboard, Sản phẩm 5 tabs, Biến thể, Đơn hàng, Khóa tài khoản, Báo cáo thống kê và Xuất Excel. |
 | **Khách hàng mẫu (Customer VIP)** | `user@apple-store.com` | `User@123456` | Khách hàng thành viên: Duyệt mua sản phẩm Apple, Ví voucher, Giỏ hàng cá nhân, Lịch sử đơn hàng và Retry thanh toán VNPay. |
+
+### Thông Tin Thẻ Thử Nghiệm Cổng Thanh Toán VNPay Sandbox
+
+Dùng để thực hiện thanh toán trực tuyến mô phỏng khi test chức năng Checkout đơn hàng hoặc Retry thanh toán qua VNPay:
+
+| Tiêu chí | Thông tin thẻ Sandbox |
+| :--- | :--- |
+| **Ngân hàng chấp nhận** | `NCB` (Ngân hàng Quốc Dân) |
+| **Số thẻ thanh toán** | `9704198526191432198` |
+| **Tên chủ thẻ** | `NGUYEN VAN A` |
+| **Ngày phát hành** | `07/15` |
+| **Mã xác thực OTP** | `123456` |
+
+> [!TIP]
+> Khi cổng VNPay Sandbox yêu cầu bước xác thực OTP gửi về điện thoại, nhập mã cố định `123456` để giao dịch thanh toán được hoàn tất thành công.
+
 
 ---
 

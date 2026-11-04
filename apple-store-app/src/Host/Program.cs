@@ -1,4 +1,5 @@
 using Application;
+using Application.Features.Sales.Orders.Jobs;
 using Host.Extensions;
 using Host.Filters;
 using Host.Middlewares;
@@ -111,6 +112,18 @@ if (!app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireAuthorizationFilter() },
+    DashboardTitle = "Urban Stitch - Background Jobs"
+});
+
+RecurringJob.AddOrUpdate<IStaleOrderCleanupJob>(
+    "stale-order-cleanup",
+    job => job.ProcessStaleOrdersAsync(default),
+    builder.Configuration["BackgroundJobs:StaleOrderCleanup:CronExpression"] ?? "*/15 * * * *"
+);
 
 app.MapControllers();
 app.MapHealthChecks("/health");

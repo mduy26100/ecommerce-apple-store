@@ -261,6 +261,13 @@
    - **Tầng 1 (In-Memory Lock với SemaphoreSlim):** Cấp phát khóa độc quyền theo `VariantId`. Bắt buộc sắp xếp danh sách mã biến thể theo thứ tự tăng dần (`OrderBy(x => x.VariantId)`) trước khi xin khóa để triệt tiêu hoàn toàn nguy cơ Deadlock chéo giữa các luồng.
    - **Tầng 2 (ACID Database Transaction):** Đóng gói toàn bộ thao tác kiểm tra tồn kho, trừ tồn kho, tạo đơn hàng và xóa giỏ hàng trong một `IDatabaseTransaction`. Bất kỳ lỗi nào phát sinh đều kích hoạt `ROLLBACK` nguyên trạng.
    - **Tầng 3 (Khóa Lạc Quan RowVersion):** Cột `RowVersion` trên bảng `catalog.ProductVariants` phát hiện mọi cập nhật song song và ném `DbUpdateConcurrencyException`, ngăn chặn bán vượt quá số lượng hàng có trong kho.
+5. **Thông Tin Thẻ Thử Nghiệm VNPay Sandbox Chuẩn:**
+   - Dùng để kiểm thử luồng thanh toán trực tuyến mô phỏng khi đặt hàng (Checkout) hoặc Thanh toán lại (Repay VNPay):
+     - **Ngân hàng chấp nhận:** `NCB` (Ngân hàng Quốc Dân)
+     - **Số thẻ:** `9704198526191432198`
+     - **Tên chủ thẻ:** `NGUYEN VAN A`
+     - **Ngày phát hành:** `07/15`
+     - **Mã OTP:** `123456`
 
 ---
 

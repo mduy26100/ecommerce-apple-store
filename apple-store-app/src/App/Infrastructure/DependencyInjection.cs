@@ -3,8 +3,10 @@ using Application.Common.Interfaces.Reports;
 using Application.Common.Interfaces.Storage;
 using Application.Common.Services.Payments;
 using Application.Features.Identity.Services;
+using Application.Features.Sales.Orders.Jobs;
 using Infrastructure.Identity.Models;
 using Infrastructure.Identity.Services;
+using Infrastructure.Jobs;
 using Infrastructure.Payments;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Seeders;
@@ -24,6 +26,7 @@ namespace Infrastructure
             services.AddStorageServices(configuration);
             services.AddPaymentServices(configuration);
             services.AddScoped<IExcelExportService, ClosedXmlOrderReportExportService>();
+            services.AddBackgroundJobs(configuration);
 
             return services;
         }
@@ -130,6 +133,37 @@ namespace Infrastructure
         {
             services.Configure<VnPaySettings>(configuration.GetSection(VnPaySettings.SectionName));
             services.AddScoped<IVnPayService, VnPayService>();
+
+            return services;
+        }
+
+        private static IServiceCollection AddBackgroundJobs(this IServiceCollection services, IConfiguration configuration)
+        {
+            var connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? configuration.GetConnectionString("DbConnection")
+                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' or 'DbConnection' was not found in configuration.");
+
+            services.AddHangfire(config => config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseSqlServerStorage(connectionString, new SqlServerStorageOptions
+                {
+                    CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+                    SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+                    QueuePollInterval = TimeSpan.Zero,
+                    UseRecommendedIsolationLevel = true,
+                    DisableGlobalLocks = true,
+                    PrepareSchemaIfNecessary = true
+                }));
+
+            services.AddHangfireServer(options =>
+            {
+                options.WorkerCount = Math.Max(1, Environment.ProcessorCount);
+                options.ServerName = "AppleStore-BackgroundWorker";
+            });
+
+            services.AddScoped<IStaleOrderCleanupJob, StaleOrderCleanupJob>();
 
             return services;
         }

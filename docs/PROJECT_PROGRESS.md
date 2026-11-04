@@ -62,6 +62,14 @@ Toàn bộ các phân hệ cốt lõi từ Cơ sở dữ liệu, Backend Web API
   - Chặn tuyệt đối việc hủy đơn hàng khi đã thanh toán trực tuyến thành công (`PaymentStatus = Paid`).
 - [x] **Trung Tâm Báo Cáo Thống Kê & Xuất Excel OpenXML (`/admin/reports`):**
   - Cung cấp trọn bộ 6 API báo cáo thống kê: KPI cards, Biểu đồ xu hướng doanh thu kép, Phân bổ trạng thái đơn, Cơ cấu kênh thanh toán, Tồn kho ngành hàng và Xuất tệp bảng tính Excel `.xlsx` trực tiếp từ luồng stream dữ liệu bộ nhớ qua thư viện `ClosedXML`.
+- [x] **Tác Vụ Chạy Ngầm Background Jobs (Hangfire) Tự Động Hủy Đơn Quá Hạn & Hoàn Trả Tồn Kho:**
+  - Tự động rà soát các đơn hàng om lâu (thanh toán trực tuyến quá 3 giờ chưa Paid, đơn COD quá 24 giờ chưa duyệt).
+  - **Batching & Per-Order Transaction Scope**: Xử lý độc lập từng đơn hàng trong một Transaction riêng biệt (< 10ms), giải quyết triệt để rủi ro Transaction Timeout và Table Locking khi khối lượng đơn lớn.
+  - **Atomic In-Database SQL Updates**: Cập nhật dồn dập trực tiếp ở tầng SQL Server engine (`UPDATE [catalog].[ProductVariants] SET QuantityInStock = QuantityInStock + @qty`), loại trừ hoàn toàn nguy cơ Lost Update / Race Condition khi có khách mua đồng thời.
+  - Hoàn trả chính xác lượt dùng Voucher cho cả hệ thống lẫn cá nhân người dùng.
+  - Vận hành trên schema `[HangFire]` độc lập, bảo toàn tính chuẩn sạch của `seed-data.sql`.
+  - Cung cấp Dashboard trực quan tại `/hangfire` theo dõi tự động hóa 100%.
+  - Độ phủ kiểm thử E2E Playwright chuyên biệt (`background-jobs-stale-order.spec.ts`) đạt kết quả **PASS 100%**.
 
 ---
 

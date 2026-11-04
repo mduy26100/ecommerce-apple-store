@@ -23,3 +23,6 @@ global using Microsoft.IdentityModel.Tokens;
 global using Expression = System.Linq.Expressions.Expression;
 global using System.Globalization;
 global using ClosedXML.Excel;
+global using Hangfire;
+global using Hangfire.SqlServer;
+global using Microsoft.Extensions.Logging;

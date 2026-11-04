@@ -7,3 +7,5 @@ global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Mvc.Filters;
 global using Microsoft.Extensions.Options;
 global using Microsoft.OpenApi.Models;
+global using Hangfire;
+global using Hangfire.Dashboard;
