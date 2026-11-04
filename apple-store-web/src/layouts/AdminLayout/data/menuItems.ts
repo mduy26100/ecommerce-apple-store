@@ -1,13 +1,8 @@
 import React from "react";
 import {
   DashboardOutlined,
-  UserOutlined,
   TeamOutlined,
-  SettingOutlined,
   ClusterOutlined,
-  SafetyCertificateOutlined,
-  ProfileOutlined,
-  PartitionOutlined,
   BgColorsOutlined,
   DatabaseOutlined,
   FolderOutlined,
@@ -69,56 +64,11 @@ export const menuItems: MenuItem[] = [
     icon: React.createElement(BarChartOutlined),
   },
   {
-    key: "user-management",
-    label: "Quản trị người dùng",
-    icon: React.createElement(UserOutlined),
+    key: "users",
+    label: "Quản lý người dùng",
+    path: "/admin/users",
+    icon: React.createElement(TeamOutlined),
     roles: [USER_ROLES.ADMIN],
-    children: [
-      {
-        key: "users",
-        label: "Người dùng",
-        path: "/admin/users",
-        icon: React.createElement(TeamOutlined),
-        roles: [USER_ROLES.ADMIN],
-      },
-      {
-        key: "roles",
-        label: "Vai trò & Quyền",
-        path: "/admin/roles",
-        icon: React.createElement(SafetyCertificateOutlined),
-        roles: [USER_ROLES.ADMIN],
-      },
-    ],
-  },
-  {
-    key: "tenant-management",
-    label: "Quản lý đối tác",
-    icon: React.createElement(ClusterOutlined),
-    roles: [USER_ROLES.SUPER_ADMIN],
-    children: [
-      {
-        key: "tenants",
-        label: "Chi nhánh",
-        path: "/admin/tenants",
-        icon: React.createElement(PartitionOutlined),
-        roles: [USER_ROLES.SUPER_ADMIN],
-      },
-    ],
-  },
-  {
-    key: "settings",
-    label: "Cấu hình",
-    icon: React.createElement(SettingOutlined),
-    roles: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
-    children: [
-      {
-        key: "settings-general",
-        label: "Cài đặt chung",
-        path: "/admin/settings",
-        icon: React.createElement(ProfileOutlined),
-        roles: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
-      },
-    ],
   },
 ];
 

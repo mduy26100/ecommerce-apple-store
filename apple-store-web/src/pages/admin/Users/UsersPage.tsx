@@ -1,38 +1,271 @@
-import { Table, Tag, Button, Input, Space, Card } from "antd";
-import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { useState, useMemo } from "react";
+import {
+  Table,
+  Tag,
+  Button,
+  Input,
+  Select,
+  Space,
+  Card,
+  Avatar,
+  Popconfirm,
+  Tooltip,
+  message,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
+import {
+  PlusOutlined,
+  EditOutlined,
+  LockOutlined,
+  UnlockOutlined,
+  KeyOutlined,
+  EyeOutlined,
+  UserOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import PageHeader from "@shared/components/page-header/PageHeader";
+import {
+  useUsers,
+  useUnlockUser,
+  CreateUserModal,
+  EditUserModal,
+  LockUserModal,
+  ResetPasswordModal,
+  UserDetailDrawer,
+  type UserItem,
+  type UserPagedParams,
+} from "@features/admin/users";
 
 export const UsersPage = () => {
-  const data = [
-    { key: "1", name: "Quản trị viên Hệ thống", email: "admin@apple-store.com", role: "SuperAdmin", status: "Hoạt động" },
-    { key: "2", name: "Nguyễn Văn Hùng", email: "hung.nv@apple-store.com", role: "Quản lý Bán hàng", status: "Hoạt động" },
-    { key: "3", name: "Trần Thị Lan", email: "lan.tt@apple-store.com", role: "Hỗ trợ Kỹ thuật", status: "Tạm khóa" },
-  ];
+  const [params, setParams] = useState<UserPagedParams>({
+    pageNumber: 1,
+    pageSize: 10,
+    search: "",
+    status: "all",
+  });
 
-  const columns = [
+  const [searchInput, setSearchInput] = useState("");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalUser, setEditModalUser] = useState<UserItem | null>(null);
+  const [lockModalUser, setLockModalUser] = useState<UserItem | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<UserItem | null>(null);
+  const [detailUserId, setDetailUserId] = useState<number | null>(null);
+
+  const queryParams = useMemo(() => {
+    return {
+      pageNumber: params.pageNumber,
+      pageSize: params.pageSize,
+      search: params.search || undefined,
+      status: params.status === "all" ? undefined : params.status,
+    };
+  }, [params]);
+
+  const { data, isLoading, refetch, isFetching } = useUsers(queryParams);
+  const { mutate: unlockUser, isPending: isUnlocking } = useUnlockUser();
+
+  const usersList = useMemo(() => {
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray((data as any).items)) return (data as any).items;
+    return [];
+  }, [data]);
+
+  const paginationMeta = useMemo(() => {
+    const meta = (data as any)?.meta?.cursorPagedResult;
+    return {
+      current: meta?.pageNumber || params.pageNumber || 1,
+      pageSize: meta?.pageSize || params.pageSize || 10,
+      total: meta?.totalCount ?? usersList.length,
+    };
+  }, [data, params, usersList]);
+
+  const handleSearch = (value?: string) => {
+    const term = typeof value === "string" ? value : searchInput;
+    setParams((prev) => ({
+      ...prev,
+      pageNumber: 1,
+      search: term.trim(),
+    }));
+  };
+
+  const handleStatusChange = (val: string) => {
+    setParams((prev) => ({
+      ...prev,
+      pageNumber: 1,
+      status: val,
+    }));
+  };
+
+  const handleUnlock = (user: UserItem) => {
+    unlockUser(user.id, {
+      onSuccess: () => {
+        message.success(`Đã mở khóa tài khoản ${user.fullName || user.email} thành công!`);
+      },
+      onError: (error: any) => {
+        const errorMsg =
+          error?.response?.data?.error?.message ||
+          error?.message ||
+          "Mở khóa tài khoản thất bại!";
+        message.error(errorMsg);
+      },
+    });
+  };
+
+  const columns: ColumnsType<UserItem> = [
     {
-      title: "Họ và tên",
-      dataIndex: "name",
-      key: "name",
-      render: (text: string) => <span className="font-semibold text-slate-700">{text}</span>,
+      title: "Khách hàng",
+      key: "user",
+      width: 260,
+      render: (_, record) => (
+        <div className="flex items-center gap-3">
+          <Avatar
+            size={38}
+            src={record.avatarUrl || undefined}
+            icon={<UserOutlined />}
+            className="border border-slate-200 bg-slate-100 shrink-0 text-slate-500"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-slate-800 truncate mb-0.5 leading-tight">
+              {record.fullName}
+            </p>
+            <p className="text-xxs text-slate-400 font-mono truncate leading-tight">
+              @{record.userName}
+            </p>
+          </div>
+        </div>
+      ),
     },
-    { title: "Email", dataIndex: "email", key: "email" },
-    { title: "Vai trò", dataIndex: "role", key: "role" },
+    {
+      title: "Địa chỉ Email",
+      dataIndex: "email",
+      key: "email",
+      width: 220,
+      render: (email: string) => (
+        <span className="text-xs text-slate-600 font-medium">{email}</span>
+      ),
+    },
+    {
+      title: "Số điện thoại",
+      dataIndex: "phoneNumber",
+      key: "phoneNumber",
+      width: 130,
+      render: (phone: string | null) => (
+        <span className="text-xs text-slate-600">{phone || "—"}</span>
+      ),
+    },
     {
       title: "Trạng thái",
-      dataIndex: "status",
       key: "status",
-      render: (status: string) => (
-        <Tag color={status === "Hoạt động" ? "green" : "red"}>{status}</Tag>
+      width: 170,
+      render: (_, record) => {
+        if (record.isLocked) {
+          return (
+            <Tooltip
+              title={
+                record.lockoutEnd
+                  ? `Khóa đến: ${new Date(record.lockoutEnd).toLocaleString("vi-VN")}`
+                  : "Đang bị khóa"
+              }
+            >
+              <Tag color="red" className="rounded-full px-2.5 py-0.5 font-medium border-none cursor-pointer">
+                Tạm khóa {record.lockoutDaysRemaining ? `(${record.lockoutDaysRemaining} ngày)` : ""}
+              </Tag>
+            </Tooltip>
+          );
+        }
+        return (
+          <Tag color="green" className="rounded-full px-2.5 py-0.5 font-medium border-none">
+            Đang hoạt động
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Đơn hàng",
+      dataIndex: "totalOrders",
+      key: "totalOrders",
+      width: 100,
+      align: "center",
+      render: (count: number) => (
+        <span className="text-xs font-semibold text-slate-700">{count} đơn</span>
+      ),
+    },
+    {
+      title: "Tổng chi tiêu",
+      dataIndex: "totalSpent",
+      key: "totalSpent",
+      width: 140,
+      align: "right",
+      render: (spent: number) => (
+        <span className="text-xs font-bold text-slate-800">
+          {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(spent)}
+        </span>
       ),
     },
     {
       title: "Thao tác",
       key: "actions",
-      render: () => (
-        <Space size="middle">
-          <Button type="text" icon={<EditOutlined />} className="text-blue-500 hover:bg-blue-50" />
-          <Button type="text" icon={<DeleteOutlined />} className="text-red-500 hover:bg-red-50" />
+      width: 180,
+      fixed: "right",
+      align: "center",
+      render: (_, record) => (
+        <Space size={6}>
+          <Tooltip title="Xem chi tiết hồ sơ">
+            <Button
+              type="text"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => setDetailUserId(record.id)}
+              className="text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+            />
+          </Tooltip>
+
+          <Tooltip title="Chỉnh sửa thông tin">
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => setEditModalUser(record)}
+              className="text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+            />
+          </Tooltip>
+
+          <Tooltip title="Đặt lại mật khẩu">
+            <Button
+              type="text"
+              size="small"
+              icon={<KeyOutlined />}
+              onClick={() => setResetPasswordUser(record)}
+              className="text-slate-500 hover:text-amber-600 hover:bg-amber-50"
+            />
+          </Tooltip>
+
+          {record.isLocked ? (
+            <Popconfirm
+              title="Mở khóa tài khoản"
+              description={`Bạn có chắc muốn mở khóa ngay cho tài khoản ${record.fullName}?`}
+              okText="Mở khóa"
+              cancelText="Hủy"
+              onConfirm={() => handleUnlock(record)}
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<UnlockOutlined />}
+                loading={isUnlocking}
+                className="text-emerald-600 hover:bg-emerald-50"
+              />
+            </Popconfirm>
+          ) : (
+            <Tooltip title="Tạm khóa tài khoản">
+              <Button
+                type="text"
+                size="small"
+                icon={<LockOutlined />}
+                onClick={() => setLockModalUser(record)}
+                className="text-red-500 hover:bg-red-50"
+              />
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -41,26 +274,131 @@ export const UsersPage = () => {
   return (
     <div className="space-y-6 select-none">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <PageHeader breadcrumbs={["HỆ THỐNG", "QUẢN TRỊ TÀI KHOẢN", "NGƯỜI DÙNG"]} title="Danh Sách Người Dùng" />
+        <PageHeader
+          breadcrumbs={["HỆ THỐNG", "QUẢN TRỊ TÀI KHOẢN", "NGƯỜI DÙNG"]}
+          title="Quản Lý Người Dùng"
+        />
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          className="bg-blue-600 hover:bg-blue-700 self-start sm:self-auto shrink-0 font-semibold"
+          onClick={() => setCreateModalOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 self-start sm:self-auto shrink-0 font-semibold h-10 px-4 rounded-xl"
         >
           Thêm người dùng mới
         </Button>
       </div>
 
       <Card className="border-slate-100 shadow-xs rounded-2xl">
-        <div className="flex justify-between items-center mb-4">
-          <Input
-            prefix={<SearchOutlined className="text-slate-400 mr-1" />}
-            placeholder="Tìm kiếm người dùng theo tên hoặc email..."
-            className="max-w-md rounded-xl"
-          />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+            <Input.Search
+              id="userSearchInput"
+              placeholder="Tìm theo tên, email, SĐT, username..."
+              value={searchInput}
+              onChange={(e) => {
+                setSearchInput(e.target.value);
+                if (!e.target.value) {
+                  setParams((prev) => ({
+                    ...prev,
+                    pageNumber: 1,
+                    search: "",
+                  }));
+                }
+              }}
+              onSearch={handleSearch}
+              allowClear
+              className="w-full sm:w-72"
+            />
+
+            <Select
+              id="userStatusFilter"
+              value={params.status}
+              onChange={handleStatusChange}
+              className="w-36"
+              options={[
+                { label: "Tất cả trạng thái", value: "all" },
+                { label: "Đang hoạt động", value: "active" },
+                { label: "Đang bị khóa", value: "locked" },
+              ]}
+            />
+          </div>
+
+          <Button
+            icon={<ReloadOutlined spin={isFetching} />}
+            onClick={() => refetch()}
+            className="rounded-lg text-xs"
+          >
+            Làm mới
+          </Button>
         </div>
-        <Table dataSource={data} columns={columns} pagination={{ pageSize: 5 }} scroll={{ x: "max-content" }} />
+
+        <Table
+          rowKey="id"
+          dataSource={usersList}
+          columns={columns}
+          loading={isLoading}
+          scroll={{ x: 1000 }}
+          pagination={{
+            current: paginationMeta.current,
+            pageSize: paginationMeta.pageSize,
+            total: paginationMeta.total,
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50"],
+            showTotal: (total) => `Tổng cộng ${total} người dùng`,
+            onChange: (page, size) => {
+              setParams((prev) => ({
+                ...prev,
+                pageNumber: page,
+                pageSize: size,
+              }));
+            },
+          }}
+        />
       </Card>
+
+      <CreateUserModal
+        open={createModalOpen}
+        onCancel={() => setCreateModalOpen(false)}
+        onSuccess={() => {
+          setCreateModalOpen(false);
+          refetch();
+        }}
+      />
+
+      <EditUserModal
+        open={!!editModalUser}
+        user={editModalUser}
+        onCancel={() => setEditModalUser(null)}
+        onSuccess={() => {
+          setEditModalUser(null);
+          refetch();
+        }}
+      />
+
+      <LockUserModal
+        open={!!lockModalUser}
+        user={lockModalUser}
+        onCancel={() => setLockModalUser(null)}
+        onSuccess={() => {
+          setLockModalUser(null);
+          refetch();
+        }}
+      />
+
+      <ResetPasswordModal
+        open={!!resetPasswordUser}
+        user={resetPasswordUser}
+        onCancel={() => setResetPasswordUser(null)}
+        onSuccess={() => {
+          setResetPasswordUser(null);
+        }}
+      />
+
+      <UserDetailDrawer
+        open={typeof detailUserId === "number"}
+        userId={detailUserId ?? undefined}
+        onClose={() => setDetailUserId(null)}
+      />
     </div>
   );
 };

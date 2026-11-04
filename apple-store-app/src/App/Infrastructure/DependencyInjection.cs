@@ -82,6 +82,7 @@ namespace Infrastructure
             services.AddScoped<IAuthCookieService, AuthCookieService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IUserManagementService, UserManagementService>();
             services.AddScoped<ApplicationDbSeeder>();
 
             var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();

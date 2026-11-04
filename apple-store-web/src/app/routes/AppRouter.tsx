@@ -24,9 +24,6 @@ import ProductsPage from "@pages/admin/Products/ProductsPage";
 import OrdersPage from "@pages/admin/Orders/OrdersPage";
 import ReportsPage from "@pages/admin/Reports/ReportsPage";
 import UsersPage from "@pages/admin/Users/UsersPage";
-import RolesPage from "@pages/admin/Roles/RolesPage";
-import TenantsPage from "@pages/admin/Tenants/TenantsPage";
-import SettingsPage from "@pages/admin/Settings/SettingsPage";
 import ProfilePage from "@pages/admin/Profile/ProfilePage";
 
 import LoginPage from "@pages/auth/Login/LoginPage";
@@ -182,18 +179,6 @@ const router = createBrowserRouter([
           {
             path: "users",
             element: <UsersPage />,
-          },
-          {
-            path: "roles",
-            element: <RolesPage />,
-          },
-          {
-            path: "tenants",
-            element: <TenantsPage />,
-          },
-          {
-            path: "settings",
-            element: <SettingsPage />,
           },
           {
             path: "profile",

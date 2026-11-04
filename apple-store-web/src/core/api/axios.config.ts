@@ -32,12 +32,6 @@ const refreshInstance = axios.create({
   withCredentials: true,
 });
 
-// Dynamically load the mock adapter to ensure 100% tree-shaking in production builds
-if (import.meta.env.VITE_USE_MOCK_API === 'true') {
-  const { setupMockAdapter } = await import('./mock.api');
-  setupMockAdapter(instance);
-  setupMockAdapter(refreshInstance);
-}
 
 // A flag to trace silent refresh status and hold standard request queue
 let isRefreshing = false;

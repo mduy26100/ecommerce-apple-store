@@ -42,8 +42,14 @@ namespace Infrastructure.Identity.Services
                 throw new UnauthorizedException("Tài khoản hoặc mật khẩu không chính xác.");
             }
 
-            if (!user.IsActive)
+            var isLocked = !user.IsActive || (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow);
+            if (isLocked)
             {
+                if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow)
+                {
+                    var unlockTime = user.LockoutEnd.Value.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm");
+                    throw new UnauthorizedException($"Tài khoản của bạn đã bị khóa tạm thời đến {unlockTime}. Vui lòng liên hệ ban quản trị.");
+                }
                 throw new UnauthorizedException("Tài khoản của bạn đã bị khóa.");
             }
 
@@ -124,9 +130,20 @@ namespace Infrastructure.Identity.Services
             }
 
             var user = await _userManager.FindByIdAsync(existingToken.UserId.ToString());
-            if (user == null || !user.IsActive)
+            if (user == null)
             {
-                throw new UnauthorizedException("Tài khoản người dùng không tồn tại hoặc đã bị vô hiệu hóa.");
+                throw new UnauthorizedException("Tài khoản người dùng không tồn tại hoặc đã bị khóa.");
+            }
+
+            var isUserLocked = !user.IsActive || (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow);
+            if (isUserLocked)
+            {
+                if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow)
+                {
+                    var unlockTime = user.LockoutEnd.Value.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm");
+                    throw new UnauthorizedException($"Tài khoản của bạn đã bị khóa tạm thời đến {unlockTime}. Vui lòng liên hệ ban quản trị.");
+                }
+                throw new UnauthorizedException("Tài khoản của bạn đã bị khóa.");
             }
 
             existingToken.IsRevoked = true;
